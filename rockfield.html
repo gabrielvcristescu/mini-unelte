@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rockfield — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root{
+  --accent:#f0a040;
+  --accent-dim:rgba(111,217,255,.10);
+  --accent-border:rgba(111,217,255,.28);
+}
+.game-panel{
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:12px;
+  margin-bottom:var(--content-gap);
+}
+.hud{
+  display:grid;
+  grid-template-columns:1fr auto 1fr;
+  align-items:center;
+  gap:12px;
+  padding:2px 2px 10px;
+  font-family:var(--font-mono);
+}
+.hud-box{font-size:.68rem;color:var(--text2)}
+.hud-box:last-child{text-align:right}
+.hud-box b{font-size:.86rem;color:var(--text)}
+#startBtn{
+  border:1px solid var(--accent-border);
+  background:var(--accent-dim);
+  color:var(--accent);
+  border-radius:var(--radius-sm);
+  padding:7px 16px;
+  font-family:var(--font-mono);
+  font-size:.64rem;
+  font-weight:700;
+  cursor:pointer;
+}
+#startBtn:hover{filter:brightness(1.12)}
+#wrap{
+  position:relative;
+  overflow:hidden;
+  border-radius:var(--radius-sm);
+  border:1px solid var(--border);
+  background:#000;
+}
+#gb{
+  display:block;
+  width:100%;
+  aspect-ratio:9/5;
+  height:auto;
+  background:#000;
+  cursor:none;
+}
+#msg{
+  position:absolute;
+  inset:0;
+  display:grid;
+  place-items:center;
+  color:#fff;
+  font-size:1.25rem;
+  font-weight:600;
+  text-align:center;
+  pointer-events:none;
+  text-shadow:0 0 14px rgba(255,255,255,.45);
+}
+.help-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+}
+.help-card{
+  background:var(--bg3);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  padding:9px 10px;
+}
+.help-key{
+  font-family:var(--font-mono);
+  font-size:.62rem;
+  color:var(--accent);
+  font-weight:700;
+  margin-bottom:3px;
+}
+.help-text{
+  font-size:.62rem;
+  color:var(--text3);
+  line-height:1.4;
+}
+.note{
+  margin-top:10px;
+  font-family:var(--font-mono);
+  font-size:.56rem;
+  line-height:1.55;
+  color:var(--text3);
+}
+@media(max-width:650px){
+  .help-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .hud{grid-template-columns:1fr auto 1fr;gap:6px}
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Rockfield</h1>
+    <p>Joc arcade cu asteroizi, realizat integral în Canvas și Web Audio.</p>
+  </div>
+
+  <div class="game-panel">
+    <div class="hud">
+      <div class="hud-box">SCOR · <b id="score">0</b></div>
+      <button id="startBtn">▶ Start</button>
+      <div class="hud-box">VIEȚI · <b id="lives">3</b></div>
+    </div>
+
+    <div id="wrap">
+      <canvas id="gb" width="900" height="500"></canvas>
+      <div id="msg">Apasă Start sau Space</div>
+    </div>
+  </div>
+
+  <div class="game-panel">
+    <div class="help-grid">
+      <div class="help-card">
+        <div class="help-key">← → / A D</div>
+        <div class="help-text">rotește nava</div>
+      </div>
+      <div class="help-card">
+        <div class="help-key">↑ / W</div>
+        <div class="help-text">propulsie</div>
+      </div>
+      <div class="help-card">
+        <div class="help-key">SPACE</div>
+        <div class="help-text">trage</div>
+      </div>
+      <div class="help-card">
+        <div class="help-key">P / ESC</div>
+        <div class="help-text">pauză / continuă</div>
+      </div>
+    </div>
+    <div class="note">
+      Asteroizii mari valorează mai mult și se sparg în fragmente. După o coliziune, nava are pentru scurt timp protecție.
+      Când elimini toți asteroizii, începe automat un nivel mai dificil. Sunetele sunt sintetizate local prin Web Audio API.
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('gb');
+const ctx = canvas.getContext('2d');
+canvas.width = 900;
+canvas.height = 500;
+
+const W = canvas.width, H = canvas.height;
+let score = 0, lives = 3, level = 1, running = false, paused = false, animId;
+let ship, bullets, comets, particles, stars, invincible = 0;
+
+const scoreEl = document.getElementById('score');
+const livesEl = document.getElementById('lives');
+const msg = document.getElementById('msg');
+const btn = document.getElementById('startBtn');
+
+// Stars background
+function makeStars() {
+  stars = Array.from({length:80}, () => ({
+    x: Math.random()*W, y: Math.random()*H,
+    r: Math.random()*1.5+0.3, a: Math.random()*0.7+0.3
+  }));
+}
+
+function makeShip() {
+  return { x:W/2, y:H/2, vx:0, vy:0, angle:-Math.PI/2, thrusting:false };
+}
+
+function spawnComet(big=true) {
+  const edge = Math.floor(Math.random()*4);
+  let x, y, vx, vy;
+  const spd = 0.8 + level*0.25 + Math.random()*0.5;
+  if(edge===0){ x=Math.random()*W; y=0; vx=(Math.random()-0.5)*spd; vy=spd; }
+  else if(edge===1){ x=W; y=Math.random()*H; vx=-spd; vy=(Math.random()-0.5)*spd; }
+  else if(edge===2){ x=Math.random()*W; y=H; vx=(Math.random()-0.5)*spd; vy=-spd; }
+  else { x=0; y=Math.random()*H; vx=spd; vy=(Math.random()-0.5)*spd; }
+  const r = big ? (30+Math.random()*15) : (14+Math.random()*8);
+  const pointCount = 9 + Math.floor(Math.random()*4);
+  const pts = Array.from({length:pointCount}, (_,i) => {
+    const a2 = (i/pointCount)*Math.PI*2;
+    const rr = r*(0.75+Math.random()*0.5);
+    return {x:Math.cos(a2)*rr, y:Math.sin(a2)*rr};
+  });
+  return { x, y, vx, vy, r, pts, big, rot:0, rotSpd:(Math.random()-0.5)*0.02 };
+}
+
+function makeParticles(x, y, color, n=12) {
+  for(let i=0;i<n;i++) {
+    const a2 = Math.random()*Math.PI*2;
+    const spd = 1+Math.random()*3;
+    particles.push({ x, y, vx:Math.cos(a2)*spd, vy:Math.sin(a2)*spd,
+      life:1, color, r:2+Math.random()*2 });
+  }
+}
+
+// Audio via Web Audio API
+let audioCtx;
+function getAudio() {
+  if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playShoot() {
+  try {
+    const ac = getAudio();
+    const o = ac.createOscillator(); const g = ac.createGain();
+    o.connect(g); g.connect(ac.destination);
+    o.type='square'; o.frequency.setValueAtTime(880, ac.currentTime);
+    o.frequency.exponentialRampToValueAtTime(220, ac.currentTime+0.12);
+    g.gain.setValueAtTime(0.18, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+0.12);
+    o.start(); o.stop(ac.currentTime+0.13);
+  } catch(e){}
+}
+
+function playExplode(big) {
+  try {
+    const ac = getAudio();
+    const buf = ac.createBuffer(1, ac.sampleRate*0.3, ac.sampleRate);
+    const d = buf.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*(1-i/d.length);
+    const s = ac.createBufferSource(); const g = ac.createGain();
+    const f = ac.createBiquadFilter();
+    f.type='lowpass'; f.frequency.value = big ? 400 : 800;
+    s.buffer=buf; s.connect(f); f.connect(g); g.connect(ac.destination);
+    g.gain.setValueAtTime(big?0.6:0.35, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+0.3);
+    s.start();
+  } catch(e){}
+}
+
+function playThrust() {
+  try {
+    const ac = getAudio();
+    const o = ac.createOscillator(); const g = ac.createGain();
+    o.connect(g); g.connect(ac.destination);
+    o.type='sawtooth'; o.frequency.value = 80+Math.random()*20;
+    g.gain.setValueAtTime(0.07, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+0.08);
+    o.start(); o.stop(ac.currentTime+0.09);
+  } catch(e){}
+}
+
+function playDie() {
+  try {
+    const ac = getAudio();
+    for(let i=0;i<3;i++) {
+      const o = ac.createOscillator(); const g = ac.createGain();
+      o.connect(g); g.connect(ac.destination);
+      o.type='sawtooth'; o.frequency.setValueAtTime(440, ac.currentTime+i*0.1);
+      o.frequency.exponentialRampToValueAtTime(55, ac.currentTime+i*0.1+0.4);
+      g.gain.setValueAtTime(0.25, ac.currentTime+i*0.1);
+      g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+i*0.1+0.4);
+      o.start(ac.currentTime+i*0.1); o.stop(ac.currentTime+i*0.1+0.41);
+    }
+  } catch(e){}
+}
+
+const keys = {};
+document.addEventListener('keydown', e => {
+  if((e.code==='KeyP' || e.code==='Escape') && running) {
+    paused = !paused;
+    msg.textContent = paused ? 'Pauză' : '';
+    e.preventDefault();
+    return;
+  }
+  keys[e.code] = true;
+  if(e.code==='Space' && !running) startGame();
+  if(e.code==='Space' && running) shoot();
+  if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
+});
+document.addEventListener('keyup', e => { keys[e.code]=false; });
+btn.addEventListener('click', () => startGame());
+
+let lastShot = 0;
+function shoot() {
+  const now = Date.now();
+  if(now - lastShot < 250) return;
+  lastShot = now;
+  bullets.push({
+    x: ship.x + Math.cos(ship.angle)*16,
+    y: ship.y + Math.sin(ship.angle)*16,
+    vx: Math.cos(ship.angle)*10 + ship.vx*0.3,
+    vy: Math.sin(ship.angle)*10 + ship.vy*0.3,
+    life: 60
+  });
+  playShoot();
+}
+
+function startGame() {
+  score=0; lives=3; level=1; paused=false;
+  scoreEl.textContent=0; livesEl.textContent=3;
+  ship = makeShip(); bullets=[]; particles=[]; invincible=120;
+  comets = [spawnComet(), spawnComet(), spawnComet()];
+  makeStars();
+  running=true;
+  msg.textContent='';
+  btn.textContent='⟳ Restart';
+  if(animId) cancelAnimationFrame(animId);
+  loop();
+}
+
+function wrap(v, max) { return ((v%max)+max)%max; }
+
+let thrustFrame=0;
+function loop() {
+  animId = requestAnimationFrame(loop);
+  if(paused) return;
+  ctx.fillStyle='rgba(0,0,0,0.25)';
+  ctx.fillRect(0,0,W,H);
+
+  // Stars
+  stars.forEach(s => {
+    ctx.globalAlpha=s.a*(0.5+0.5*Math.sin(Date.now()*0.001+s.x));
+    ctx.fillStyle='#fff'; ctx.beginPath();
+    ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill();
+  });
+  ctx.globalAlpha=1;
+
+  // Ship
+  if(keys['ArrowLeft']||keys['KeyA']) ship.angle -= 0.055;
+  if(keys['ArrowRight']||keys['KeyD']) ship.angle += 0.055;
+  if(keys['ArrowUp']||keys['KeyW']) {
+    ship.vx += Math.cos(ship.angle)*0.22;
+    ship.vy += Math.sin(ship.angle)*0.22;
+    ship.thrusting=true;
+    if(thrustFrame++%3===0) playThrust();
+    makeParticles(
+      ship.x - Math.cos(ship.angle)*14,
+      ship.y - Math.sin(ship.angle)*14,
+      '#f80', 3
+    );
+  } else { ship.thrusting=false; thrustFrame=0; }
+  if(keys['Space']) shoot();
+
+  ship.vx *= 0.985; ship.vy *= 0.985;
+  ship.x = wrap(ship.x+ship.vx, W);
+  ship.y = wrap(ship.y+ship.vy, H);
+  if(invincible>0) invincible--;
+
+  // Draw ship
+  if(invincible===0 || Math.floor(invincible/6)%2===0) {
+    ctx.save(); ctx.translate(ship.x, ship.y); ctx.rotate(ship.angle);
+    ctx.strokeStyle='#4df'; ctx.lineWidth=1.8; ctx.shadowColor='#4df'; ctx.shadowBlur=8;
+    ctx.beginPath(); ctx.moveTo(16,0); ctx.lineTo(-10,9); ctx.lineTo(-6,0);
+    ctx.lineTo(-10,-9); ctx.closePath(); ctx.stroke();
+    ctx.shadowBlur=0; ctx.restore();
+  }
+
+  // Bullets
+  bullets.forEach(b => { b.x=wrap(b.x+b.vx,W); b.y=wrap(b.y+b.vy,H); b.life--; });
+  bullets = bullets.filter(b=>b.life>0);
+  bullets.forEach(b => {
+    ctx.beginPath(); ctx.arc(b.x,b.y,2.5,0,Math.PI*2);
+    ctx.fillStyle='#ff6'; ctx.shadowColor='#ff6'; ctx.shadowBlur=6;
+    ctx.fill(); ctx.shadowBlur=0;
+  });
+
+  // Comets
+  const newComets = [];
+  comets.forEach(c => {
+    c.x=wrap(c.x+c.vx,W); c.y=wrap(c.y+c.vy,H); c.rot+=c.rotSpd;
+    ctx.save(); ctx.translate(c.x,c.y); ctx.rotate(c.rot);
+    ctx.strokeStyle='#aaa'; ctx.fillStyle='rgba(120,100,80,0.15)';
+    ctx.lineWidth=1.2;
+    ctx.beginPath();
+    c.pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
+    ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
+
+    // Bullet collisions
+    bullets.forEach((b,bi) => {
+      const dx=b.x-c.x, dy=b.y-c.y;
+      if(dx*dx+dy*dy < c.r*c.r) {
+        b.life=0;
+        makeParticles(c.x,c.y,c.big?'#f84':'#fa4',c.big?16:10);
+        playExplode(c.big);
+        const pts = c.big ? 20 : 5;
+        score += pts; scoreEl.textContent=score;
+        if(c.big) {
+          newComets.push(spawnComet(false));
+          newComets.push(spawnComet(false));
+        }
+        c.dead=true;
+      }
+    });
+
+    // Ship collision
+    if(invincible===0 && !c.dead) {
+      const dx=ship.x-c.x, dy=ship.y-c.y;
+      if(dx*dx+dy*dy < (c.r+12)*(c.r+12)) {
+        lives--; livesEl.textContent=lives;
+        makeParticles(ship.x,ship.y,'#4df',20);
+        playDie();
+        ship = makeShip(); invincible=180;
+        if(lives<=0) { endGame(); return; }
+      }
+    }
+  });
+
+  comets = comets.filter(c=>!c.dead).concat(newComets);
+  if(comets.length===0) {
+    level++;
+    const n = 2+level;
+    comets = Array.from({length:n}, ()=>spawnComet());
+    msg.textContent = `Nivel ${level}!`;
+    setTimeout(()=>{ if(running) msg.textContent=''; }, 1200);
+  }
+
+  // Particles
+  particles.forEach(p => {
+    p.x+=p.vx; p.y+=p.vy; p.life-=0.04; p.r*=0.95;
+    ctx.globalAlpha=p.life; ctx.fillStyle=p.color;
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+  });
+  ctx.globalAlpha=1;
+  particles=particles.filter(p=>p.life>0);
+
+  // HUD level
+  ctx.fillStyle='rgba(255,255,255,0.15)';
+  ctx.font="12px 'JetBrains Mono', monospace"; ctx.textAlign='right';
+  ctx.fillText('Nivel '+level, W-8, H-8);
+}
+
+function endGame() {
+  running=false; cancelAnimationFrame(animId);
+  msg.innerHTML = `💥 Game Over!<br><span style="font-size:16px;opacity:0.8">Scor final: ${score}</span>`;
+  btn.textContent='▶ Start nou';
+}
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Rockfield</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

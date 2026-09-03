@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vârsta pe Planete — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #f07090;
+  --accent-dim: rgba(240,112,144,0.10);
+  --accent-border: rgba(240,112,144,0.28);
+}
+
+.field-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: var(--content-gap);
+}
+.field-name { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text2); font-weight: 500; margin-bottom: 8px; display: block; }
+
+.planet-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+}
+.planet-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.planet-card.earth { border-color: var(--accent-border); background: var(--accent-dim); }
+.planet-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.planet-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+.planet-name { font-family: var(--font-mono); font-size: 0.78rem; font-weight: 700; color: var(--text); }
+.planet-age { font-family: var(--font-mono); font-size: 1.2rem; font-weight: 700; color: var(--text); }
+.planet-card.earth .planet-age { color: var(--accent); }
+.planet-period { font-family: var(--font-mono); font-size: 0.6rem; color: var(--text3); margin-top: 3px; }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Vârsta pe planete</h1>
+    <p>Data nașterii → vârsta ta în ani orbitali pentru fiecare planetă</p>
+  </div>
+
+  <div class="field-card">
+    <span class="field-name">Data nașterii</span>
+    <input class="input-calc" id="in-date" type="date"
+           style="--input-color:var(--accent);font-size:1rem" oninput="compute()">
+  </div>
+
+  <div class="planet-grid" id="planet-grid"></div>
+</div>
+
+<script>
+// Perioadă orbitală în zile terestre — surse: NASA planetary fact sheets
+const BODIES = [
+  { name: 'Mercur', orbitDays: 87.969, color: '#a8a090' },
+  { name: 'Venus', orbitDays: 224.701, color: '#e0c080' },
+  { name: 'Pământ', orbitDays: 365.256, color: '#4090e0', isEarth: true },
+  { name: 'Marte', orbitDays: 686.980, color: '#e07050' },
+  { name: 'Jupiter', orbitDays: 4332.589, color: '#e0b080' },
+  { name: 'Saturn', orbitDays: 10759.22, color: '#e8d0a0' },
+  { name: 'Uranus', orbitDays: 30688.5, color: '#a0e0e0' },
+  { name: 'Neptun', orbitDays: 60182, color: '#6080e0' },
+  { name: 'Pluto', orbitDays: 90560, color: '#c0a080' },
+];
+
+function trim(n) {
+  return parseFloat(n.toPrecision(6)).toString();
+}
+
+function compute() {
+  const dateStr = document.getElementById('in-date').value;
+  const grid = document.getElementById('planet-grid');
+
+  if (!dateStr) {
+    grid.innerHTML = '<div style="font-family:var(--font-mono);font-size:0.8rem;color:var(--text3)">Introdu data nașterii</div>';
+    return;
+  }
+
+  const birth = new Date(dateStr + 'T12:00:00Z');
+  const now = new Date();
+  const ageDaysEarth = (now - birth) / 86400000;
+
+  if (ageDaysEarth < 0) {
+    grid.innerHTML = '<div style="font-family:var(--font-mono);font-size:0.8rem;color:#f06060">Data e în viitor</div>';
+    return;
+  }
+
+  grid.innerHTML = BODIES.map(b => {
+    const ageInPlanetYears = ageDaysEarth / b.orbitDays;
+    return `
+      <div class="planet-card ${b.isEarth ? 'earth' : ''}">
+        <div class="planet-header">
+          <span class="planet-dot" style="background:${b.color}"></span>
+          <span class="planet-name">${b.name}</span>
+        </div>
+        <div class="planet-age">${trim(ageInPlanetYears)}</div>
+        <div class="planet-period">ani pe ${b.name} · orbită ${trim(b.orbitDays)} zile</div>
+      </div>
+    `;
+  }).join('');
+}
+
+const today = new Date();
+const defaultBirth = new Date(today.getFullYear()-30, today.getMonth(), today.getDate());
+document.getElementById('in-date').value = defaultBirth.toISOString().slice(0,10);
+
+compute();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Vârsta pe planete</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

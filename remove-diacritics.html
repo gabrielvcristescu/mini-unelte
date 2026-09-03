@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eliminare Diacritice — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #60a0f0;
+  --accent-dim: rgba(96,160,240,0.10);
+  --accent-border: rgba(96,160,240,0.28);
+}
+
+.big-textarea {
+  width: 100%;
+  min-height: 140px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  color: var(--text);
+  outline: none;
+  resize: vertical;
+  line-height: 1.6;
+}
+.big-textarea:focus { border-color: var(--accent-border); box-shadow: 0 0 0 3px var(--accent-dim); }
+.big-textarea.output { color: var(--accent); }
+
+.area-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.area-name { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; }
+.area-actions { display: flex; gap: 6px; }
+.mini-btn {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.mini-btn:hover { border-color: var(--accent-border); color: var(--accent); }
+
+.stats-bar { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text3); margin-top: 8px; margin-bottom: var(--content-gap); }
+
+/* ── Mapping table ── */
+.map-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+  gap: 6px;
+}
+.map-item {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 4px;
+  text-align: center;
+}
+.map-from { font-family: var(--font-mono); font-size: 0.95rem; color: var(--accent); font-weight: 600; }
+.map-to { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text3); margin-top: 2px; }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Eliminare diacritice</h1>
+    <p>ă→a, î→i, â→a, ș→s, ț→t și alte diacritice europene</p>
+  </div>
+
+  <div style="margin-bottom:var(--content-gap)">
+    <div class="area-label">
+      <span class="area-name">Text original</span>
+      <div class="area-actions">
+        <button class="mini-btn" onclick="pasteInto()">Lipește</button>
+        <button class="mini-btn" onclick="clearInput()">Șterge</button>
+      </div>
+    </div>
+    <textarea class="big-textarea" id="input-area" placeholder="Scrie text cu diacritice aici..." oninput="compute()">Salut, ăștia sunt câțiva termeni cu diacritice: mâine, împreună, ședință, țară.</textarea>
+    <div class="stats-bar" id="input-stats"></div>
+  </div>
+
+  <div style="margin-bottom:var(--content-gap)">
+    <div class="area-label">
+      <span class="area-name">Text fără diacritice</span>
+      <div class="area-actions">
+        <button class="mini-btn" onclick="copyOutput()">Copiază</button>
+      </div>
+    </div>
+    <textarea class="big-textarea output" id="output-area" readonly placeholder="Rezultatul apare aici..."></textarea>
+  </div>
+
+  <!-- Tabel mapare -->
+  <div class="card">
+    <div class="field-label" style="margin-bottom:10px">Mapare completă caractere</div>
+    <div class="map-grid" id="map-grid"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+// Mapare explicită pentru diacritice românești + alte diacritice latine comune
+const DIACRITIC_MAP = {
+  'ă':'a','Ă':'A', 'â':'a','Â':'A', 'î':'i','Î':'I', 'ș':'s','Ș':'S', 'ş':'s','Ş':'S',
+  'ț':'t','Ț':'T', 'ţ':'t','Ţ':'T',
+  // Alte diacritice latine frecvente (franceză, germană, spaniolă, etc.)
+  'á':'a','à':'a','ä':'a','å':'a','ã':'a','Á':'A','À':'A','Ä':'A','Å':'A','Ã':'A',
+  'é':'e','è':'e','ë':'e','ê':'e','É':'E','È':'E','Ë':'E','Ê':'E',
+  'í':'i','ì':'i','ï':'i','Í':'I','Ì':'I','Ï':'I',
+  'ó':'o','ò':'o','ö':'o','ô':'o','õ':'o','Ó':'O','Ò':'O','Ö':'O','Ô':'O','Õ':'O',
+  'ú':'u','ù':'u','ü':'u','û':'u','Ú':'U','Ù':'U','Ü':'U','Û':'U',
+  'ñ':'n','Ñ':'N', 'ç':'c','Ç':'C', 'ý':'y','ÿ':'y','Ý':'Y',
+};
+
+function removeDiacritics(text) {
+  // Metodă principală: normalizare Unicode NFD + eliminare diacritice combinate
+  let result = text.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  // Aplicăm și maparea explicită pentru caractere care nu se descompun standard
+  // (ex: ș/ț românesc au uneori reprezentare precompusă diferită de virgulă/sedillă)
+  result = [...result].map(ch => DIACRITIC_MAP[ch] || ch).join('');
+  return result;
+}
+
+function compute() {
+  const input = document.getElementById('input-area').value;
+  const output = document.getElementById('output-area');
+
+  if (!input) { output.value = ''; document.getElementById('input-stats').textContent = ''; return; }
+
+  const result = removeDiacritics(input);
+  output.value = result;
+
+  const diacriticCount = [...input].filter(ch => DIACRITIC_MAP[ch] || /[\u0300-\u036f]/.test(ch.normalize('NFD'))).length;
+  document.getElementById('input-stats').textContent = `${diacriticCount} caractere cu diacritice găsite`;
+}
+
+function clearInput() {
+  document.getElementById('input-area').value = '';
+  compute();
+}
+
+function pasteInto() {
+  navigator.clipboard.readText().then(text => {
+    document.getElementById('input-area').value = text;
+    compute();
+  }).catch(() => showToast('Nu s-a putut accesa clipboard-ul'));
+}
+
+function copyOutput() {
+  const text = document.getElementById('output-area').value;
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => showToast('Copiat!'));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+function buildMapGrid() {
+  const grid = document.getElementById('map-grid');
+  // Afișăm doar diacriticele românești principale (cele mai relevante) + câteva exemple
+  const highlight = ['ă','Ă','â','Â','î','Î','ș','Ș','ț','Ț','é','ü','ñ','ç'];
+  highlight.forEach(ch => {
+    const item = document.createElement('div');
+    item.className = 'map-item';
+    item.innerHTML = `<div class="map-from">${ch}</div><div class="map-to">${DIACRITIC_MAP[ch] || '?'}</div>`;
+    grid.appendChild(item);
+  });
+}
+
+buildMapGrid();
+compute();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Eliminare diacritice</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

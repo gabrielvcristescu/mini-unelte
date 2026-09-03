@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculator Pantă — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #4af0b0;
+  --accent-dim: rgba(144,208,96,0.10);
+  --accent-border: rgba(144,208,96,0.28);
+}
+
+.fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--content-gap); }
+@media (max-width: 500px) { .fields-grid { grid-template-columns: 1fr; } }
+
+.field-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.field-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.field-name { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text2); font-weight: 500; }
+.field-unit {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--text3);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
+/* ── Visual slope diagram ── */
+.slope-wrap { display: flex; justify-content: center; padding: 1rem 0; }
+.slope-svg text { font-family: var(--font-mono); font-size: 11px; fill: var(--text2); }
+.slope-line { stroke: var(--accent); stroke-width: 2.5; fill: none; }
+.slope-base { stroke: var(--text3); stroke-width: 1.5; stroke-dasharray: 4,3; fill: none; }
+.slope-rise { stroke: var(--text3); stroke-width: 1.5; stroke-dasharray: 4,3; fill: none; }
+.slope-arc { stroke: var(--accent); stroke-width: 1.5; fill: none; }
+
+.result-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  text-align: center;
+}
+.result-main {
+  font-family: var(--font-mono);
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1.2;
+}
+.result-formula { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text3); margin-top: 4px; }
+
+.info-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+@media (max-width: 500px) { .info-row { grid-template-columns: 1fr; } }
+.info-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  text-align: center;
+}
+.info-val { font-family: var(--font-mono); font-size: 0.95rem; font-weight: 500; color: var(--text); margin-bottom: 2px; }
+.info-key { font-family: var(--font-mono); font-size: 0.58rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; }
+
+.ref-table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.72rem; }
+.ref-table th { text-align: left; color: var(--text3); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.08em; padding: 5px 10px; border-bottom: 1px solid var(--border); }
+.ref-table th:not(:first-child) { text-align: center; }
+.ref-table td { padding: 4px 10px; border-bottom: 1px solid rgba(128,128,128,0.05); color: var(--text2); cursor: pointer; }
+.ref-table td:not(:first-child) { text-align: center; }
+.ref-table tr:hover td { background: var(--bg3); }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Calculator pantă</h1>
+    <p>Diferență de nivel + distanță orizontală → procent și grade</p>
+  </div>
+
+  <!-- Câmpuri -->
+  <div class="fields-grid" style="margin-bottom:var(--content-gap)">
+    <div class="field-card">
+      <div class="field-top"><span class="field-name">Diferență nivel (Δh)</span><span class="field-unit">m</span></div>
+      <input class="input-calc" id="in-rise" type="number" step="any" value="10"
+             style="--input-color:var(--accent);font-size:1.05rem" oninput="compute()">
+    </div>
+    <div class="field-card">
+      <div class="field-top"><span class="field-name">Distanță orizontală</span><span class="field-unit">m</span></div>
+      <input class="input-calc" id="in-run" type="number" min="0" step="any" value="100"
+             style="--input-color:var(--accent);font-size:1.05rem" oninput="compute()">
+    </div>
+  </div>
+
+  <!-- Diagramă -->
+  <div class="card" style="margin-bottom:var(--content-gap)">
+    <div class="slope-wrap" id="slope-wrap"></div>
+  </div>
+
+  <!-- Rezultat -->
+  <div class="result-card" style="margin-bottom:var(--content-gap)">
+    <div class="result-main" id="result-main">—</div>
+    <div class="result-formula" id="result-formula"></div>
+  </div>
+
+  <!-- Info -->
+  <div class="info-row" style="margin-bottom:var(--content-gap)">
+    <div class="info-card"><div class="info-val" id="info-grade">—</div><div class="info-key">grade (°)</div></div>
+    <div class="info-card"><div class="info-val" id="info-ratio">—</div><div class="info-key">raport (1:X)</div></div>
+    <div class="info-card"><div class="info-val" id="info-hyp">—</div><div class="info-key">distanță reală (ipotenuză)</div></div>
+  </div>
+
+  <!-- Referință -->
+  <div class="card">
+    <div class="field-name" style="margin-bottom:10px">Referință — pante comune</div>
+    <table class="ref-table" id="ref-table"></table>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+const REF_SLOPES = [
+  { name: 'Rampă acces persoane cu dizabilități (max)', pct: 8.3 },
+  { name: 'Drum montan mediu', pct: 10 },
+  { name: 'Pistă schi — ușoară (verde)', pct: 15 },
+  { name: 'Panta maximă recomandată biciclete', pct: 20 },
+  { name: 'Pistă schi — intermediară (albastru)', pct: 25 },
+  { name: 'Drum de munte abrupt', pct: 30 },
+  { name: 'Pistă schi — dificilă (roșu)', pct: 40 },
+  { name: 'Pistă schi — foarte dificilă (negru)', pct: 50 },
+];
+
+function trim(n) { return parseFloat(n.toPrecision(5)).toString(); }
+
+function compute() {
+  const rise = parseFloat(document.getElementById('in-rise').value);
+  const run = parseFloat(document.getElementById('in-run').value);
+
+  const main = document.getElementById('result-main');
+  const formula = document.getElementById('result-formula');
+
+  if (isNaN(rise) || isNaN(run) || run <= 0) {
+    main.textContent = '—'; formula.textContent = 'Introdu diferența de nivel și o distanță orizontală pozitivă';
+    document.getElementById('info-grade').textContent = '—';
+    document.getElementById('info-ratio').textContent = '—';
+    document.getElementById('info-hyp').textContent = '—';
+    renderSlope(null);
+    return;
+  }
+
+  const pct = (rise / run) * 100;
+  const degrees = Math.atan(rise / run) * 180 / Math.PI;
+  const hyp = Math.sqrt(rise*rise + run*run);
+  const ratio = run !== 0 ? run / Math.abs(rise || 1) : 0;
+
+  main.textContent = trim(pct) + '%';
+  formula.textContent = `Pantă % = (Δh / distanță) × 100 = (${rise} / ${run}) × 100`;
+
+  document.getElementById('info-grade').textContent = trim(degrees) + '°';
+  document.getElementById('info-ratio').textContent = rise !== 0 ? '1:' + trim(Math.abs(run/rise)) : '—';
+  document.getElementById('info-hyp').textContent = trim(hyp) + ' m';
+
+  renderSlope({ rise, run, pct, degrees });
+}
+
+function renderSlope(data) {
+  const wrap = document.getElementById('slope-wrap');
+  const w = 280, h = 160;
+  const padX = 30, baseY = 130, topX = 250;
+
+  let svg = `<svg class="slope-svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`;
+
+  // Clamp visual angle for display (avoid absurd rendering at extreme slopes)
+  let angle = data ? Math.max(-70, Math.min(70, data.degrees)) : 20;
+  const angleRad = angle * Math.PI / 180;
+  const runLen = topX - padX;
+  const riseLen = runLen * Math.tan(angleRad);
+  const topY = baseY - riseLen;
+
+  // Bază (orizontală, punctată)
+  svg += `<line class="slope-base" x1="${padX}" y1="${baseY}" x2="${topX}" y2="${baseY}"/>`;
+  // Verticală (Δh, punctată)
+  svg += `<line class="slope-rise" x1="${topX}" y1="${baseY}" x2="${topX}" y2="${topY}"/>`;
+  // Panta (linie plină)
+  svg += `<line class="slope-line" x1="${padX}" y1="${baseY}" x2="${topX}" y2="${topY}"/>`;
+
+  // Arc unghi la bază
+  const arcR = 24;
+  const arcEndX = padX + arcR*Math.cos(angleRad);
+  const arcEndY = baseY - arcR*Math.sin(angleRad);
+  svg += `<path class="slope-arc" d="M ${padX+arcR} ${baseY} A ${arcR} ${arcR} 0 0 0 ${arcEndX} ${arcEndY}"/>`;
+
+  // Etichete
+  svg += `<text x="${(padX+topX)/2}" y="${baseY+16}" text-anchor="middle">${data?trim(data.run)+'m':'distanță'}</text>`;
+  svg += `<text x="${topX+10}" y="${(baseY+topY)/2+4}" text-anchor="start">${data?trim(data.rise)+'m':'Δh'}</text>`;
+  svg += `<text x="${padX+34}" y="${baseY-8}" text-anchor="start" style="fill:var(--accent);font-weight:700">${data?trim(data.pct)+'%':''}</text>`;
+
+  svg += `</svg>`;
+  wrap.innerHTML = svg;
+}
+
+function buildRefTable() {
+  const table = document.getElementById('ref-table');
+  table.innerHTML = `<thead><tr><th>Tip</th><th>Pantă %</th><th>Grade</th></tr></thead>`;
+  const tbody = document.createElement('tbody');
+  REF_SLOPES.forEach(s => {
+    const deg = Math.atan(s.pct/100) * 180 / Math.PI;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${s.name}</td><td>${s.pct}%</td><td>${trim(deg)}°</td>`;
+    tr.onclick = () => {
+      document.getElementById('in-rise').value = s.pct;
+      document.getElementById('in-run').value = 100;
+      compute();
+    };
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+}
+
+buildRefTable();
+compute();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Calculator pantă</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

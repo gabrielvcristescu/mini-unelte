@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spectrogramă Microfon — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #d070f0;
+  --accent-dim: rgba(208,112,240,0.10);
+  --accent-border: rgba(208,112,240,0.28);
+}
+
+.status-msg {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text2);
+  margin-bottom: var(--content-gap);
+  min-height: 1.5em;
+}
+.status-msg.error { color: #f06060; }
+.status-msg.active { color: #4af0b0; }
+
+.mode-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: var(--content-gap);
+  flex-wrap: wrap;
+}
+.mode-btn {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.mode-btn.active { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+
+@media (max-width: 560px) {
+  .mode-btn {
+    flex: 1 1 150px;
+    min-height: 44px;
+    padding-inline: 10px;
+  }
+  #scope-canvas { height: 220px; }
+  .freq-overlay-h span { font-size: 0.54rem; padding-inline: 4px; }
+}
+
+.scope-wrap {
+  background: #0a0a0a;
+  border-radius: var(--radius);
+  padding: 8px;
+  margin-bottom: var(--content-gap);
+  position: relative;
+}
+#scope-canvas { display: block; width: 100%; height: 280px; }
+
+.freq-overlay-h {
+  position: absolute;
+  left: 8px; right: 8px; bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+.freq-overlay-h span {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: #e0e0e0;
+  background: rgba(0,0,0,0.55);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.freq-overlay-v {
+  position: absolute;
+  top: 8px; bottom: 8px; left: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+.freq-overlay-v span {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: #e0e0e0;
+  background: rgba(0,0,0,0.55);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.start-btn {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.12s;
+  margin-bottom: var(--content-gap);
+}
+.start-btn.active { background: rgba(240,96,96,0.15); border-color: rgba(240,96,96,0.4); color: #f06060; }
+
+.privacy-note {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text3);
+  text-align: center;
+  line-height: 1.6;
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Spectrogramă microfon</h1>
+    <p>FFT live — frecvențele sunetului captat, vizualizate color</p>
+  </div>
+
+  <div class="mode-row">
+    <button class="mode-btn active" id="btn-bars" onclick="setMode('bars')">Bare (spectru instant)</button>
+    <button class="mode-btn" id="btn-waterfall" onclick="setMode('waterfall')">Waterfall (istoric timp)</button>
+  </div>
+
+  <div class="mode-row" id="direction-row" style="display:none">
+    <button class="mode-btn active" id="btn-dir-down" onclick="setDirection('down')">↓ Timp în jos</button>
+    <button class="mode-btn" id="btn-dir-left" onclick="setDirection('left')">← Timp la stânga</button>
+  </div>
+
+  <div class="status-msg" id="status-msg">Apasă START pentru a activa microfonul</div>
+
+  <button class="start-btn" id="start-btn" onclick="toggleMic()">🎤 Pornește microfonul</button>
+
+  <div class="scope-wrap" id="scope-wrap">
+    <canvas id="scope-canvas"></canvas>
+    <div class="freq-overlay-h" id="freq-labels">
+      <span>20 Hz</span><span>500 Hz</span><span>2 kHz</span><span>8 kHz</span><span>20 kHz</span>
+    </div>
+    <div class="freq-overlay-v" id="freq-labels-v" style="display:none">
+      <span>20k</span><span>8k</span><span>2k</span><span>500</span><span>20</span>
+    </div>
+  </div>
+
+  <p class="privacy-note">
+    Microfonul e procesat 100% local, în browser — niciun sunet nu e trimis către niciun server.
+  </p>
+</div>
+
+<script>
+let audioCtx = null;
+let analyser = null;
+let stream = null;
+let animationId = null;
+let isActive = false;
+let mode = 'bars';
+let direction = 'down';
+
+const canvas = document.getElementById('scope-canvas');
+const ctx = canvas.getContext('2d');
+let waterfallImageData = null;
+
+function resizeCanvas() {
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+  waterfallImageData = null; // resetăm bufferul waterfall la resize
+}
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('btn-bars').classList.toggle('active', m==='bars');
+  document.getElementById('btn-waterfall').classList.toggle('active', m==='waterfall');
+  document.getElementById('direction-row').style.display = m==='waterfall' ? 'flex' : 'none';
+  waterfallImageData = null;
+  updateLabelsVisibility();
+  if (!isActive) { ctx.clearRect(0,0,canvas.width,canvas.height); }
+}
+
+function setDirection(d) {
+  direction = d;
+  document.getElementById('btn-dir-down').classList.toggle('active', d==='down');
+  document.getElementById('btn-dir-left').classList.toggle('active', d==='left');
+  waterfallImageData = null;
+  updateLabelsVisibility();
+}
+
+function updateLabelsVisibility() {
+  const isVerticalFreq = mode === 'waterfall' && direction === 'left';
+  document.getElementById('freq-labels').style.display = isVerticalFreq ? 'none' : 'flex';
+  document.getElementById('freq-labels-v').style.display = isVerticalFreq ? 'flex' : 'none';
+}
+
+async function toggleMic() {
+  if (isActive) stopMic(); else await startMic();
+}
+
+async function startMic() {
+  const statusEl = document.getElementById('status-msg');
+  try {
+    statusEl.textContent = 'Se solicită acces la microfon...';
+    statusEl.className = 'status-msg';
+
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const source = audioCtx.createMediaStreamSource(stream);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 2048;
+    analyser.smoothingTimeConstant = 0.8;
+    source.connect(analyser);
+
+    resizeCanvas();
+    isActive = true;
+    document.getElementById('start-btn').textContent = '■ Oprește microfonul';
+    document.getElementById('start-btn').classList.add('active');
+    statusEl.textContent = '🎤 Microfon activ';
+    statusEl.className = 'status-msg active';
+
+    draw();
+  } catch (err) {
+    statusEl.textContent = 'Acces refuzat sau microfon indisponibil: ' + err.message;
+    statusEl.className = 'status-msg error';
+  }
+}
+
+function stopMic() {
+  if (animationId) cancelAnimationFrame(animationId);
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  if (audioCtx) audioCtx.close();
+
+  isActive = false;
+  document.getElementById('start-btn').textContent = '🎤 Pornește microfonul';
+  document.getElementById('start-btn').classList.remove('active');
+  document.getElementById('status-msg').textContent = 'Microfon oprit';
+  document.getElementById('status-msg').className = 'status-msg';
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+// Culoare pe baza intensității (0-255) — gradient albastru→verde→galben→roșu (stil "hot")
+function intensityToColor(v) {
+  const t = v / 255;
+  if (t < 0.33) {
+    const k = t/0.33;
+    return `rgb(${Math.floor(20+k*20)}, ${Math.floor(20+k*80)}, ${Math.floor(60+k*180)})`;
+  } else if (t < 0.66) {
+    const k = (t-0.33)/0.33;
+    return `rgb(${Math.floor(40+k*180)}, ${Math.floor(100+k*140)}, ${Math.floor(240-k*180)})`;
+  } else {
+    const k = (t-0.66)/0.34;
+    return `rgb(${Math.floor(220+k*35)}, ${Math.floor(240-k*180)}, ${Math.floor(60-k*60)})`;
+  }
+}
+
+function draw() {
+  animationId = requestAnimationFrame(draw);
+
+  const bufferLength = analyser.frequencyBinCount;
+  const dataArray = new Uint8Array(bufferLength);
+  analyser.getByteFrequencyData(dataArray);
+
+  const w = canvas.width, h = canvas.height;
+
+  if (mode === 'bars') {
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(0, 0, w, h);
+
+    // Scală logaritmică pentru frecvențe (mai natural perceptiv decât liniar)
+    const barCount = 128;
+    const barWidth = w / barCount;
+
+    for (let i = 0; i < barCount; i++) {
+      // Mapăm indexul barei logaritmic pe indexul real din bufferul FFT
+      const logIndex = Math.floor(Math.pow(bufferLength, i/barCount));
+      const value = dataArray[Math.min(logIndex, bufferLength-1)];
+      const barHeight = (value/255) * h;
+
+      ctx.fillStyle = intensityToColor(value);
+      ctx.fillRect(i*barWidth, h-barHeight, barWidth-1, barHeight);
+    }
+  } else if (direction === 'down') {
+    // Waterfall vertical: derulăm imaginea în jos și adăugăm o linie nouă sus
+    if (!waterfallImageData) {
+      ctx.fillStyle = '#0a0a0a';
+      ctx.fillRect(0, 0, w, h);
+    } else {
+      ctx.putImageData(waterfallImageData, 0, 1);
+    }
+
+    const barCount = Math.floor(w);
+    for (let x = 0; x < barCount; x++) {
+      const logIndex = Math.floor(Math.pow(bufferLength, x/barCount));
+      const value = dataArray[Math.min(logIndex, bufferLength-1)];
+      ctx.fillStyle = intensityToColor(value);
+      ctx.fillRect(x, 0, 1, 1);
+    }
+
+    waterfallImageData = ctx.getImageData(0, 0, w, h-1);
+  } else {
+    // Waterfall orizontal: timpul curge spre stânga, coloană nouă apare în dreapta
+    // (convenția clasică de spectrogramă: frecvență pe verticală, timp pe orizontală)
+    if (!waterfallImageData) {
+      ctx.fillStyle = '#0a0a0a';
+      ctx.fillRect(0, 0, w, h);
+    } else {
+      ctx.putImageData(waterfallImageData, 0, 0);
+    }
+
+    const barCount = Math.floor(h);
+    for (let y = 0; y < barCount; y++) {
+      // Frecvență joasă jos, înaltă sus — convenție standard spectrogramă
+      const yFromBottom = barCount - 1 - y;
+      const logIndex = Math.floor(Math.pow(bufferLength, yFromBottom/barCount));
+      const value = dataArray[Math.min(logIndex, bufferLength-1)];
+      ctx.fillStyle = intensityToColor(value);
+      ctx.fillRect(w-1, y, 1, 1);
+    }
+
+    waterfallImageData = ctx.getImageData(1, 0, w-1, h);
+  }
+}
+
+window.addEventListener('resize', () => { if (isActive) resizeCanvas(); });
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Spectrogramă microfon</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

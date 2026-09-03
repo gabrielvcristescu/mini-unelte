@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASCII / Unicode Explorer — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #60a0f0;
+  --accent-dim: rgba(96,160,240,0.10);
+  --accent-border: rgba(96,160,240,0.28);
+}
+
+.mode-row { display: flex; gap: 8px; margin-bottom: var(--content-gap); }
+.mode-btn {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.mode-btn.active { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+
+.field-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: var(--content-gap);
+}
+.field-name { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text2); font-weight: 500; margin-bottom: 8px; display: block; }
+
+.char-input {
+  font-size: 2rem !important;
+  text-align: center;
+  padding: 12px !important;
+}
+
+/* ── Char detail card ── */
+.char-detail-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+@media (max-width: 500px) { .char-detail-grid { grid-template-columns: 1fr; } }
+.detail-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+.detail-label { font-family: var(--font-mono); font-size: 0.58rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 3px; }
+.detail-val { font-family: var(--font-mono); font-size: 0.9rem; color: var(--accent); font-weight: 600; }
+
+/* ── Char explorer table ── */
+.explorer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+  gap: 4px;
+}
+.char-cell {
+  aspect-ratio: 1;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.1s;
+  position: relative;
+}
+.char-cell:hover { border-color: var(--accent-border); background: var(--accent-dim); color: var(--accent); }
+.char-cell .code-tiny {
+  position: absolute;
+  bottom: 1px;
+  font-size: 0.45rem;
+  color: var(--text3);
+}
+
+.range-nav { display: flex; gap: 6px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+.range-select {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 5px 8px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  color: var(--text2);
+  outline: none;
+  cursor: pointer;
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>ASCII / Unicode Explorer</h1>
+    <p>Caracter → cod, cod → caracter, sau explorează un interval</p>
+  </div>
+
+  <!-- Mod -->
+  <div class="mode-row">
+    <button class="mode-btn active" id="btn-char" onclick="setMode('char')">Caracter → Cod</button>
+    <button class="mode-btn" id="btn-code" onclick="setMode('code')">Cod → Caracter</button>
+    <button class="mode-btn" id="btn-explore" onclick="setMode('explore')">Explorează interval</button>
+  </div>
+
+  <!-- Mod caracter -->
+  <div id="mode-char-panel">
+    <div class="field-card">
+      <span class="field-name">Introdu un caracter</span>
+      <input class="input-calc char-input" id="in-char" type="text" maxlength="4" value="A"
+             style="--input-color:var(--accent)" oninput="computeFromChar()">
+    </div>
+    <div class="char-detail-grid" id="char-details"></div>
+  </div>
+
+  <!-- Mod cod -->
+  <div id="mode-code-panel" style="display:none">
+    <div class="field-card">
+      <span class="field-name">Introdu un cod (decimal, hex cu 0x, sau U+XXXX)</span>
+      <input class="input-calc" id="in-code" type="text" value="65"
+             style="--input-color:var(--accent);font-size:1.1rem" oninput="computeFromCode()">
+    </div>
+    <div class="char-detail-grid" id="code-details"></div>
+  </div>
+
+  <!-- Mod explorare -->
+  <div id="mode-explore-panel" style="display:none">
+    <div class="range-nav">
+      <select class="range-select" id="range-select" onchange="renderExplorer()">
+        <option value="0-127">ASCII de bază (0-127)</option>
+        <option value="32-126">ASCII imprimabil (32-126)</option>
+        <option value="128-255">Latin-1 Supplement (128-255)</option>
+        <option value="256-383">Latin Extended-A (256-383)</option>
+        <option value="880-1023">Greacă (880-1023)</option>
+        <option value="1024-1119">Chirilică (1024-1119)</option>
+        <option value="8592-8703">Săgeți (8592-8703)</option>
+        <option value="9728-9983">Simboluri diverse (9728-9983)</option>
+        <option value="128512-128591">Emoji Smileys (128512-128591)</option>
+      </select>
+    </div>
+    <div class="explorer-grid" id="explorer-grid"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+let mode = 'char';
+
+function setMode(m) {
+  mode = m;
+  ['char','code','explore'].forEach(x => {
+    document.getElementById('btn-'+x).classList.toggle('active', x === m);
+    document.getElementById('mode-'+x+'-panel').style.display = x === m ? 'block' : 'none';
+  });
+  if (m === 'explore') renderExplorer();
+}
+
+function charInfo(char) {
+  const code = char.codePointAt(0);
+  return {
+    char,
+    dec: code,
+    hex: code.toString(16).toUpperCase().padStart(4,'0'),
+    oct: code.toString(8),
+    bin: code.toString(2),
+    unicode: 'U+' + code.toString(16).toUpperCase().padStart(4,'0'),
+    utf8Bytes: [...new TextEncoder().encode(char)].map(b => b.toString(16).toUpperCase().padStart(2,'0')).join(' '),
+    htmlEntity: '&#' + code + ';',
+  };
+}
+
+function computeFromChar() {
+  const input = document.getElementById('in-char').value;
+  const detailsWrap = document.getElementById('char-details');
+  if (!input) { detailsWrap.innerHTML = ''; return; }
+
+  const char = [...input][0]; // primul caracter Unicode complet (gestionează surrogate pairs)
+  const info = charInfo(char);
+
+  detailsWrap.innerHTML = `
+    <div class="detail-card"><div class="detail-label">Decimal</div><div class="detail-val">${info.dec}</div></div>
+    <div class="detail-card"><div class="detail-label">Hexazecimal</div><div class="detail-val">0x${info.hex}</div></div>
+    <div class="detail-card"><div class="detail-label">Octal</div><div class="detail-val">${info.oct}</div></div>
+    <div class="detail-card"><div class="detail-label">Binar</div><div class="detail-val">${info.bin}</div></div>
+    <div class="detail-card"><div class="detail-label">Unicode</div><div class="detail-val">${info.unicode}</div></div>
+    <div class="detail-card"><div class="detail-label">Octeți UTF-8</div><div class="detail-val">${info.utf8Bytes}</div></div>
+    <div class="detail-card"><div class="detail-label">HTML Entity</div><div class="detail-val">${info.htmlEntity}</div></div>
+    <div class="detail-card"><div class="detail-label">JS escape</div><div class="detail-val">\\u${info.hex}</div></div>
+  `;
+}
+
+function computeFromCode() {
+  const raw = document.getElementById('in-code').value.trim();
+  const detailsWrap = document.getElementById('code-details');
+  if (!raw) { detailsWrap.innerHTML = ''; return; }
+
+  let code;
+  if (raw.toUpperCase().startsWith('U+')) code = parseInt(raw.slice(2), 16);
+  else if (raw.toLowerCase().startsWith('0x')) code = parseInt(raw.slice(2), 16);
+  else code = parseInt(raw, 10);
+
+  if (isNaN(code) || code < 0 || code > 0x10FFFF) {
+    detailsWrap.innerHTML = `<div class="detail-card" style="grid-column:1/-1"><div class="detail-label">Eroare</div><div class="detail-val" style="color:#f06060">Cod invalid</div></div>`;
+    return;
+  }
+
+  const char = String.fromCodePoint(code);
+  const info = charInfo(char);
+
+  detailsWrap.innerHTML = `
+    <div class="detail-card" style="grid-column:1/-1;text-align:center"><div class="detail-label">Caracter</div><div class="detail-val" style="font-size:2rem">${char}</div></div>
+    <div class="detail-card"><div class="detail-label">Decimal</div><div class="detail-val">${info.dec}</div></div>
+    <div class="detail-card"><div class="detail-label">Hexazecimal</div><div class="detail-val">0x${info.hex}</div></div>
+    <div class="detail-card"><div class="detail-label">Unicode</div><div class="detail-val">${info.unicode}</div></div>
+    <div class="detail-card"><div class="detail-label">Octeți UTF-8</div><div class="detail-val">${info.utf8Bytes}</div></div>
+  `;
+}
+
+function renderExplorer() {
+  const range = document.getElementById('range-select').value;
+  const [start, end] = range.split('-').map(Number);
+  const grid = document.getElementById('explorer-grid');
+  grid.innerHTML = '';
+
+  for (let code = start; code <= end; code++) {
+    const cell = document.createElement('div');
+    cell.className = 'char-cell';
+    let displayChar;
+    try {
+      displayChar = String.fromCodePoint(code);
+      if (code < 32 || (code >= 127 && code < 160)) displayChar = '·'; // caractere control
+    } catch (e) { displayChar = '?'; }
+    cell.innerHTML = `${displayChar}<span class="code-tiny">${code}</span>`;
+    cell.title = `U+${code.toString(16).toUpperCase().padStart(4,'0')} (${code})`;
+    cell.onclick = () => {
+      setMode('code');
+      document.getElementById('in-code').value = code;
+      computeFromCode();
+    };
+    grid.appendChild(cell);
+  }
+}
+
+computeFromChar();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>ASCII / Unicode explorer</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

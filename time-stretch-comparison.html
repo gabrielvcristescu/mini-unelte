@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Time Stretch Comparison — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root{
+  --accent:#d070f0;
+  --accent-dim:rgba(127,119,221,.11);
+  --accent-border:rgba(127,119,221,.30);
+}
+.panel{
+  background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:14px 16px;margin-bottom:var(--content-gap)
+}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.section-label{
+  font-family:var(--font-mono);font-size:.64rem;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--text2)
+}
+.status-badge{
+  display:inline-block;padding:3px 8px;border:1px solid var(--accent-border);
+  border-radius:4px;background:var(--accent-dim);color:var(--accent);
+  font-family:var(--font-mono);font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em
+}
+.file-drop{
+  border:2px dashed var(--border2);border-radius:var(--radius);
+  padding:25px 18px;text-align:center;font-family:var(--font-mono);
+  font-size:.76rem;color:var(--text3);cursor:pointer;transition:.15s;
+  margin-bottom:10px
+}
+.file-drop:hover,.file-drop.dragover,.file-drop.active{
+  border-color:var(--accent-border);color:var(--accent);background:var(--accent-dim)
+}
+.file-name{
+  display:block;margin-top:6px;font-size:.61rem;color:var(--text2);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
+.source-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.source-card{
+  appearance:none;border:1px solid var(--border);background:var(--bg3);color:var(--text2);
+  border-radius:var(--radius-sm);padding:10px;min-height:60px;cursor:pointer;text-align:left;
+  transition:.14s;font-family:var(--font-mono)
+}
+.source-card:hover{border-color:var(--accent-border);color:var(--text)}
+.source-card.active{
+  border-color:var(--accent-border);background:var(--accent-dim);color:var(--accent);
+  box-shadow:inset 0 0 0 1px var(--accent-border)
+}
+.src-title{display:block;font-size:.69rem;font-weight:700;margin-bottom:3px}
+.src-desc{display:block;font-size:.55rem;line-height:1.35;color:var(--text3);font-weight:400}
+.controls{display:grid;grid-template-columns:minmax(0,1fr) 140px;gap:16px;align-items:center}
+.slider-row{display:flex;align-items:center;gap:10px}
+.slider-row input{flex:1;accent-color:var(--accent)}
+.slider-label{font-family:var(--font-mono);font-size:.68rem;color:var(--text2);white-space:nowrap}
+.ratio-big{
+  text-align:center;background:var(--bg3);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:9px 10px
+}
+.ratio-val{font-family:var(--font-mono);font-size:1.2rem;font-weight:700;color:var(--accent)}
+.ratio-sub{font-family:var(--font-mono);font-size:.55rem;color:var(--text3);margin-top:2px}
+.algo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.algo-card{
+  border:1px solid var(--border);border-radius:var(--radius);background:var(--bg2);
+  overflow:hidden;position:relative
+}
+.algo-top{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px;border-bottom:1px solid var(--border)}
+.algo-name{font-family:var(--font-mono);font-size:.68rem;font-weight:700;color:var(--text)}
+.algo-note{font-family:var(--font-mono);font-size:.53rem;color:var(--text3);padding:8px 10px 9px;line-height:1.45;min-height:48px}
+.play-btn{
+  border:1px solid var(--border2);background:var(--bg3);color:var(--text2);
+  border-radius:99px;padding:4px 8px;font-family:var(--font-mono);font-size:.57rem;cursor:pointer
+}
+.play-btn:hover,.play-btn.playing{border-color:var(--accent-border);color:var(--accent);background:var(--accent-dim)}
+.spec{width:100%;height:92px;display:block;background:#06111d}
+.metrics-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.metric-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px}
+.metric-label{font-family:var(--font-mono);font-size:.56rem;color:var(--text3);margin-bottom:4px}
+.metric-value{font-family:var(--font-mono);font-size:1.08rem;font-weight:700;color:var(--text)}
+.metric-note{font-family:var(--font-mono);font-size:.52rem;color:var(--text3);margin-top:3px}
+.info-box{font-family:var(--font-mono);font-size:.62rem;line-height:1.55;color:var(--text3);padding:10px 12px;background:var(--bg3);border-left:2px solid var(--accent);border-radius:var(--radius-sm)}
+.small-note{font-family:var(--font-mono);font-size:.58rem;color:var(--text3);line-height:1.55;margin-top:8px}
+@media(max-width:850px){
+  .algo-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .metrics-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:620px){
+  .source-grid,.algo-grid,.metrics-grid{grid-template-columns:1fr}
+  .controls{grid-template-columns:1fr}
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+<div class="tool-page">
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Time Stretch Comparison</h1>
+    <p>Compară auditiv și vizual mai multe strategii de modificare a duratei semnalului.</p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <span class="section-label">Sursă audio</span>
+      <span class="status-badge" id="status">pregătit</span>
+    </div>
+
+    <div class="file-drop" id="file-drop" tabindex="0">
+      <strong>Fișier audio</strong> — trage aici sau click pentru selecție
+      <span class="file-name" id="file-name">WAV, MP3, OGG, M4A/AAC, FLAC — în funcție de browser</span>
+      <input id="file-input" type="file" accept="audio/*,.wav,.mp3,.ogg,.oga,.m4a,.aac,.flac" hidden>
+    </div>
+
+    <div class="source-grid">
+      <button class="source-card active" type="button" data-source="voice">
+        <span class="src-title">Aa Voce sintetică</span>
+        <span class="src-desc">semnal multi-armonic cu anvelopă</span>
+      </button>
+      <button class="source-card" type="button" data-source="sine">
+        <span class="src-title">∿ Sinusoidă</span>
+        <span class="src-desc">440 Hz, utilă pentru artefacte</span>
+      </button>
+      <button class="source-card" type="button" data-source="piano">
+        <span class="src-title">♪ Pian sintetic</span>
+        <span class="src-desc">atac + decay și armonice</span>
+      </button>
+      <button class="source-card" type="button" data-source="noise">
+        <span class="src-title">≋ Zgomot alb</span>
+        <span class="src-desc">spectru larg de referință</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><span class="section-label">Stretch</span></div>
+    <div class="controls">
+      <div class="slider-row">
+        <span class="slider-label">Raport</span>
+        <input type="range" min="60" max="200" value="150" id="ratio-slider" step="10">
+      </div>
+      <div class="ratio-big">
+        <div class="ratio-val" id="ratio-val">1.5×</div>
+        <div class="ratio-sub">durată rezultată</div>
+      </div>
+    </div>
+    <div class="small-note">1.0× = durată originală · 1.5× = cu 50% mai lung · 0.8× = cu 20% mai scurt.</div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><span class="section-label">Ascultare și spectrograme</span></div>
+    <div class="algo-grid" id="algo-grid"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><span class="section-label">Metrici orientative</span></div>
+    <div class="metrics-grid" id="metrics-grid"></div>
+    <div class="small-note">Metricile sunt educaționale și sunt calculate pe implementările JavaScript simplificate din această pagină. Pentru fișiere, „Original” este redat la rata nativă; procesarea comparativă folosește mono la 16 kHz. „RubberBand” este o aproximație didactică, nu biblioteca Rubber Band reală.</div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><span class="section-label">Despre algoritmul selectat</span></div>
+    <div class="info-box" id="info-box">Apasă pe un card sau pe ▶ Ascultă pentru explicații.</div>
+  </div>
+</div>
+
+<script>
+const SR = 16000;
+const INITIAL_SYNTH_SECONDS = 0.60;
+const MAX_FILE_SECONDS = 1.25;
+const ALGO_ORDER = ['orig','resamp','ola','sola','pv','rb'];
+const NAMES = {
+  orig:'Original',
+  resamp:'Resample',
+  ola:'OLA',
+  sola:'SOLA',
+  pv:'Phase Vocoder',
+  rb:'RubberBand (sim.)'
+};
+const INFOS = {
+  orig:'Referință — semnalul original fără modificarea duratei.',
+  resamp:'Resampling simplu: schimbă simultan durata și pitch-ul, ca un magnetofon redat la altă viteză.',
+  ola:'OLA (Overlap-Add): modifică durata prin suprapunerea ferestrelor. Poate introduce flutter și discontinuități.',
+  sola:'SOLA caută o aliniere mai bună între ferestre înainte de suprapunere și reduce o parte din artefactele OLA.',
+  pv:'Phase Vocoder păstrează mai bine pitch-ul, dar această implementare simplificată poate suna metalic sau difuz.',
+  rb:'Aproximație didactică inspirată de o procesare mai rafinată. Nu este biblioteca Rubber Band și nu reproduce exact algoritmul ei.'
+};
+
+let currentSource = 'voice';
+let fileSignal = null;
+let fileName = '';
+let fileOriginalBuffer = null;
+let generated = {};
+let specs = {};
+let audioCtx = null;
+let activePlayback = null;
+
+const statusEl = document.getElementById('status');
+const fileDrop = document.getElementById('file-drop');
+const fileInput = document.getElementById('file-input');
+const fileNameEl = document.getElementById('file-name');
+const sourceCards = [...document.querySelectorAll('.source-card')];
+
+function setStatus(t){ statusEl.textContent=t; }
+function selectSource(src){
+  currentSource=src;
+  sourceCards.forEach(c=>c.classList.toggle('active',c.dataset.source===src));
+  fileDrop.classList.toggle('active',src==='file');
+  generate();
+}
+sourceCards.forEach(c=>c.addEventListener('click',()=>selectSource(c.dataset.source)));
+
+fileDrop.addEventListener('click',()=>fileInput.click());
+fileDrop.addEventListener('keydown',e=>{
+  if(e.key==='Enter'||e.key===' '){e.preventDefault();fileInput.click();}
+});
+fileDrop.addEventListener('dragover',e=>{e.preventDefault();fileDrop.classList.add('dragover');});
+fileDrop.addEventListener('dragleave',()=>fileDrop.classList.remove('dragover'));
+fileDrop.addEventListener('drop',e=>{
+  e.preventDefault();fileDrop.classList.remove('dragover');handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change',e=>handleFile(e.target.files[0]));
+
+async function handleFile(file){
+  if(!file) return;
+  const ok=file.type.startsWith('audio/') || /\.(wav|mp3|ogg|oga|m4a|aac|flac)$/i.test(file.name);
+  if(!ok){setStatus('fișier invalid');return;}
+  try{
+    setStatus('decodez...');
+    if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    const arr=await file.arrayBuffer();
+    const decoded=await audioCtx.decodeAudioData(arr.slice(0));
+    const dur=Math.min(decoded.duration,MAX_FILE_SECONDS);
+
+    // Păstrăm o copie la rata nativă pentru butonul ORIGINAL.
+    // Astfel "Original" nu mai trece prin resamplingul de analiză.
+    const nativeFrames=Math.max(1,Math.floor(dur*decoded.sampleRate));
+    fileOriginalBuffer=audioCtx.createBuffer(
+      decoded.numberOfChannels,
+      nativeFrames,
+      decoded.sampleRate
+    );
+    for(let ch=0;ch<decoded.numberOfChannels;ch++){
+      fileOriginalBuffer.copyToChannel(decoded.getChannelData(ch).slice(0,nativeFrames),ch);
+    }
+
+    // Pentru algoritmii demonstrativi folosim mono la 16 kHz.
+    // Interpolarea liniară rămâne doar pe calea de procesare, nu pe "Original".
+    const input=decoded.getChannelData(0);
+    const outN=Math.max(512,Math.floor(dur*SR));
+    const out=new Float32Array(outN);
+    for(let i=0;i<outN;i++){
+      const p=i*(decoded.sampleRate/SR);
+      const lo=Math.floor(p), hi=Math.min(input.length-1,lo+1), f=p-lo;
+      out[i]=(input[lo]||0)*(1-f)+(input[hi]||0)*f;
+    }
+    normalizePeak(out);
+    fileSignal=out; fileName=file.name;
+    currentSource='file';
+    sourceCards.forEach(c=>c.classList.remove('active'));
+    fileDrop.classList.add('active');
+    fileNameEl.textContent=file.name+' · primele '+dur.toFixed(2)+' s';
+    setStatus('fișier pregătit');
+    generate();
+  }catch(err){
+    console.error(err); setStatus('format nesuportat');
+  }
+}
+
+function synthSignal(type,N,sr){
+  const sig=new Float32Array(N);
+  if(type==='sine'){
+    for(let i=0;i<N;i++) sig[i]=0.7*Math.sin(2*Math.PI*440*i/sr);
+  }else if(type==='voice'){
+    const freqs=[120,240,360,600,960,1440], amps=[1,.7,.5,.3,.15,.08];
+    for(let i=0;i<N;i++){
+      let v=0;
+      freqs.forEach((f,k)=>v+=amps[k]*Math.sin(2*Math.PI*f*i/sr+k*.3));
+      const env=.35+.65*Math.pow(Math.sin(Math.PI*i/N),.7);
+      sig[i]=v*.24*env;
+    }
+  }else if(type==='piano'){
+    const f=262;
+    for(let i=0;i<N;i++){
+      const env=Math.exp(-i/(N*.35))+.08*Math.exp(-i/(N*1.8));
+      sig[i]=.55*env*(Math.sin(2*Math.PI*f*i/sr)+.4*Math.sin(4*Math.PI*f*i/sr)+.15*Math.sin(6*Math.PI*f*i/sr));
+    }
+  }else{
+    for(let i=0;i<N;i++) sig[i]=(Math.random()*2-1)*.35;
+  }
+  normalizePeak(sig); return sig;
+}
+function normalizePeak(sig, peakTarget=.92){
+  let m=0;
+  for(const v of sig)m=Math.max(m,Math.abs(v));
+  if(m>peakTarget && m>1e-12){
+    const s=peakTarget/m;
+    for(let i=0;i<sig.length;i++)sig[i]*=s;
+  }
+  return sig;
+}
+function rms(sig){
+  if(!sig.length)return 0;
+  let s=0;
+  for(const v of sig)s+=v*v;
+  return Math.sqrt(s/sig.length);
+}
+function matchRMS(sig,ref,peakTarget=.92){
+  const a=rms(sig), b=rms(ref);
+  if(a<1e-9 || b<1e-9)return normalizePeak(sig,peakTarget);
+
+  let gain=b/a;
+
+  // Nu lăsăm compensarea să explodeze dacă un algoritm a produs
+  // aproape tăcere din cauza unei erori numerice.
+  gain=Math.min(gain,8);
+
+  let peak=0;
+  for(const v of sig)peak=Math.max(peak,Math.abs(v));
+  if(peak>1e-9)gain=Math.min(gain,peakTarget/peak);
+
+  for(let i=0;i<sig.length;i++)sig[i]*=gain;
+  return sig;
+}
+function normalizeLoudness(sig,targetRms=.16){
+  if(!sig.length)return sig;
+
+  // Eliminăm componenta DC, care poate consuma inutil headroom.
+  let mean=0;
+  for(const v of sig)mean+=v;
+  mean/=sig.length;
+  for(let i=0;i<sig.length;i++)sig[i]-=mean;
+
+  const r=rms(sig);
+  if(r<1e-10)return sig;
+
+  // Pentru vocoder vrem un nivel realmente audibil.
+  const gain=Math.min(targetRms/r,40);
+
+  // Soft clipping în loc de tăiere brutală a vârfurilor.
+  for(let i=0;i<sig.length;i++){
+    sig[i]=Math.tanh(sig[i]*gain);
+  }
+
+  return normalizePeak(sig,.90);
+}
+function stretchResample(sig,ratio){
+  const N=Math.round(sig.length*ratio),out=new Float32Array(N);
+  for(let i=0;i<N;i++){
+    const p=i/ratio,lo=Math.floor(p),f=p-lo;
+    out[i]=(sig[lo]||0)+f*((sig[lo+1]||0)-(sig[lo]||0));
+  }
+  return normalizePeak(out);
+}
+function stretchOLA(sig,ratio,frame=256,hopIn=128){
+  const hopOut=Math.round(hopIn*ratio);
+  const out=new Float32Array(Math.round(sig.length*ratio)+frame),norm=new Float32Array(out.length);
+  const win=Array.from({length:frame},(_,i)=>.5*(1-Math.cos(2*Math.PI*i/(frame-1))));
+  let pi=0,po=0;
+  while(pi+frame<=sig.length){
+    for(let i=0;i<frame&&po+i<out.length;i++){out[po+i]+=sig[pi+i]*win[i];norm[po+i]+=win[i];}
+    pi+=hopIn;po+=hopOut;
+  }
+  const res=new Float32Array(Math.round(sig.length*ratio));
+  for(let i=0;i<res.length;i++)res[i]=norm[i]>1e-8?out[i]/norm[i]:0;
+  return normalizePeak(res);
+}
+function stretchSOLA(sig,ratio,frame=256,hopIn=128,search=24){
+  const hopOut=Math.round(hopIn*ratio);
+  const out=new Float32Array(Math.round(sig.length*ratio)+frame*2);
+  const win=Array.from({length:frame},(_,i)=>.5*(1-Math.cos(2*Math.PI*i/(frame-1))));
+  let pi=0,po=0;
+  while(pi+frame<=sig.length){
+    let best=0,bestCorr=-Infinity;
+    if(po>0){
+      const ov=Math.min(frame,out.length-po);
+      for(let d=-search;d<=search;d++){
+        const ps=pi+d;if(ps<0||ps+ov>sig.length)continue;
+        let c=0;for(let i=0;i<ov;i++)c+=out[po+i]*sig[ps+i]*win[i];
+        if(c>bestCorr){bestCorr=c;best=d;}
+      }
+    }
+    const src=Math.max(0,Math.min(pi+best,sig.length-frame));
+    for(let i=0;i<frame&&po+i<out.length;i++)out[po+i]+=sig[src+i]*win[i];
+    pi+=hopIn;po+=hopOut;
+  }
+  return normalizePeak(out.slice(0,Math.round(sig.length*ratio)));
+}
+function stretchPV(sig,ratio,nfft=256,hopIn=64){
+  const hopOut=Math.max(1,Math.round(hopIn*ratio));
+  const win=Array.from({length:nfft},(_,i)=>.5*(1-Math.cos(2*Math.PI*i/(nfft-1))));
+  const bins=nfft/2+1;
+  const phaseAcc=new Float64Array(bins);
+  const prevPhase=new Float64Array(bins);
+  const omega=Array.from({length:bins},(_,k)=>2*Math.PI*k/nfft);
+  const out=new Float32Array(Math.round(sig.length*ratio)+nfft*2);
+  const norm=new Float32Array(out.length);
+
+  let po=0;
+  let firstFrame=true;
+
+  for(let fi=0;fi+nfft<=sig.length;fi+=hopIn){
+    const mag=new Float64Array(bins);
+    const phase=new Float64Array(bins);
+
+    // DFT analiză
+    for(let k=0;k<bins;k++){
+      let re=0,im=0;
+      for(let n=0;n<nfft;n++){
+        const v=sig[fi+n]*win[n];
+        const a=2*Math.PI*k*n/nfft;
+        re+=v*Math.cos(a);
+        im-=v*Math.sin(a);
+      }
+      mag[k]=Math.hypot(re,im);
+      phase[k]=Math.atan2(im,re);
+    }
+
+    if(firstFrame){
+      // Prima fază trebuie păstrată; pornirea tuturor bin-urilor din faza 0
+      // produce anulări și un atac foarte slab.
+      for(let k=0;k<bins;k++){
+        phaseAcc[k]=phase[k];
+        prevPhase[k]=phase[k];
+      }
+      firstFrame=false;
+    }else{
+      for(let k=0;k<bins;k++){
+        let delta=phase[k]-prevPhase[k]-omega[k]*hopIn;
+        delta-=2*Math.PI*Math.round(delta/(2*Math.PI));
+
+        const trueFreq=omega[k]+delta/hopIn;
+        phaseAcc[k]+=trueFreq*hopOut;
+        prevPhase[k]=phase[k];
+      }
+    }
+
+    // Spectru complex conjugat pentru semnal real
+    const reSpec=new Float64Array(nfft);
+    const imSpec=new Float64Array(nfft);
+    for(let k=0;k<bins;k++){
+      const re=mag[k]*Math.cos(phaseAcc[k]);
+      const im=mag[k]*Math.sin(phaseAcc[k]);
+      reSpec[k]=re;
+      imSpec[k]=im;
+      if(k>0 && k<nfft/2){
+        reSpec[nfft-k]=re;
+        imSpec[nfft-k]=-im;
+      }
+    }
+
+    // IDFT + overlap-add
+    for(let n=0;n<nfft;n++){
+      let v=0;
+      for(let k=0;k<nfft;k++){
+        const a=2*Math.PI*k*n/nfft;
+        v+=reSpec[k]*Math.cos(a)-imSpec[k]*Math.sin(a);
+      }
+      v=(v/nfft)*win[n];
+      if(po+n<out.length){
+        out[po+n]+=v;
+        norm[po+n]+=win[n]*win[n];
+      }
+    }
+    po+=hopOut;
+  }
+
+  const res=new Float32Array(Math.round(sig.length*ratio));
+  for(let i=0;i<res.length;i++){
+    res[i]=norm[i]>1e-8 ? out[i]/norm[i] : 0;
+  }
+
+  return normalizeLoudness(res,.17);
+}
+function stretchRB(sig,ratio){
+  const base=stretchPV(sig,ratio,256,64);
+  const out=new Float32Array(base.length);
+
+  for(let i=0;i<base.length;i++){
+    let s=0,w=0;
+    for(let d=-2;d<=2;d++){
+      const j=i+d;
+      if(j>=0&&j<base.length){
+        const ww=3-Math.abs(d);
+        s+=base[j]*ww;
+        w+=ww;
+      }
+    }
+    out[i]=s/(w||1);
+  }
+
+  // Smoothing-ul reduce nivelul perceptiv; compensăm după filtrare.
+  return normalizeLoudness(out,.17);
+}
+
+function computeSpectrogram(sig,fftSize=128,hop=48){
+  if(sig.length<fftSize)return [];
+  const nFrames=Math.floor((sig.length-fftSize)/hop),nBins=fftSize/2,spec=[];
+  const win=Array.from({length:fftSize},(_,i)=>.5*(1-Math.cos(2*Math.PI*i/(fftSize-1))));
+  for(let f=0;f<nFrames;f++){
+    const mag=new Float32Array(nBins);
+    for(let k=0;k<nBins;k++){
+      let re=0,im=0;
+      for(let n=0;n<fftSize;n++){
+        const v=(sig[f*hop+n]||0)*win[n],a=2*Math.PI*k*n/fftSize;
+        re+=v*Math.cos(a);im-=v*Math.sin(a);
+      }
+      mag[k]=Math.hypot(re,im);
+    }
+    spec.push(mag);
+  }
+  return spec;
+}
+function drawSpectrogram(canvas,spec){
+  const W=canvas.width=260,H=canvas.height=92,ctx=canvas.getContext('2d');
+  ctx.fillStyle='#06111d';ctx.fillRect(0,0,W,H);
+  if(!spec.length)return;
+  let maxV=1e-9;spec.forEach(f=>f.forEach(v=>maxV=Math.max(maxV,v)));
+  const img=ctx.createImageData(W,H),nF=spec.length,nB=spec[0].length;
+  for(let x=0;x<W;x++){
+    const fr=spec[Math.min(nF-1,Math.floor(x/W*nF))];
+    for(let y=0;y<H;y++){
+      const bi=Math.min(nB-1,Math.floor((1-y/H)*nB));
+      const v=(fr[bi]||0)/maxV;
+      const z=Math.max(0,1+Math.log10(v+1e-6)/3);
+      const p=(y*W+x)*4;
+      img.data[p]=Math.floor(z*70);
+      img.data[p+1]=Math.floor(z*z*185);
+      img.data[p+2]=Math.floor(z*255);
+      img.data[p+3]=255;
+    }
+  }
+  ctx.putImageData(img,0,0);
+}
+function computeSNR(ref,sig){
+  const L=Math.min(ref.length,sig.length);let sp=0,np=0;
+  for(let i=0;i<L;i++){sp+=ref[i]*ref[i];const d=ref[i]-sig[i];np+=d*d;}
+  if(np<1e-12)return 60;return 10*Math.log10((sp+1e-12)/(np+1e-12));
+}
+function computeSpectralDist(a,b){
+  const F=Math.min(a.length,b.length);let d=0,s=0;
+  for(let f=0;f<F;f++){const B=Math.min(a[f].length,b[f].length);for(let k=0;k<B;k++){d+=Math.abs(a[f][k]-b[f][k]);s+=a[f][k]+1e-8;}}
+  return d/(s||1);
+}
+function computeFlutter(sig){
+  let d=0;for(let i=1;i<sig.length;i++)d+=Math.abs(sig[i]-sig[i-1]);return d/sig.length;
+}
+
+function makeBaseSignal(){
+  if(currentSource==='file'&&fileSignal)return fileSignal.slice();
+  return synthSignal(currentSource,Math.floor(SR*INITIAL_SYNTH_SECONDS),SR);
+}
+function generate(){
+  stopPlayback();
+  setStatus('procesez...');
+  requestAnimationFrame(()=>{
+    try{
+      const ratio=+document.getElementById('ratio-slider').value/100;
+      const orig=makeBaseSignal();
+      generated={
+        orig,
+        resamp:stretchResample(orig,ratio),
+        ola:stretchOLA(orig,ratio),
+        sola:stretchSOLA(orig,ratio),
+        pv:stretchPV(orig,ratio),
+      };
+      generated.rb=stretchRB(orig,ratio);
+
+      // Egalizare de nivel: comparăm algoritmii, nu diferențele accidentale
+      // de amplitudine produse de overlap-add / reconstrucție.
+      ['resamp','ola','sola'].forEach(k=>matchRMS(generated[k],orig));
+      // Phase Vocoder și RubberBand sim. au normalizare proprie după reconstrucție.
+      normalizeLoudness(generated.pv,.17);
+      normalizeLoudness(generated.rb,.17);
+
+      specs={};ALGO_ORDER.forEach(k=>specs[k]=computeSpectrogram(generated[k]));
+      renderAlgorithms(ratio);renderMetrics();
+      setStatus(currentSource==='file'?'fișier · gata':'sintetic · gata');
+    }catch(e){
+      console.error(e);setStatus('eroare');
+    }
+  });
+}
+function renderAlgorithms(ratio){
+  const grid=document.getElementById('algo-grid');grid.innerHTML='';
+  ALGO_ORDER.forEach(k=>{
+    const card=document.createElement('div');card.className='algo-card';card.dataset.key=k;
+    const stretchText=k==='orig'?'1.0×':ratio.toFixed(1)+'×';
+    card.innerHTML=`
+      <div class="algo-top">
+        <div><div class="algo-name">${NAMES[k]}</div><div style="font-family:var(--font-mono);font-size:.52rem;color:var(--text3);margin-top:2px">${stretchText}</div></div>
+        <button class="play-btn" data-play="${k}">▶ Ascultă</button>
+      </div>
+      <canvas class="spec" data-spec="${k}"></canvas>
+      <div class="algo-note">${INFOS[k]}</div>`;
+    card.addEventListener('click',e=>{
+      document.getElementById('info-box').textContent=INFOS[k];
+      if(!e.target.closest('.play-btn')) return;
+    });
+    grid.appendChild(card);
+    drawSpectrogram(card.querySelector('canvas'),specs[k]);
+  });
+  grid.querySelectorAll('.play-btn').forEach(b=>b.addEventListener('click',e=>{
+    e.stopPropagation();playSignal(b.dataset.play,b);
+  }));
+}
+function renderMetrics(){
+  const ref=generated.resamp,refSpec=specs.resamp;
+  const rows=['resamp','ola','sola','pv','rb'].map(k=>({
+    k,
+    snr:computeSNR(ref,generated[k]),
+    spectral:computeSpectralDist(refSpec,specs[k]),
+    flutter:computeFlutter(generated[k])*1000
+  }));
+  const rb=rows.find(x=>x.k==='rb'),ola=rows.find(x=>x.k==='ola'),pv=rows.find(x=>x.k==='pv');
+  const data=[
+    ['SNR RubberBand sim.',rb.snr.toFixed(1)+' dB','față de referința resample'],
+    ['Distanță spectrală OLA',ola.spectral.toFixed(3),'mai mic = mai apropiat'],
+    ['Flutter OLA',ola.flutter.toFixed(2)+' ×10⁻³','indicator simplificat'],
+    ['Distanță spectrală PV',pv.spectral.toFixed(3),'phase vocoder simplificat']
+  ];
+  document.getElementById('metrics-grid').innerHTML=data.map(x=>`
+    <div class="metric-card"><div class="metric-label">${x[0]}</div><div class="metric-value">${x[1]}</div><div class="metric-note">${x[2]}</div></div>`).join('');
+}
+async function playSignal(key,btn){
+  stopPlayback();
+  if(!generated[key])return;
+  if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  if(audioCtx.state==='suspended')await audioCtx.resume();
+  let buf;
+  if(key==='orig' && currentSource==='file' && fileOriginalBuffer){
+    // Redare cu rata și canalele originale ale fișierului.
+    buf=fileOriginalBuffer;
+  }else{
+    const sig=generated[key];
+    buf=audioCtx.createBuffer(1,sig.length,SR);
+    buf.copyToChannel(sig,0);
+  }
+  const src=audioCtx.createBufferSource();src.buffer=buf;
+  const gain=audioCtx.createGain();
+  gain.gain.value = (key==='pv' || key==='rb') ? 1.0 : .85;
+
+  const limiter=audioCtx.createDynamicsCompressor();
+  limiter.threshold.value=-6;
+  limiter.knee.value=4;
+  limiter.ratio.value=10;
+  limiter.attack.value=.002;
+  limiter.release.value=.10;
+
+  src.connect(gain);
+  gain.connect(limiter);
+  limiter.connect(audioCtx.destination);
+  src.onended=()=>{btn.classList.remove('playing');btn.textContent='▶ Ascultă';if(activePlayback===src)activePlayback=null;};
+  src.start();
+  activePlayback=src;btn.classList.add('playing');btn.textContent='■ Oprește';
+  setStatus('redare · '+NAMES[key]);
+}
+function stopPlayback(){
+  if(activePlayback){try{activePlayback.stop()}catch(e){}activePlayback=null;}
+  document.querySelectorAll('.play-btn').forEach(b=>{b.classList.remove('playing');b.textContent='▶ Ascultă';});
+}
+document.getElementById('ratio-slider').addEventListener('input',function(){
+  document.getElementById('ratio-val').textContent=(this.value/100).toFixed(1)+'×';
+  generate();
+});
+
+function generateInitial(){
+  generate();
+}
+if ('requestIdleCallback' in window) {
+  requestIdleCallback(generateInitial, {timeout: 450});
+} else {
+  setTimeout(generateInitial, 80);
+}
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Time Stretch Comparison</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

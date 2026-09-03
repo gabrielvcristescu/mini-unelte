@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generator Pattern SVG — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #f0c040;
+  --accent-dim: rgba(240,192,64,0.10);
+  --accent-border: rgba(240,192,64,0.28);
+}
+
+.type-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 6px;
+  margin-bottom: var(--content-gap);
+}
+.type-btn {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 6px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.type-btn:hover { border-color: var(--accent-border); }
+.type-btn.active { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+.type-name { font-family: var(--font-mono); font-size: 0.65rem; }
+
+.preview-wrap {
+  height: 240px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  margin-bottom: var(--content-gap);
+  overflow: hidden;
+}
+
+.sliders-grid { display: flex; flex-direction: column; gap: 12px; margin-bottom: var(--content-gap); }
+.slider-item { display: flex; align-items: center; gap: 12px; }
+.slider-item label { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text2); width: 90px; flex-shrink: 0; }
+.slider-item input[type=range] { flex: 1; accent-color: var(--accent); }
+.slider-item .val { font-family: var(--font-mono); font-size: 0.72rem; color: var(--accent); width: 50px; text-align: right; }
+
+.options-row { display: flex; gap: 16px; margin-bottom: var(--content-gap); align-items: center; flex-wrap: wrap; }
+.color-input { width: 40px; height: 32px; border: 1px solid var(--border2); border-radius: 6px; cursor: pointer; background: none; padding: 2px; }
+.option-item { display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 0.72rem; color: var(--text2); }
+
+.action-row { display: flex; gap: 8px; }
+.action-btn {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.action-btn:hover { filter: brightness(1.15); }
+
+.code-box {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text2);
+  word-break: break-all;
+  max-height: 150px;
+  overflow-y: auto;
+  margin-top: var(--content-gap);
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Generator pattern SVG</h1>
+    <p>Dungi, puncte, grilă, valuri — pattern-uri repetabile pentru fundaluri</p>
+  </div>
+
+  <div class="type-grid" id="type-grid"></div>
+
+  <div class="preview-wrap" id="preview-wrap"></div>
+
+  <div class="sliders-grid" id="sliders-grid"></div>
+
+  <div class="options-row">
+    <div class="option-item">
+      <input type="color" class="color-input" id="color-bg" value="#0d0f12" oninput="update()">
+      <span>Fundal</span>
+    </div>
+    <div class="option-item">
+      <input type="color" class="color-input" id="color-fg" value="#f0c040" oninput="update()">
+      <span>Pattern</span>
+    </div>
+  </div>
+
+  <div class="action-row">
+    <button class="action-btn" onclick="copySvg()">Copiază SVG</button>
+    <button class="action-btn" onclick="copyCssBg()">Copiază CSS background</button>
+  </div>
+
+  <div class="code-box" id="code-output">—</div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+const PATTERNS = {
+  stripes:  { name: 'Dungi', sliders: [ {key:'size', label:'Mărime', min:5, max:60, val:20}, {key:'angle', label:'Unghi', min:0, max:90, val:45} ] },
+  dots:     { name: 'Puncte', sliders: [ {key:'size', label:'Mărime', min:10, max:60, val:24}, {key:'radius', label:'Rază punct', min:1, max:12, val:3} ] },
+  grid:     { name: 'Grilă', sliders: [ {key:'size', label:'Mărime celulă', min:10, max:80, val:30}, {key:'thickness', label:'Grosime linie', min:1, max:5, val:1} ] },
+  waves:    { name: 'Valuri', sliders: [ {key:'size', label:'Lungime undă', min:20, max:100, val:50}, {key:'amplitude', label:'Amplitudine', min:5, max:30, val:12} ] },
+  crosshatch: { name: 'Cruciș', sliders: [ {key:'size', label:'Mărime', min:10, max:60, val:24}, {key:'thickness', label:'Grosime', min:1, max:5, val:1} ] },
+  triangles: { name: 'Triunghiuri', sliders: [ {key:'size', label:'Mărime', min:15, max:70, val:32} ] },
+};
+
+let currentType = 'stripes';
+let values = {};
+
+function buildTypeGrid() {
+  const grid = document.getElementById('type-grid');
+  grid.innerHTML = '';
+  Object.entries(PATTERNS).forEach(([key, p]) => {
+    const btn = document.createElement('div');
+    btn.className = 'type-btn' + (key===currentType?' active':'');
+    btn.innerHTML = `<div class="type-name">${p.name}</div>`;
+    btn.onclick = () => { currentType = key; buildTypeGrid(); buildSliders(); update(); };
+    grid.appendChild(btn);
+  });
+}
+
+function buildSliders() {
+  const pattern = PATTERNS[currentType];
+  values = {};
+  pattern.sliders.forEach(s => { values[s.key] = s.val; });
+
+  const wrap = document.getElementById('sliders-grid');
+  wrap.innerHTML = pattern.sliders.map(s => `
+    <div class="slider-item">
+      <label>${s.label}</label>
+      <input type="range" id="slider-${s.key}" min="${s.min}" max="${s.max}" value="${s.val}" oninput="onSliderChange('${s.key}')">
+      <span class="val" id="val-${s.key}">${s.val}px</span>
+    </div>
+  `).join('');
+}
+
+function onSliderChange(key) {
+  values[key] = +document.getElementById('slider-'+key).value;
+  document.getElementById('val-'+key).textContent = values[key] + (key==='angle' ? '°' : 'px');
+  update();
+}
+
+function buildPatternSvg() {
+  const bg = document.getElementById('color-bg').value;
+  const fg = document.getElementById('color-fg').value;
+  const s = values.size || 24;
+
+  let patternContent = '', patternId = 'p1', patW = s, patH = s;
+
+  if (currentType === 'stripes') {
+    const angle = values.angle || 45;
+    patternContent = `<rect width="${s}" height="${s}" fill="${bg}"/><line x1="0" y1="0" x2="0" y2="${s}" stroke="${fg}" stroke-width="${s/2}"/>`;
+    return {
+      svg: `<svg width="100%" height="100%"><defs><pattern id="${patternId}" width="${s}" height="${s}" patternUnits="userSpaceOnUse" patternTransform="rotate(${angle})"><rect width="${s}" height="${s}" fill="${bg}"/><rect width="${s/2}" height="${s}" fill="${fg}"/></pattern></defs><rect width="100%" height="100%" fill="url(#${patternId})"/></svg>`,
+    };
+  }
+  if (currentType === 'dots') {
+    const r = values.radius || 3;
+    return {
+      svg: `<svg width="100%" height="100%"><defs><pattern id="${patternId}" width="${s}" height="${s}" patternUnits="userSpaceOnUse"><rect width="${s}" height="${s}" fill="${bg}"/><circle cx="${s/2}" cy="${s/2}" r="${r}" fill="${fg}"/></pattern></defs><rect width="100%" height="100%" fill="url(#${patternId})"/></svg>`,
+    };
+  }
+  if (currentType === 'grid') {
+    const t = values.thickness || 1;
+    return {
+      svg: `<svg width="100%" height="100%"><defs><pattern id="${patternId}" width="${s}" height="${s}" patternUnits="userSpaceOnUse"><rect width="${s}" height="${s}" fill="${bg}"/><path d="M ${s} 0 L 0 0 0 ${s}" fill="none" stroke="${fg}" stroke-width="${t}"/></pattern></defs><rect width="100%" height="100%" fill="url(#${patternId})"/></svg>`,
+    };
+  }
+  if (currentType === 'waves') {
+    const amp = values.amplitude || 12;
+    const h = amp*2+4;
+    return {
+      svg: `<svg width="100%" height="100%"><defs><pattern id="${patternId}" width="${s}" height="${h}" patternUnits="userSpaceOnUse"><rect width="${s}" height="${h}" fill="${bg}"/><path d="M 0 ${h/2} Q ${s/4} ${h/2-amp} ${s/2} ${h/2} T ${s} ${h/2}" fill="none" stroke="${fg}" stroke-width="2.5"/></pattern></defs><rect width="100%" height="100%" fill="url(#${patternId})"/></svg>`,
+    };
+  }
+  if (currentType === 'crosshatch') {
+    const t = values.thickness || 1;
+    return {
+      svg: `<svg width="100%" height="100%"><defs><pattern id="${patternId}" width="${s}" height="${s}" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="${s}" height="${s}" fill="${bg}"/><line x1="0" y1="0" x2="0" y2="${s}" stroke="${fg}" stroke-width="${t}"/><line x1="0" y1="0" x2="${s}" y2="0" stroke="${fg}" stroke-width="${t}"/></pattern></defs><rect width="100%" height="100%" fill="url(#${patternId})"/></svg>`,
+    };
+  }
+  if (currentType === 'triangles') {
+    return {
+      svg: `<svg width="100%" height="100%"><defs><pattern id="${patternId}" width="${s}" height="${s}" patternUnits="userSpaceOnUse"><rect width="${s}" height="${s}" fill="${bg}"/><polygon points="0,${s} ${s/2},0 ${s},${s}" fill="${fg}"/></pattern></defs><rect width="100%" height="100%" fill="url(#${patternId})"/></svg>`,
+    };
+  }
+}
+
+function update() {
+  const { svg } = buildPatternSvg();
+  document.getElementById('preview-wrap').innerHTML = svg;
+  document.getElementById('code-output').textContent = svg;
+}
+
+function copySvg() {
+  const svg = document.getElementById('code-output').textContent;
+  navigator.clipboard.writeText(svg).then(() => showToast('SVG copiat!'));
+}
+
+function copyCssBg() {
+  const svg = document.getElementById('code-output').textContent;
+  const encoded = encodeURIComponent(svg).replace(/'/g, '%27').replace(/"/g, '%22');
+  const css = `background-image: url("data:image/svg+xml,${encoded}");`;
+  navigator.clipboard.writeText(css).then(() => showToast('CSS background copiat!'));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+buildTypeGrid();
+buildSliders();
+update();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Generator pattern SVG</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

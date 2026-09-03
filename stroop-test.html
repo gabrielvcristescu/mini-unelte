@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stroop Test — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #f0a040;
+  --accent-dim: rgba(240,160,64,0.10);
+  --accent-border: rgba(240,160,64,0.28);
+}
+
+.mode-row { display: flex; gap: 8px; margin-bottom: var(--content-gap); }
+.mode-btn {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.mode-btn.active { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+
+.stats-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--content-gap);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+.stat-item { display: flex; gap: 6px; align-items: center; }
+.stat-label { color: var(--text3); }
+.stat-val { color: var(--accent); font-weight: 700; }
+
+.word-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 40px 24px;
+  text-align: center;
+  margin-bottom: var(--content-gap);
+}
+.word-label { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px; }
+.word-display { font-family: var(--font-sans); font-size: 3rem; font-weight: 800; }
+
+.options-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: var(--content-gap); }
+@media (max-width: 500px) { .options-grid { grid-template-columns: repeat(2, 1fr); } }
+.option-btn {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 8px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.option-btn:hover:not(:disabled) { border-color: var(--accent-border); }
+.option-btn:disabled { cursor: default; }
+.option-btn.correct { border-color: #4af0b0; background: rgba(74,240,176,0.12); }
+.option-btn.wrong { border-color: #f06060; background: rgba(240,96,96,0.12); }
+
+.final-card {
+  background: var(--bg2);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius);
+  padding: 30px 24px;
+  text-align: center;
+  display: none;
+}
+.final-card.show { display: block; }
+.final-score { font-family: var(--font-mono); font-size: 1.6rem; font-weight: 700; color: var(--accent); }
+.final-label { font-family: var(--font-mono); font-size: 0.75rem; color: var(--text3); margin-top: 6px; }
+.restart-btn {
+  margin-top: 16px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.info-box {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text3);
+  line-height: 1.6;
+  margin-top: var(--content-gap);
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Stroop Test</h1>
+    <p>Alege culoarea cernelii, nu cuvântul citit — interferență cognitivă</p>
+  </div>
+
+  <div class="mode-row">
+    <button class="mode-btn active" id="btn-normal" onclick="setMode('normal')">Normal</button>
+    <button class="mode-btn" id="btn-timed" onclick="setMode('timed')">Cronometrat (20 runde)</button>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat-item"><span class="stat-label">Runde</span> <span class="stat-val" id="stat-round">0</span></div>
+    <div class="stat-item"><span class="stat-label">Corecte</span> <span class="stat-val" id="stat-correct">0</span></div>
+    <div class="stat-item"><span class="stat-label">Timp mediu</span> <span class="stat-val" id="stat-avgtime">—</span></div>
+  </div>
+
+  <div id="quiz-area">
+    <div class="word-card">
+      <div class="word-label">Ce culoare are cerneala acestui cuvânt?</div>
+      <div class="word-display" id="word-display">—</div>
+    </div>
+
+    <div class="options-grid" id="options-grid"></div>
+  </div>
+
+  <div class="final-card" id="final-card">
+    <div class="final-score" id="final-score">—</div>
+    <div class="final-label" id="final-label"></div>
+    <button class="restart-btn" onclick="startGame()">Joacă din nou</button>
+  </div>
+
+  <p class="info-box">
+    Efectul Stroop: creierul citește automat cuvântul mai repede decât procesează culoarea, creând un conflict cognitiv care încetinește reacția când cuvântul și culoarea nu se potrivesc (ex: cuvântul "ROȘU" scris cu cerneală albastră).
+  </p>
+</div>
+
+<script>
+const COLOR_NAMES = { rosu: 'ROȘU', albastru: 'ALBASTRU', verde: 'VERDE', galben: 'GALBEN' };
+const COLOR_HEX = { rosu: '#f06060', albastru: '#60a0f0', verde: '#4af0b0', galben: '#f0d040' };
+const COLOR_KEYS = Object.keys(COLOR_NAMES);
+
+let mode = 'normal';
+let round = 0;
+let correct = 0;
+let times = [];
+let startTime = 0;
+let answered = false;
+let currentColorKey = '';
+let autoAdvanceTimer = null;
+const TOTAL_TIMED = 20;
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('btn-normal').classList.toggle('active', m==='normal');
+  document.getElementById('btn-timed').classList.toggle('active', m==='timed');
+  startGame();
+}
+
+function startGame() {
+  clearTimeout(autoAdvanceTimer);
+  round = 0;
+  correct = 0;
+  times = [];
+  document.getElementById('final-card').classList.remove('show');
+  document.getElementById('quiz-area').style.display = 'block';
+  updateStats();
+  nextRound();
+}
+
+function nextRound() {
+  round++;
+  answered = false;
+
+  if (mode === 'timed' && round > TOTAL_TIMED) {
+    endGame();
+    return;
+  }
+
+  // Alegem un cuvânt și o culoare — cu ~70% șansă să NU coincidă (interferență)
+  const wordKey = COLOR_KEYS[Math.floor(Math.random()*4)];
+  let colorKey = wordKey;
+  if (Math.random() < 0.7) {
+    const others = COLOR_KEYS.filter(k => k !== wordKey);
+    colorKey = others[Math.floor(Math.random()*others.length)];
+  }
+  currentColorKey = colorKey;
+
+  const wordEl = document.getElementById('word-display');
+  wordEl.textContent = COLOR_NAMES[wordKey];
+  wordEl.style.color = COLOR_HEX[colorKey];
+
+  const options = shuffle(COLOR_KEYS);
+  const grid = document.getElementById('options-grid');
+  grid.innerHTML = '';
+  options.forEach(key => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.textContent = COLOR_NAMES[key];
+    btn.style.color = COLOR_HEX[key];
+    btn.onclick = () => selectAnswer(btn, key);
+    grid.appendChild(btn);
+  });
+
+  updateStats();
+  startTime = performance.now();
+}
+
+function selectAnswer(btn, selectedKey) {
+  if (answered) return;
+  answered = true;
+
+  const reactionTime = performance.now() - startTime;
+  times.push(reactionTime);
+
+  document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+
+  if (selectedKey === currentColorKey) {
+    correct++;
+    btn.classList.add('correct');
+  } else {
+    btn.classList.add('wrong');
+    // Evidențiem și răspunsul corect
+    document.querySelectorAll('.option-btn').forEach(b => {
+      if (b.textContent === COLOR_NAMES[currentColorKey]) b.classList.add('correct');
+    });
+  }
+
+  updateStats();
+
+  clearTimeout(autoAdvanceTimer);
+  autoAdvanceTimer = setTimeout(() => {
+    if (mode === 'timed' && round >= TOTAL_TIMED) endGame();
+    else nextRound();
+  }, 700);
+}
+
+function updateStats() {
+  document.getElementById('stat-round').textContent = mode==='timed' ? `${round}/${TOTAL_TIMED}` : round;
+  document.getElementById('stat-correct').textContent = correct;
+  if (times.length > 0) {
+    const avg = Math.round(times.reduce((a,b)=>a+b,0)/times.length);
+    document.getElementById('stat-avgtime').textContent = avg + 'ms';
+  }
+}
+
+function endGame() {
+  clearTimeout(autoAdvanceTimer);
+  document.getElementById('quiz-area').style.display = 'none';
+  const avg = times.length ? Math.round(times.reduce((a,b)=>a+b,0)/times.length) : 0;
+  const accuracy = Math.round((correct/times.length)*100);
+  document.getElementById('final-score').textContent = `${correct}/${times.length} corecte`;
+  document.getElementById('final-label').textContent = `${accuracy}% acuratețe · ${avg}ms timp mediu de răspuns`;
+  document.getElementById('final-card').classList.add('show');
+}
+
+startGame();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Stroop test</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

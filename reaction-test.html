@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test Reacție — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #f0a040;
+  --accent-dim: rgba(240,160,64,0.10);
+  --accent-border: rgba(240,160,64,0.28);
+}
+
+.game-area {
+  height: 320px;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+  user-select: none;
+  margin-bottom: var(--content-gap);
+  text-align: center;
+  padding: 20px;
+}
+.game-area.waiting { background: var(--bg2); border: 1px solid var(--border); }
+.game-area.ready { background: rgba(240,96,96,0.12); border: 1px solid rgba(240,96,96,0.3); }
+.game-area.go { background: rgba(74,240,176,0.15); border: 1px solid rgba(74,240,176,0.4); }
+.game-area.early { background: rgba(240,96,96,0.2); border: 1px solid rgba(240,96,96,0.5); }
+.game-area.result { background: var(--accent-dim); border: 1px solid var(--accent-border); }
+
+.game-text {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.game-result-num { font-family: var(--font-mono); font-size: 3rem; font-weight: 700; color: var(--accent); }
+.game-result-label { font-family: var(--font-mono); font-size: 0.75rem; color: var(--text3); margin-top: 6px; }
+
+.stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: var(--content-gap); }
+@media (max-width: 500px) { .stats-row { grid-template-columns: 1fr; } }
+.stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; text-align: center; }
+.stat-val { font-family: var(--font-mono); font-size: 1rem; font-weight: 600; color: var(--text); }
+.stat-key { font-family: var(--font-mono); font-size: 0.58rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+
+.history-list { display: flex; gap: 6px; flex-wrap: wrap; }
+.history-chip {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 4px 10px;
+  border-radius: 99px;
+  background: var(--bg3);
+  color: var(--text2);
+  border: 1px solid var(--border2);
+}
+
+.ref-note { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text3); text-align: center; margin-top: 8px; }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Test reacție</h1>
+    <p>Click cât mai repede posibil când ecranul devine verde</p>
+  </div>
+
+  <div class="game-area waiting" id="game-area" onclick="handleClick()">
+    <div>
+      <div class="game-text" id="game-text">Click pentru a începe</div>
+      <div class="game-result-label" id="game-sub" style="display:none"></div>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-val" id="stat-best">—</div><div class="stat-key">cel mai bun (ms)</div></div>
+    <div class="stat-card"><div class="stat-val" id="stat-avg">—</div><div class="stat-key">medie (ms)</div></div>
+    <div class="stat-card"><div class="stat-val" id="stat-count">0</div><div class="stat-key">încercări</div></div>
+  </div>
+
+  <div class="card">
+    <div class="field-label" style="margin-bottom:8px">Istoric încercări</div>
+    <div class="history-list" id="history-list"></div>
+  </div>
+
+  <p class="ref-note">Timp mediu de reacție uman: 200-250ms. Sub 200ms poate indica anticipare, nu reflex real.</p>
+</div>
+
+<script>
+let state = 'waiting'; // waiting -> ready -> go -> result
+let startTime = 0;
+let timeoutId = null;
+let attempts = [];
+
+function handleClick() {
+  const area = document.getElementById('game-area');
+  const text = document.getElementById('game-text');
+  const sub = document.getElementById('game-sub');
+
+  if (state === 'waiting' || state === 'result' || state === 'early') {
+    // Începe o nouă rundă
+    state = 'ready';
+    area.className = 'game-area ready';
+    text.className = 'game-text';
+    text.textContent = 'Așteaptă verde...';
+    sub.style.display = 'none';
+
+    const delay = 1500 + Math.random()*2500;
+    timeoutId = setTimeout(() => {
+      state = 'go';
+      area.className = 'game-area go';
+      text.textContent = 'CLICK ACUM!';
+      startTime = performance.now();
+    }, delay);
+
+  } else if (state === 'ready') {
+    // Click prea devreme
+    clearTimeout(timeoutId);
+    state = 'early';
+    area.className = 'game-area early';
+    text.textContent = 'Prea devreme! Click pentru a reîncerca.';
+    sub.style.display = 'none';
+
+  } else if (state === 'go') {
+    // Click valid — calculăm timpul
+    const reactionTime = Math.round(performance.now() - startTime);
+    state = 'result';
+    area.className = 'game-area result';
+    text.className = 'game-result-num';
+    text.textContent = reactionTime;
+    sub.textContent = 'milisecunde — click pentru încă o încercare';
+    sub.style.display = 'block';
+
+    attempts.push(reactionTime);
+    updateStats();
+  }
+}
+
+function updateStats() {
+  const best = Math.min(...attempts);
+  const avg = Math.round(attempts.reduce((a,b)=>a+b,0) / attempts.length);
+
+  document.getElementById('stat-best').textContent = best;
+  document.getElementById('stat-avg').textContent = avg;
+  document.getElementById('stat-count').textContent = attempts.length;
+
+  const list = document.getElementById('history-list');
+  list.innerHTML = attempts.slice(-15).reverse().map(t => `<span class="history-chip">${t}ms</span>`).join('');
+}
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Test reacție</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notă Muzicală ↔ Hz — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #d070f0;
+  --accent-dim: rgba(208,112,240,0.10);
+  --accent-border: rgba(208,112,240,0.28);
+}
+
+.mode-row { display: flex; gap: 8px; margin-bottom: var(--content-gap); }
+.mode-btn {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.mode-btn.active { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+
+.field-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: var(--content-gap);
+}
+.field-name { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text2); font-weight: 500; margin-bottom: 8px; display: block; }
+
+.notation-row { display: flex; align-items: center; gap: 8px; margin-bottom: var(--content-gap); font-family: var(--font-mono); font-size: 0.72rem; color: var(--text2); }
+
+.result-card {
+  background: var(--bg2);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius);
+  padding: 20px;
+  text-align: center;
+  margin-bottom: var(--content-gap);
+}
+.result-note { font-family: var(--font-mono); font-size: 2rem; font-weight: 700; color: var(--accent); }
+.result-note-alt { font-family: var(--font-mono); font-size: 1rem; color: var(--text3); margin-top: 2px; }
+.result-hz { font-family: var(--font-mono); font-size: 1.1rem; color: var(--text); margin-top: 6px; }
+.result-cents { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text3); margin-top: 4px; }
+
+.piano-wrap { overflow-x: auto; padding: 8px 0; }
+.piano { display: flex; height: 100px; position: relative; min-width: 700px; }
+.piano-key {
+  flex: 1;
+  border: 1px solid var(--border2);
+  border-radius: 0 0 4px 4px;
+  cursor: pointer;
+  transition: background 0.1s;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  color: var(--text3);
+}
+.piano-key.white { background: var(--bg2); }
+.piano-key.white:hover { background: var(--accent-dim); }
+.piano-key.active-note { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+
+.piano-key.black {
+  position: absolute;
+  top: 0;
+  width: 60%;
+  height: 60%;
+  background: #1a1a1a;
+  border: 1px solid #000;
+  border-radius: 0 0 3px 3px;
+  z-index: 2;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.45rem;
+  color: #d0d0d0;
+}
+.piano-key.black:hover { background: var(--accent); color: #1a1a1a; }
+.piano-key.black.active-note { background: var(--accent); color: #1a1a1a; }
+
+.play-btn {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  margin-bottom: var(--content-gap);
+}
+.play-btn:hover { filter: brightness(1.15); }
+
+/* Clapele albe rămân clape albe indiferent de tema paginii. */
+.piano-key.white {
+  background: #f7f7f4;
+  color: #42464d;
+  border-color: #aeb4bd;
+}
+
+.piano-key.white:hover {
+  background: #eefaf5;
+}
+.piano-key.white.active-note {
+  background: #dff8ee;
+  color: #146b4c;
+  border-color: #58b993;
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Notă muzicală ↔ Hz</h1>
+    <p>Do-Re-Mi / C-D-E, toate octavele, A4 = 440Hz</p>
+  </div>
+
+  <div class="mode-row">
+    <button class="mode-btn active" id="btn-note" onclick="setMode('note')">Notă → Hz</button>
+    <button class="mode-btn" id="btn-hz" onclick="setMode('hz')">Hz → Notă</button>
+  </div>
+
+  <div id="panel-note">
+    <div class="field-card">
+      <span class="field-name">Alege nota</span>
+      <div class="notation-row">
+        <select class="unit-select" id="in-note" onchange="computeFromNote()" style="flex:1;padding:8px">
+        </select>
+        <select class="unit-select" id="in-octave" onchange="computeFromNote()" style="width:80px;padding:8px">
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div id="panel-hz" style="display:none">
+    <div class="field-card">
+      <span class="field-name">Frecvență (Hz)</span>
+      <input class="input-calc" id="in-hz" type="number" min="1" step="any" value="440"
+             style="--input-color:var(--accent);font-size:1.1rem" oninput="computeFromHz()">
+    </div>
+  </div>
+
+  <div class="result-card">
+    <div class="result-note" id="result-note">A4</div>
+    <div class="result-note-alt" id="result-note-alt">La (octava 4)</div>
+    <div class="result-hz" id="result-hz">440.00 Hz</div>
+    <div class="result-cents" id="result-cents"></div>
+  </div>
+
+  <button class="play-btn" onclick="playNote()">🔊 Redă nota</button>
+
+  <div class="piano-wrap">
+    <div class="piano" id="piano"></div>
+  </div>
+</div>
+
+<script>
+const NOTE_NAMES_EN = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const NOTE_NAMES_RO = ['Do','Do#','Re','Re#','Mi','Fa','Fa#','Sol','Sol#','La','La#','Si'];
+const WHITE_KEYS_EN = ['C','D','E','F','G','A','B'];
+
+let mode = 'note';
+let audioCtx = null;
+
+function noteToHz(semitoneFromA4) {
+  return 440 * Math.pow(2, semitoneFromA4/12);
+}
+
+function hzToSemitone(hz) {
+  return 12 * Math.log2(hz/440);
+}
+
+function buildSelectors() {
+  const noteSelect = document.getElementById('in-note');
+  NOTE_NAMES_EN.forEach((en, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = `${en} (${NOTE_NAMES_RO[i]})`;
+    if (en === 'A') opt.selected = true;
+    noteSelect.appendChild(opt);
+  });
+
+  const octaveSelect = document.getElementById('in-octave');
+  for (let o = 0; o <= 8; o++) {
+    const opt = document.createElement('option');
+    opt.value = o;
+    opt.textContent = 'Oct. ' + o;
+    if (o === 4) opt.selected = true;
+    octaveSelect.appendChild(opt);
+  }
+}
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('btn-note').classList.toggle('active', m==='note');
+  document.getElementById('btn-hz').classList.toggle('active', m==='hz');
+  document.getElementById('panel-note').style.display = m==='note' ? 'block':'none';
+  document.getElementById('panel-hz').style.display = m==='hz' ? 'block':'none';
+  if (m==='note') computeFromNote(); else computeFromHz();
+}
+
+function computeFromNote() {
+  const noteIdx = parseInt(document.getElementById('in-note').value);
+  const octave = parseInt(document.getElementById('in-octave').value);
+
+  // Semiton relativ la A4: (octava-4)*12 + (noteIdx - indexul lui A)
+  const aIndex = NOTE_NAMES_EN.indexOf('A');
+  const semitone = (octave-4)*12 + (noteIdx - aIndex);
+  const hz = noteToHz(semitone);
+
+  showResult(NOTE_NAMES_EN[noteIdx], NOTE_NAMES_RO[noteIdx], octave, hz, 0);
+  highlightPianoKey(noteIdx, octave);
+}
+
+function computeFromHz() {
+  const hz = parseFloat(document.getElementById('in-hz').value);
+  if (isNaN(hz) || hz <= 0) return;
+
+  const semitone = hzToSemitone(hz);
+  const roundedSemitone = Math.round(semitone);
+  const cents = Math.round((semitone - roundedSemitone) * 100);
+
+  const aIndex = NOTE_NAMES_EN.indexOf('A');
+  let noteIdx = (aIndex + roundedSemitone) % 12;
+  if (noteIdx < 0) noteIdx += 12;
+  const octave = 4 + Math.floor((roundedSemitone + aIndex) / 12);
+
+  const exactHz = noteToHz(roundedSemitone);
+  showResult(NOTE_NAMES_EN[noteIdx], NOTE_NAMES_RO[noteIdx], octave, hz, cents, exactHz);
+  highlightPianoKey(noteIdx, octave);
+}
+
+function showResult(en, ro, octave, hz, cents, exactHz) {
+  document.getElementById('result-note').textContent = `${en}${octave}`;
+  document.getElementById('result-note-alt').textContent = `${ro} (octava ${octave})`;
+  document.getElementById('result-hz').textContent = hz.toFixed(2) + ' Hz';
+
+  const centsEl = document.getElementById('result-cents');
+  if (cents !== 0 || exactHz !== undefined) {
+    const sign = cents >= 0 ? '+' : '';
+    centsEl.textContent = `${sign}${cents} cenți față de ${en}${octave} exact (${exactHz.toFixed(2)}Hz)`;
+  } else {
+    centsEl.textContent = '';
+  }
+}
+
+// Care taste albe au o clapă neagră imediat după ele (# lor) — lipsesc după E și B, ca la un pian real
+const BLACK_AFTER = { C:'C#', D:'D#', F:'F#', G:'G#', A:'A#' };
+
+function buildPiano() {
+  const piano = document.getElementById('piano');
+  piano.innerHTML = '';
+  const whiteKeyEls = [];
+
+  for (let octave = 2; octave <= 6; octave++) {
+    WHITE_KEYS_EN.forEach(letter => {
+      const noteIdx = NOTE_NAMES_EN.indexOf(letter);
+      const key = document.createElement('div');
+      key.className = 'piano-key white';
+      key.dataset.note = noteIdx;
+      key.dataset.octave = octave;
+      key.textContent = letter + octave;
+      key.onclick = () => selectNote(noteIdx, octave);
+      piano.appendChild(key);
+      whiteKeyEls.push({ el: key, letter, octave });
+    });
+  }
+
+  // A doua trecere: adăugăm clapele negre, poziționate relativ la clapa albă anterioară
+  const pianoWidth = piano.offsetWidth || whiteKeyEls.length * 40; // fallback dacă nu e încă randat
+  const whiteKeyWidth = 100 / whiteKeyEls.length; // procent
+
+  whiteKeyEls.forEach((wk, i) => {
+    const sharpName = BLACK_AFTER[wk.letter];
+    if (!sharpName) return; // fără clapă neagră după E și B
+
+    const noteIdx = NOTE_NAMES_EN.indexOf(sharpName);
+    const black = document.createElement('div');
+    black.className = 'piano-key black';
+    black.textContent = sharpName;
+    black.dataset.note = noteIdx;
+    black.dataset.octave = wk.octave;
+    black.style.left = `calc(${(i+1) * whiteKeyWidth}% - ${whiteKeyWidth*0.3}%)`;
+    black.style.width = `${whiteKeyWidth*0.6}%`;
+    black.onclick = (e) => { e.stopPropagation(); selectNote(noteIdx, wk.octave); };
+    piano.appendChild(black);
+  });
+}
+
+function selectNote(noteIdx, octave) {
+  // Actualizăm selectoarele în fundal (utile dacă utilizatorul comută ulterior la modul Notă),
+  // dar NU schimbăm modul curent — pianul trebuie doar să redea sunetul, nu să întrerupă lucrul în Hz→Notă
+  document.getElementById('in-note').value = noteIdx;
+  document.getElementById('in-octave').value = octave;
+
+  const aIndex = NOTE_NAMES_EN.indexOf('A');
+  const semitone = (octave-4)*12 + (noteIdx - aIndex);
+  const hz = noteToHz(semitone);
+  showResult(NOTE_NAMES_EN[noteIdx], NOTE_NAMES_RO[noteIdx], octave, hz, 0);
+
+  playSpecificNote(noteIdx, octave);
+}
+
+function playSpecificNote(noteIdx, octave) {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const aIndex = NOTE_NAMES_EN.indexOf('A');
+  const semitone = (octave-4)*12 + (noteIdx - aIndex);
+  const hz = noteToHz(semitone);
+
+  const bassBoost = hz < 200 ? Math.min(2.2, 1 + (200-hz)/150) : 1;
+  const peakGain = 0.3 * bassBoost;
+
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.frequency.value = hz;
+  osc.type = 'sine';
+  gain.gain.setValueAtTime(0, audioCtx.currentTime);
+  gain.gain.linearRampToValueAtTime(peakGain, audioCtx.currentTime+0.02);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+0.8);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime+0.8);
+
+  highlightPianoKey(noteIdx, octave);
+}
+
+function highlightPianoKey(noteIdx, octave) {
+  document.querySelectorAll('.piano-key').forEach(k => {
+    k.classList.toggle('active-note', +k.dataset.note===noteIdx && +k.dataset.octave===octave);
+  });
+}
+
+function playNote() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const hz = mode === 'note' ? parseFloat(document.getElementById('result-hz').textContent) : parseFloat(document.getElementById('in-hz').value);
+
+  // Compensare volum pentru note grave — difuzoarele mici (laptop/telefon) au declin sub ~150Hz
+  const bassBoost = hz < 200 ? Math.min(2.2, 1 + (200-hz)/150) : 1;
+  const peakGain = 0.3 * bassBoost;
+
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.frequency.value = hz;
+  osc.type = 'sine';
+  gain.gain.setValueAtTime(0, audioCtx.currentTime);
+  gain.gain.linearRampToValueAtTime(peakGain, audioCtx.currentTime+0.02);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+0.8);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime+0.8);
+}
+
+buildSelectors();
+buildPiano();
+computeFromNote();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Notă muzicală ↔ Hz</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

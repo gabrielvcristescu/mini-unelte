@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Pong clasic — Mini Unelte</title>
+<link rel="stylesheet" href="shared.css"><link rel="stylesheet" href="prism.css"><script src="theme.js"></script>
+<style>
+.pong-wrap{max-width:760px}.pong-panel{border:1px solid var(--border);background:var(--bg2);border-radius:var(--radius-lg);padding:14px}#pong{display:block;width:100%;aspect-ratio:4/3;background:#000;border:1px solid var(--border2);touch-action:none}.pong-row{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:12px}.pong-group{display:flex;gap:8px;flex-wrap:wrap}.pong-btn{border:1px solid var(--border);background:var(--bg3);color:var(--text);border-radius:8px;padding:8px 12px;cursor:pointer}.pong-btn.active{border-color:var(--accent);color:var(--accent)}.pong-help{margin-top:10px;color:var(--text2);font-size:13px}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true"><button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+<div class="tool-page"><div class="tool-header"><a class="back" href="index.html">← index</a><h1>Pong clasic</h1><p>Joc alb-negru în stilul consolelor TV timpurii.</p></div>
+<div class="pong-wrap"><div class="pong-panel"><canvas id="pong" width="800" height="600"></canvas><div class="pong-row"><div class="pong-group"><button class="pong-btn active" id="one">1 jucător</button><button class="pong-btn" id="two">2 jucători</button></div><div class="pong-group"><button class="pong-btn" id="start">Pornește</button><button class="pong-btn" id="reset">Joc nou</button></div></div><div class="pong-help" id="help">W/S pentru stânga. Dreapta este controlată de calculator.</div></div></div>
+</div>
+<script>
+(()=>{const c=document.getElementById('pong'),x=c.getContext('2d'),W=c.width,H=c.height;const L={x:34,y:254},R={x:756,y:254},P={w:10,h:92,s:400};const B={x:394,y:294,s:12,vx:300,vy:145};let a=0,b=0,run=false,n=1,last=performance.now(),k={};const clamp=(v,l,h)=>Math.max(l,Math.min(h,v));function serve(d=Math.random()<.5?-1:1){B.x=394;B.y=294;B.vx=300*d;B.vy=(Math.random()*220-110)||90}function reset(){a=b=0;L.y=R.y=254;run=false;document.getElementById('start').textContent='Pornește';serve()}function hit(p){return B.x+B.s>=p.x&&B.x<=p.x+P.w&&B.y+B.s>=p.y&&B.y<=p.y+P.h}function bounce(p,d){let o=((B.y+B.s/2)-(p.y+P.h/2))/(P.h/2),sp=Math.min(520,Math.hypot(B.vx,B.vy)*1.035);B.vx=d*sp*.92;B.vy=o*sp*.62}function score(left){left?a++:b++;if(a===15||b===15){run=false;document.getElementById('start').textContent='Pornește'}serve(left?1:-1)}function update(dt){L.y=clamp(L.y+((k.s?1:0)-(k.w?1:0))*P.s*dt,14,H-14-P.h);if(n===2)R.y=clamp(R.y+((k.arrowdown?1:0)-(k.arrowup?1:0))*P.s*dt,14,H-14-P.h);else{let target=B.y+B.s/2-P.h/2,m=P.s*.78*dt;R.y=clamp(R.y+clamp(target-R.y,-m,m),14,H-14-P.h)}B.x+=B.vx*dt;B.y+=B.vy*dt;if(B.y<=14){B.y=14;B.vy=Math.abs(B.vy)}if(B.y+B.s>=H-14){B.y=H-14-B.s;B.vy=-Math.abs(B.vy)}if(B.vx<0&&hit(L)){B.x=L.x+P.w+1;bounce(L,1)}if(B.vx>0&&hit(R)){B.x=R.x-B.s-1;bounce(R,-1)}if(B.x+B.s<0)score(false);if(B.x>W)score(true)}function draw(){x.fillStyle='#000';x.fillRect(0,0,W,H);x.fillStyle='#eee';x.fillRect(10,10,W-20,4);x.fillRect(10,H-14,W-20,4);for(let y=20;y<H-20;y+=24)x.fillRect(W/2-2,y,4,12);x.font='64px monospace';x.textBaseline='top';x.textAlign='right';x.fillText(a,W/2-45,28);x.textAlign='left';x.fillText(b,W/2+45,28);x.fillRect(L.x,L.y,P.w,P.h);x.fillRect(R.x,R.y,P.w,P.h);x.fillRect(B.x,B.y,B.s,B.s)}function frame(t){let dt=Math.min(.025,(t-last)/1000);last=t;if(run)update(dt);draw();requestAnimationFrame(frame)}document.getElementById('start').onclick=()=>{run=!run;document.getElementById('start').textContent=run?'Pauză':'Continuă'};document.getElementById('reset').onclick=reset;function mode(v){n=v;one.classList.toggle('active',v===1);two.classList.toggle('active',v===2);help.textContent=v===1?'W/S pentru stânga. Dreapta este controlată de calculator.':'W/S pentru stânga. ↑/↓ pentru dreapta.'}one.onclick=()=>mode(1);two.onclick=()=>mode(2);addEventListener('keydown',e=>{k[e.key.toLowerCase()]=1;if(e.key.startsWith('Arrow'))e.preventDefault()});addEventListener('keyup',e=>k[e.key.toLowerCase()]=0);c.onpointermove=e=>{if(e.buttons!==1)return;let r=c.getBoundingClientRect(),px=(e.clientX-r.left)/r.width*W,py=(e.clientY-r.top)/r.height*H;if(px<W/2)L.y=clamp(py-P.h/2,14,H-14-P.h);else if(n===2)R.y=clamp(py-P.h/2,14,H-14-P.h)};reset();requestAnimationFrame(frame)})();
+</script>
+<script src="prism.js"></script><script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Pong clasic</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+</body></html>

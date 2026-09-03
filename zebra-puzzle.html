@@ -1,0 +1,1115 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<title>Zebra Puzzle — jetoane compacte v3</title>
+  <style>
+    :root{
+      --panel:#fffaf2; --ink:#263238; --muted:#6d7479; --line:#e3d6c7;
+      --shadow:0 8px 18px rgba(80,55,30,.12); --slot:#fff6e8;
+      --ok:#2e7d5b; --bad:#b24a4a;
+      --blue:#99cfe8; --red:#ef7d77; --green:#8ccf9c; --yellow:#f4d76a; --white:#f7f5ef;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:radial-gradient(circle at 10% 8%, rgba(255,255,255,.75), transparent 22rem), linear-gradient(145deg,#f8f0e7,#f2e2cf);
+      color:var(--ink);
+      min-height:100vh;
+      overflow:auto;
+    }
+    header{
+      padding:10px 14px 9px;
+      display:flex;
+      gap:12px;
+      justify-content:space-between;
+      align-items:center;
+      border-bottom:1px solid rgba(227,214,199,.75);
+    }
+    h1{margin:0; font-size:29px; letter-spacing:-.04em; line-height:1; white-space:nowrap}
+    .subtitle{margin:4px 0 0; color:var(--muted); line-height:1.25; font-size:13px; max-width:860px}
+    .top-actions{display:flex; gap:7px; flex-wrap:wrap; justify-content:flex-end}
+    button{
+      border:0; border-radius:999px; padding:8px 12px; background:#263238; color:white;
+      box-shadow:0 4px 9px rgba(80,55,30,.16); font-weight:850; cursor:pointer; font-size:13px;
+    }
+    button.secondary{background:#fffaf2;color:#263238;border:1px solid var(--line)}
+    button.good{background:#2e7d5b}
+    button.warn{background:#a9643c}
+    main{
+      min-height:calc(100vh - 70px);
+      padding:10px 14px 14px;
+      display:grid;
+      grid-template-columns:minmax(650px, 1fr) 360px;
+      grid-template-rows:auto minmax(420px, 1fr);
+      gap:10px;
+      align-items:start;
+    }
+    .palette,.board-wrap,.side{
+      background:rgba(255,250,242,.88);
+      border:1px solid rgba(227,214,199,.95);
+      border-radius:20px;
+      box-shadow:var(--shadow);
+      backdrop-filter: blur(8px);
+    }
+    .palette{
+      grid-column:1 / 2;
+      padding:10px;
+      overflow:visible;
+    }
+    .palette-grid{
+      display:grid;
+      grid-template-columns:repeat(5, minmax(128px,1fr));
+      gap:8px;
+    }
+    .tray-section{
+      background:rgba(255,255,255,.52);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:7px;
+      min-width:0;
+    }
+    .tray-section h3{
+      margin:0 0 6px;
+      font-size:12px;
+      color:#485157;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .chips{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:5px;
+      min-height:33px;
+      border-radius:12px;
+    }
+    .board-wrap{
+      grid-column:1 / 2;
+      grid-row:2 / 3;
+      padding:10px;
+      overflow:auto;
+      align-self:stretch;
+    }
+    .board{
+      min-width:760px;
+      display:grid;
+      grid-template-columns:86px repeat(5, minmax(118px, 1fr));
+      gap:7px;
+      align-items:stretch;
+    }
+    .corner,.house-head,.row-label,.slot{border-radius:14px; border:1px solid var(--line)}
+    .corner{
+      background:#fffaf2;
+      display:flex; align-items:center; justify-content:center;
+      color:var(--muted); font-weight:900; min-height:68px;
+      text-align:center; padding:6px; font-size:13px;
+    }
+    .house-head{
+      min-height:68px; background:#fffaf2; padding:8px;
+      display:flex; align-items:center; justify-content:flex-start;
+      box-shadow: inset 0 -6px 0 rgba(0,0,0,.025);
+    }
+    .house-head h2{margin:0; font-size:20px; letter-spacing:-.04em}
+    .row-label{
+      min-height:62px; background:#fffaf2; padding:7px;
+      font-weight:900; display:flex; align-items:center; justify-content:center;
+      text-align:center; color:#3f474c; font-size:13px;
+    }
+    .slot{
+      min-height:62px;
+      background:linear-gradient(135deg, rgba(255,255,255,.55), rgba(255,255,255,.15)), var(--slot);
+      display:flex; align-items:center; justify-content:center;
+      padding:5px; position:relative; transition:.12s background,.12s outline;
+    }
+    .slot.empty:after{
+      content:""; width:26px; height:4px; border-radius:99px;
+      background:#d8c7b4; opacity:.7;
+    }
+    .slot.drag-over,.chips.drag-over{outline:3px solid rgba(46,125,91,.35); background:#eef9ef}
+    .slot.bad-cell{outline:3px solid rgba(178,74,74,.35); background:#fff0ef}
+    .slot.ok-cell{outline:3px solid rgba(46,125,91,.25)}
+    .chip{
+      width:100%; min-height:32px; border-radius:11px;
+      border:1px solid rgba(38,50,56,.14);
+      box-shadow:0 4px 8px rgba(60,38,20,.14);
+      display:flex; align-items:center; justify-content:center; gap:5px;
+      padding:4px 6px; background:#fff; cursor:grab; user-select:none;
+      font-weight:900; text-align:center; line-height:1.02; touch-action:none;
+    }
+    .slot .chip{min-height:46px}
+    .chip:active{cursor:grabbing}
+    .chip .icon{font-size:19px;line-height:1}
+    .slot .chip .icon{font-size:24px}
+    .chip .txt{font-size:12px}
+    .slot .chip .txt{font-size:14px}
+    .chip.small .txt{font-size:10px}
+    .slot .chip.small .txt{font-size:12px}
+    .chip.dragging{opacity:.5;transform:rotate(-1deg)}
+    .chip.selected{outline:3px solid rgba(38,50,56,.35)}
+    .chip.blue{background:linear-gradient(135deg,#dff3ff,var(--blue))}
+    .chip.red{background:linear-gradient(135deg,#ffe0df,var(--red))}
+    .chip.green{background:linear-gradient(135deg,#e4fae8,var(--green))}
+    .chip.yellow{background:linear-gradient(135deg,#fff2a8,var(--yellow))}
+    .chip.white{background:linear-gradient(135deg,#ffffff,var(--white))}
+    .chip.nationality{background:linear-gradient(135deg,#fff,#e8f3fb)}
+    .chip.drink{background:linear-gradient(135deg,#fff,#f7efcf)}
+    .chip.smoke{background:linear-gradient(135deg,#fff,#dae7f5)}
+    .chip.pet{background:linear-gradient(135deg,#fff,#f4eadf)}
+    .side{
+      grid-column:2 / 3;
+      grid-row:1 / 3;
+      overflow:auto;
+      max-height:calc(100vh - 90px);
+      position:sticky;
+      top:10px;
+    }
+    .side .inner{padding:12px}
+    .status{
+      margin:0 0 10px; padding:10px 12px; border-radius:15px;
+      background:#fff2db; border:1px solid #ead6b7; color:#5c4631;
+      line-height:1.3; font-weight:800; font-size:13px;
+    }
+    .status.ok{background:#e8f7ee;border-color:#bee2ca;color:#225f43}
+    .status.bad{background:#fff0ef;border-color:#efc4c1;color:#8b3434}
+    details{
+      background:#fffaf2; border:1px solid var(--line);
+      border-radius:15px; padding:8px 10px; margin-top:8px;
+    }
+    summary{cursor:pointer;font-weight:900;font-size:14px}
+    ol{padding-left:18px;margin:8px 0 0;color:#3e464b;line-height:1.35;font-size:12.5px}
+    li{margin:6px 0}
+    .questions{display:grid; gap:7px; margin-top:8px}
+    .q{
+      border:1px solid var(--line); border-radius:15px; padding:9px;
+      background:#fff; font-weight:900; font-size:13px;
+    }
+    .answer{margin-top:5px; color:var(--muted); font-weight:850}
+
+    @media (max-width:1200px){
+      main{grid-template-columns:1fr; grid-template-rows:auto auto auto}
+      .palette,.board-wrap,.side{grid-column:1;grid-row:auto}
+      .side{position:relative; top:auto; max-height:none}
+      .palette{overflow:auto}
+      .palette-grid{min-width:760px}
+    }
+
+    @media (max-width:760px){
+      header{align-items:flex-start;flex-wrap:wrap}
+      .palette-grid{grid-template-columns:repeat(5, 145px)}
+      .top-actions{justify-content:flex-start}
+    }
+  </style>
+
+<style id="zebra-theme-integration">
+:root{
+  --accent:#f0a040;
+  --accent-dim:rgba(240,160,64,.10);
+  --accent-border:rgba(240,160,64,.28);
+  --panel:var(--bg2);
+  --ink:var(--text);
+  --muted:var(--text3);
+  --line:var(--border);
+  --slot:var(--bg3);
+  --shadow:0 8px 22px rgba(0,0,0,.10);
+  --ok:#2e9d73;
+  --bad:#d85c5c;
+}
+body{
+  font-family:var(--font-sans,Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif);
+  background:var(--bg);
+  color:var(--text);
+}
+
+.zebra-page{
+  width:min(calc(100% - 40px),1500px);
+  max-width:1500px;
+  margin:0 auto;
+  padding:0;
+}
+header{
+  max-width:none;
+  margin:0;
+  padding:28px 0 12px;
+  border-bottom:0;
+}
+.zebra-back{
+  display:inline-block;
+  margin-bottom:18px;
+  font-family:var(--font-mono);
+  font-size:.72rem;
+}
+h1{color:var(--text);font-size:clamp(2rem,4vw,3rem)}
+.subtitle{
+  color:var(--text3);
+  font-family:var(--font-mono);
+  font-size:.72rem;
+  max-width:900px;
+}
+main{
+  max-width:none;
+  margin:0;
+  padding:10px 0 28px;
+}
+.palette,.board-wrap,.side{
+  background:var(--bg2);
+  border:1px solid var(--border);
+  box-shadow:none;
+  backdrop-filter:none;
+  border-radius:var(--radius);
+}
+.tray-section{background:var(--bg3);border-color:var(--border);border-radius:var(--radius-sm)}
+.tray-section h3,.row-label{color:var(--text2)}
+.corner,.house-head,.row-label{background:var(--bg2);border-color:var(--border)}
+.slot{
+  background:var(--bg3);
+  border-color:var(--border);
+}
+.slot.empty:after{background:var(--border2)}
+.slot.drag-over,.chips.drag-over{outline:2px solid var(--accent-border);background:var(--accent-dim)}
+.slot.bad-cell{outline:2px solid rgba(216,92,92,.42);background:rgba(216,92,92,.08)}
+.slot.ok-cell{outline:2px solid rgba(46,157,115,.35)}
+.chip{
+  background:var(--bg);
+  color:var(--text);
+  border-color:var(--border2);
+  box-shadow:none;
+}
+.chip.nationality{background:color-mix(in srgb,var(--bg2) 88%,#73b8ff 12%)}
+.chip.drink{background:color-mix(in srgb,var(--bg2) 88%,#e2c86a 12%)}
+.chip.smoke{background:color-mix(in srgb,var(--bg2) 88%,#9aa6b5 12%)}
+.chip.pet{background:color-mix(in srgb,var(--bg2) 88%,#c99d74 12%)}
+.chip.smoke .icon{filter:grayscale(.15);font-size:18px}
+.slot .chip.smoke .icon{font-size:22px}
+button{
+  border:1px solid var(--border2);
+  border-radius:var(--radius-sm);
+  padding:8px 12px;
+  background:var(--bg3);
+  color:var(--text2);
+  box-shadow:none;
+  font-family:var(--font-mono);
+  font-weight:600;
+}
+button:hover{background:var(--bg4);color:var(--text)}
+button.secondary{background:var(--bg2);color:var(--text2);border-color:var(--border2)}
+button.good{background:rgba(46,157,115,.13);border-color:rgba(46,157,115,.35);color:#58c99b}
+button.warn{background:rgba(216,153,74,.13);border-color:rgba(216,153,74,.35);color:#d99d5e}
+.status{background:var(--bg3);border-color:var(--border);color:var(--text2)}
+.status.ok{background:rgba(46,157,115,.10);border-color:rgba(46,157,115,.28);color:#58c99b}
+.status.bad{background:rgba(216,92,92,.10);border-color:rgba(216,92,92,.28);color:#e27a7a}
+details,.q{background:var(--bg3);border-color:var(--border);color:var(--text)}
+ol{color:var(--text2)}
+.answer{color:var(--text3)}
+.chip.selected{outline:2px solid var(--accent)}
+@media(max-width:760px){.zebra-page{width:calc(100% - 28px)} header,main{padding-left:0;padding-right:0}}
+</style>
+<style id="lab-integration-style">
+.lab-back-link-unused{
+  position:fixed;
+  top:max(10px,env(safe-area-inset-top));
+  right:max(10px,env(safe-area-inset-right));
+  z-index:10000;
+  display:inline-flex;
+  align-items:center;
+  min-height:36px;
+  padding:7px 10px;
+  border:1px solid rgba(127,127,127,.35);
+  border-radius:999px;
+  background:rgba(20,20,20,.72);
+  color:#fff;
+  font:600 12px/1.1 system-ui,-apple-system,Segoe UI,sans-serif;
+  text-decoration:none;
+  box-shadow:0 4px 18px rgba(0,0,0,.18);
+  backdrop-filter:blur(10px);
+}
+.lab-back-link-unused:hover{background:rgba(20,20,20,.88)}
+@media(max-width:560px){
+  .lab-back-link-unused{min-height:34px;padding:6px 9px;font-size:11px}
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+
+
+<style id="zebra-dark-theme-fix">
+/* Tema Zebra Puzzle aliniată cu categoria Jocuri & quiz / Quiz NATO. */
+
+[data-theme="dark"] body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+[data-theme="dark"] .palette,
+[data-theme="dark"] .board-wrap,
+[data-theme="dark"] .side {
+  background: var(--bg2);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .tray-section,
+[data-theme="dark"] .corner,
+[data-theme="dark"] .house-head,
+[data-theme="dark"] .row-label,
+[data-theme="dark"] details,
+[data-theme="dark"] .q {
+  background: var(--bg3);
+  border-color: var(--border2);
+  color: var(--text);
+}
+
+[data-theme="dark"] .tray-section h3,
+[data-theme="dark"] .row-label,
+[data-theme="dark"] ol {
+  color: var(--text2);
+}
+
+[data-theme="dark"] .slot {
+  background: var(--bg3);
+  border-color: var(--border2);
+}
+
+[data-theme="dark"] .slot.empty:after {
+  background: var(--text3);
+}
+
+/* Jetoanele de culoare rămân deschise și păstrează textul închis. */
+[data-theme="dark"] .chip.red,
+[data-theme="dark"] .chip.green,
+[data-theme="dark"] .chip.white,
+[data-theme="dark"] .chip.yellow,
+[data-theme="dark"] .chip.blue {
+  color: #263238;
+}
+
+/* Celelalte jetoane urmează tema și au text luminos în dark. */
+[data-theme="dark"] .chip.nationality,
+[data-theme="dark"] .chip.drink,
+[data-theme="dark"] .chip.smoke,
+[data-theme="dark"] .chip.pet {
+  color: var(--text);
+  border-color: var(--border2);
+}
+
+[data-theme="dark"] .chip.nationality {
+  background: color-mix(in srgb, var(--bg3) 86%, #73b8ff 14%);
+}
+[data-theme="dark"] .chip.drink {
+  background: color-mix(in srgb, var(--bg3) 86%, #e2c86a 14%);
+}
+[data-theme="dark"] .chip.smoke {
+  background: color-mix(in srgb, var(--bg3) 86%, #9aa6b5 14%);
+}
+[data-theme="dark"] .chip.pet {
+  background: color-mix(in srgb, var(--bg3) 86%, #c99d74 14%);
+}
+
+[data-theme="dark"] button.secondary {
+  background: var(--bg3);
+  color: var(--text2);
+  border-color: var(--border2);
+}
+
+[data-theme="dark"] button.secondary:hover {
+  background: var(--bg4);
+  color: var(--text);
+}
+
+[data-theme="dark"] .status {
+  background: var(--bg3);
+  border-color: var(--border2);
+  color: var(--text2);
+}
+
+[data-theme="dark"] .status.ok {
+  background: rgba(74,240,176,.10);
+  border-color: rgba(74,240,176,.28);
+  color: #6ee9b8;
+}
+
+[data-theme="dark"] .status.bad {
+  background: rgba(240,96,96,.10);
+  border-color: rgba(240,96,96,.28);
+  color: #f08080;
+}
+
+[data-theme="dark"] .chip.selected {
+  outline-color: var(--accent);
+}
+
+[data-theme="dark"] .slot.drag-over,
+[data-theme="dark"] .chips.drag-over {
+  outline-color: var(--accent-border);
+  background: var(--accent-dim);
+}
+
+[data-theme="light"] .chip.nationality,
+[data-theme="light"] .chip.drink,
+[data-theme="light"] .chip.smoke,
+[data-theme="light"] .chip.pet {
+  color:#263238;
+}
+</style>
+
+
+</head>
+<body data-show-source="true">
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+<div class="tool-page zebra-page">
+<header>
+  <div>
+    <a class="back zebra-back" href="index.html">← index</a>
+    <h1>Zebra Puzzle</h1>
+    <p class="subtitle">
+      Jetoanele rămân sus, dar zona lor nu mai este tăiată. Poți folosi drag and drop sau click pe jeton + click pe celulă.
+    </p>
+  </div>
+  <div class="top-actions">
+    <button class="secondary" id="resetBtn">Resetează</button>
+    <button class="secondary" id="hintBtn">Indiciu</button>
+    <button class="good" id="checkBtn">Verifică</button>
+    <button class="warn" id="solveBtn">Soluția</button>
+  </div>
+</header>
+
+<main>
+  <section class="palette" aria-label="Jetoane disponibile">
+    <div class="palette-grid" id="tray"></div>
+  </section>
+
+  <section class="board-wrap" aria-label="Tabla de joc">
+    <div class="board" id="board"></div>
+  </section>
+
+  <aside class="side">
+    <div class="inner">
+      <p class="status" id="status">Trage jetoanele de sus în celulele potrivite. Alternativ, apasă pe un jeton și apoi pe o celulă.</p>
+
+      <div class="questions">
+        <div class="q">Cine bea apă?<div class="answer" id="waterAnswer">—</div></div>
+        <div class="q">Cine are zebra?<div class="answer" id="zebraAnswer">—</div></div>
+      </div>
+
+      <details open>
+        <summary>Indiciile</summary>
+        <ol>
+          <li>Englezul locuiește în casa roșie.</li>
+          <li>Suedezul are câini ca animale de companie.</li>
+          <li>Danezul bea ceai.</li>
+          <li>Casa verde se află exact în stânga casei albe.</li>
+          <li>Proprietarul casei verzi bea cafea.</li>
+          <li>Persoana care fumează Pall Mall are păsări.</li>
+          <li>Proprietarul casei galbene fumează Kools.</li>
+          <li>Omul care locuiește în casa din mijloc bea lapte.</li>
+          <li>Norvegianul locuiește în prima casă.</li>
+          <li>Omul care fumează Chesterfield locuiește în casa vecină cu cel care are pisici.</li>
+          <li>Omul care are cai locuiește în casa vecină cu cel care fumează Kools.</li>
+          <li>Proprietarul care fumează Blue Master bea bere.</li>
+          <li>Germanul fumează Prince.</li>
+          <li>Norvegianul locuiește lângă casa albastră.</li>
+          <li>Omul care fumează Chesterfield are un vecin care bea apă.</li>
+        </ol>
+      </details>
+
+      <details>
+        <summary>Cum se joacă</summary>
+        <ol>
+          <li>Fiecare rând acceptă numai jetoane din categoria lui.</li>
+          <li>Dacă pui un jeton peste altul, cele două se schimbă între ele.</li>
+          <li>„Verifică” marchează celulele completate: verde = corect, roșu = greșit.</li>
+          <li>„Indiciu” completează o celulă goală folosind soluția calculată.</li>
+        </ol>
+      </details>
+    </div>
+  </aside>
+</main>
+</div>
+
+<script>
+const rows = [
+  {key:"color", label:"Culoare"},
+  {key:"nationality", label:"Naționalitate"},
+  {key:"drink", label:"Băutură"},
+  {key:"smoke", label:"Țigări"},
+  {key:"pet", label:"Animal"}
+];
+
+const data = {
+  color: [
+    {id:"red", label:"Roșie", icon:"🏠", cls:"red"},
+    {id:"green", label:"Verde", icon:"🏠", cls:"green"},
+    {id:"white", label:"Albă", icon:"🏠", cls:"white"},
+    {id:"yellow", label:"Galbenă", icon:"🏠", cls:"yellow"},
+    {id:"blue", label:"Albastră", icon:"🏠", cls:"blue"}
+  ],
+  nationality: [
+    {id:"norwegian", label:"Norvegian", icon:"🧑‍🎄", cls:"nationality small"},
+    {id:"british", label:"Englez", icon:"🎩", cls:"nationality"},
+    {id:"swedish", label:"Suedez", icon:"🧣", cls:"nationality"},
+    {id:"danish", label:"Danez", icon:"👩‍🌾", cls:"nationality"},
+    {id:"german", label:"German", icon:"🧔", cls:"nationality"}
+  ],
+  drink: [
+    {id:"tea", label:"Ceai", icon:"🍵", cls:"drink"},
+    {id:"coffee", label:"Cafea", icon:"☕", cls:"drink"},
+    {id:"milk", label:"Lapte", icon:"🥛", cls:"drink"},
+    {id:"beer", label:"Bere", icon:"🍺", cls:"drink"},
+    {id:"water", label:"Apă", icon:"💧", cls:"drink"}
+  ],
+  smoke: [
+    {id:"pallmall", label:"Pall Mall", icon:"🚬", cls:"smoke"},
+    {id:"kools", label:"Kools", icon:"🚬", cls:"smoke"},
+    {id:"chesterfield", label:"Chesterfield", icon:"🚬", cls:"smoke small"},
+    {id:"bluemaster", label:"Blue Master", icon:"🚬", cls:"smoke small"},
+    {id:"prince", label:"Prince", icon:"🚬", cls:"smoke"}
+  ],
+  pet: [
+    {id:"dogs", label:"Câini", icon:"🐕", cls:"pet"},
+    {id:"birds", label:"Păsări", icon:"🐦", cls:"pet"},
+    {id:"cats", label:"Pisici", icon:"🐈", cls:"pet"},
+    {id:"horses", label:"Cai", icon:"🐎", cls:"pet"},
+    {id:"zebra", label:"Zebră", icon:"🦓", cls:"pet"}
+  ]
+};
+
+const board = document.getElementById("board");
+const tray = document.getElementById("tray");
+const statusEl = document.getElementById("status");
+const waterAnswer = document.getElementById("waterAnswer");
+const zebraAnswer = document.getElementById("zebraAnswer");
+
+let dragged = null;
+let selected = null;
+let solution = null;
+
+/* Pointer drag pentru touch/stylus. HTML5 drag-and-drop rămâne activ pe desktop. */
+let pointerDragChip = null;
+let pointerDragId = null;
+let pointerStartX = 0;
+let pointerStartY = 0;
+let pointerMoved = false;
+let pointerDropTarget = null;
+let suppressClickUntil = 0;
+const POINTER_DRAG_THRESHOLD = 7;
+
+function clearPointerDropTarget(){
+  if(pointerDropTarget) pointerDropTarget.classList.remove("drag-over");
+  pointerDropTarget = null;
+}
+
+function targetUnderPointer(x, y, kind){
+  const el = document.elementFromPoint(x, y);
+  if(!el) return null;
+  const target = el.closest(".slot, .chips");
+  if(!target || target.dataset.kind !== kind) return null;
+  return target;
+}
+
+function permutations(arr){
+  if(arr.length <= 1) return [arr.slice()];
+  const out = [];
+  for(let i=0;i<arr.length;i++){
+    const rest = arr.slice(0,i).concat(arr.slice(i+1));
+    for(const p of permutations(rest)) out.push([arr[i]].concat(p));
+  }
+  return out;
+}
+
+function solvePuzzle(){
+  const CASE = [0,1,2,3,4];
+  const perms = permutations(CASE);
+
+  const ROSIE=0, VERDE=1, ALBA=2, GALBENA=3, ALBASTRA=4;
+  const NORVEGIAN=0, ENGLEZ=1, SUEDEZ=2, DANEZ=3, GERMAN=4;
+  const CEAI=0, CAFEA=1, LAPTE=2, BERE=3, APA=4;
+  const PALL_MALL=0, KOOLS=1, CHESTERFIELD=2, BLUE_MASTER=3, PRINCE=4;
+  const CAINI=0, PASARI=1, PISICI=2, CAI=3, ZEBRA=4;
+
+  for(const culori of perms){
+    if(culori[VERDE] - culori[ALBA] !== -1) continue;
+
+    for(const nationalitati of perms){
+      if(nationalitati[NORVEGIAN] !== 0) continue;
+      if(nationalitati[ENGLEZ] !== culori[ROSIE]) continue;
+      if(Math.abs(nationalitati[NORVEGIAN] - culori[ALBASTRA]) !== 1) continue;
+
+      for(const bauturi of perms){
+        if(bauturi[LAPTE] !== 2) continue;
+        if(nationalitati[DANEZ] !== bauturi[CEAI]) continue;
+        if(culori[VERDE] !== bauturi[CAFEA]) continue;
+
+        for(const tigari of perms){
+          if(culori[GALBENA] !== tigari[KOOLS]) continue;
+          if(tigari[BLUE_MASTER] !== bauturi[BERE]) continue;
+          if(nationalitati[GERMAN] !== tigari[PRINCE]) continue;
+
+          for(const animale of perms){
+            if(nationalitati[SUEDEZ] !== animale[CAINI]) continue;
+            if(tigari[PALL_MALL] !== animale[PASARI]) continue;
+            if(Math.abs(tigari[CHESTERFIELD] - animale[PISICI]) !== 1) continue;
+            if(Math.abs(animale[CAI] - tigari[KOOLS]) !== 1) continue;
+            if(Math.abs(tigari[CHESTERFIELD] - bauturi[APA]) !== 1) continue;
+            return convertPythonSolution(culori, nationalitati, bauturi, tigari, animale);
+          }
+        }
+      }
+    }
+  }
+  throw new Error("Nu am găsit soluția.");
+}
+
+function invertVector(vec, ids){
+  const byHouse = Array(5);
+  for(let itemIndex=0; itemIndex<vec.length; itemIndex++){
+    byHouse[vec[itemIndex]] = ids[itemIndex];
+  }
+  return byHouse;
+}
+
+function convertPythonSolution(culori, nationalitati, bauturi, tigari, animale){
+  return {
+    color: invertVector(culori, ["red","green","white","yellow","blue"]),
+    nationality: invertVector(nationalitati, ["norwegian","british","swedish","danish","german"]),
+    drink: invertVector(bauturi, ["tea","coffee","milk","beer","water"]),
+    smoke: invertVector(tigari, ["pallmall","kools","chesterfield","bluemaster","prince"]),
+    pet: invertVector(animale, ["dogs","birds","cats","horses","zebra"])
+  };
+}
+
+function chipHTML(item, kind){
+  return `<div class="chip ${item.cls || ""}" draggable="true" data-id="${item.id}" data-kind="${kind}" tabindex="0">
+    <span class="icon">${item.icon}</span><span class="txt">${item.label}</span>
+  </div>`;
+}
+
+function buildBoard(){
+  board.innerHTML = "";
+  board.insertAdjacentHTML("beforeend", `<div class="corner">Casele<br>1 → 5</div>`);
+  for(let i=1;i<=5;i++){
+    board.insertAdjacentHTML("beforeend", `<div class="house-head"><h2>Casa ${i}</h2></div>`);
+  }
+  for(const row of rows){
+    board.insertAdjacentHTML("beforeend", `<div class="row-label">${row.label}</div>`);
+    for(let i=1;i<=5;i++){
+      board.insertAdjacentHTML("beforeend", `<div class="slot empty" data-kind="${row.key}" data-house="${i}"></div>`);
+    }
+  }
+}
+
+function buildTray(){
+  tray.innerHTML = "";
+  for(const row of rows){
+    const chips = data[row.key].map(item => chipHTML(item,row.key)).join("");
+    tray.insertAdjacentHTML("beforeend", `
+      <section class="tray-section" data-tray-kind="${row.key}">
+        <h3>${row.label}<span>${data[row.key].length}</span></h3>
+        <div class="chips" data-kind="${row.key}">${chips}</div>
+      </section>
+    `);
+  }
+}
+
+function setupInteractions(){
+  document.querySelectorAll(".chip").forEach(chip=>{
+    chip.addEventListener("click", ()=>{
+      if(performance.now() < suppressClickUntil) return;
+      selectChip(chip);
+    });
+
+    chip.addEventListener("dragstart", e=>{
+      dragged = chip;
+      chip.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", chip.dataset.id);
+    });
+
+    chip.addEventListener("dragend", ()=>{
+      chip.classList.remove("dragging");
+      dragged = null;
+      document.querySelectorAll(".drag-over").forEach(x=>x.classList.remove("drag-over"));
+      updateVisuals();
+    });
+
+
+    chip.addEventListener("pointerdown", e=>{
+      /* Mouse-ul folosește în continuare drag-and-drop HTML5.
+         Aici tratăm touch și stylus. */
+      if(e.pointerType === "mouse") return;
+      pointerDragChip = chip;
+      pointerDragId = e.pointerId;
+      pointerStartX = e.clientX;
+      pointerStartY = e.clientY;
+      pointerMoved = false;
+      clearPointerDropTarget();
+      chip.setPointerCapture(e.pointerId);
+    });
+
+    chip.addEventListener("pointermove", e=>{
+      if(pointerDragChip !== chip || pointerDragId !== e.pointerId) return;
+
+      const dx = e.clientX - pointerStartX;
+      const dy = e.clientY - pointerStartY;
+
+      if(!pointerMoved && Math.hypot(dx, dy) < POINTER_DRAG_THRESHOLD) return;
+
+      if(!pointerMoved){
+        pointerMoved = true;
+        dragged = chip;
+        chip.classList.add("dragging");
+        clearSelection();
+      }
+
+      e.preventDefault();
+
+      const target = targetUnderPointer(e.clientX, e.clientY, chip.dataset.kind);
+      if(target !== pointerDropTarget){
+        clearPointerDropTarget();
+        pointerDropTarget = target;
+        if(pointerDropTarget) pointerDropTarget.classList.add("drag-over");
+      }
+    });
+
+    chip.addEventListener("pointerup", e=>{
+      if(pointerDragChip !== chip || pointerDragId !== e.pointerId) return;
+
+      if(chip.hasPointerCapture(e.pointerId)){
+        chip.releasePointerCapture(e.pointerId);
+      }
+
+      if(pointerMoved){
+        e.preventDefault();
+        suppressClickUntil = performance.now() + 350;
+
+        const target = targetUnderPointer(e.clientX, e.clientY, chip.dataset.kind) || pointerDropTarget;
+        if(target) moveChipTo(chip, target);
+      }
+
+      chip.classList.remove("dragging");
+      dragged = null;
+      pointerDragChip = null;
+      pointerDragId = null;
+      pointerMoved = false;
+      clearPointerDropTarget();
+      updateVisuals();
+    });
+
+    chip.addEventListener("pointercancel", e=>{
+      if(pointerDragChip !== chip || pointerDragId !== e.pointerId) return;
+
+      if(chip.hasPointerCapture(e.pointerId)){
+        chip.releasePointerCapture(e.pointerId);
+      }
+
+      chip.classList.remove("dragging");
+      dragged = null;
+      pointerDragChip = null;
+      pointerDragId = null;
+      pointerMoved = false;
+      clearPointerDropTarget();
+      updateVisuals();
+    });
+  });
+
+  document.querySelectorAll(".slot, .chips").forEach(target=>{
+    target.addEventListener("click", ()=>{
+      if(selected && target.dataset.kind === selected.dataset.kind){
+        moveChipTo(selected, target);
+        clearSelection();
+      }
+    });
+
+    target.addEventListener("dragover", e=>{
+      if(!dragged) return;
+      if(target.dataset.kind === dragged.dataset.kind){
+        e.preventDefault();
+        target.classList.add("drag-over");
+      }
+    });
+
+    target.addEventListener("dragleave", ()=>target.classList.remove("drag-over"));
+
+    target.addEventListener("drop", e=>{
+      e.preventDefault();
+      target.classList.remove("drag-over");
+      if(!dragged || target.dataset.kind !== dragged.dataset.kind) return;
+      moveChipTo(dragged, target);
+    });
+  });
+}
+
+function selectChip(chip){
+  if(selected === chip){
+    clearSelection();
+    return;
+  }
+  clearSelection();
+  selected = chip;
+  chip.classList.add("selected");
+  setStatus(`Ai selectat „${labelOf(chip.dataset.kind, chip.dataset.id)}”. Apasă pe o celulă din rândul potrivit.`, "");
+}
+
+function clearSelection(){
+  document.querySelectorAll(".chip.selected").forEach(x=>x.classList.remove("selected"));
+  selected = null;
+}
+
+function moveChipTo(chip, target){
+  clearCheckMarks();
+  if(!chip || !target || target.dataset.kind !== chip.dataset.kind) return;
+
+  if(target.classList.contains("slot")){
+    const existing = target.querySelector(".chip");
+    const origin = chip.parentElement;
+
+    if(existing && existing !== chip){
+      origin.appendChild(existing);
+    }
+
+    target.innerHTML = "";
+    target.appendChild(chip);
+  } else {
+    target.appendChild(chip);
+  }
+
+  setStatus("Jeton mutat. Apasă „Verifică” când vrei.", "");
+  updateVisuals();
+}
+
+function clearCheckMarks(){
+  document.querySelectorAll(".slot").forEach(s=>s.classList.remove("ok-cell","bad-cell"));
+}
+
+function updateVisuals(){
+  document.querySelectorAll(".slot").forEach(slot=>{
+    slot.classList.toggle("empty", !slot.querySelector(".chip"));
+  });
+
+  updateAnswers(false);
+}
+
+function placedState(){
+  const state = {};
+  for(const row of rows){
+    state[row.key] = Array(5).fill(null);
+    for(let i=1;i<=5;i++){
+      const chip = document.querySelector(`.slot[data-kind="${row.key}"][data-house="${i}"] .chip`);
+      state[row.key][i-1] = chip ? chip.dataset.id : null;
+    }
+  }
+  return state;
+}
+
+function setStatus(text, type){
+  statusEl.textContent = text;
+  statusEl.className = "status" + (type ? " " + type : "");
+}
+
+function checkBoard(){
+  clearCheckMarks();
+
+  if(!solution){
+    setStatus("Eroare: soluția nu a fost calculată.", "bad");
+    return;
+  }
+
+  const state = placedState();
+  let placed = 0, correct = 0, wrong = 0;
+
+  for(const row of rows){
+    for(let i=0;i<5;i++){
+      const slot = document.querySelector(`.slot[data-kind="${row.key}"][data-house="${i+1}"]`);
+      if(state[row.key][i]){
+        placed++;
+        if(state[row.key][i] === solution[row.key][i]){
+          correct++;
+          slot.classList.add("ok-cell");
+        } else {
+          wrong++;
+          slot.classList.add("bad-cell");
+        }
+      }
+    }
+  }
+
+  if(placed === 0){
+    setStatus("Nu ai pus încă niciun jeton.", "bad");
+    return;
+  }
+
+  if(correct === 25){
+    setStatus("Perfect. Soluția este completă: norvegianul bea apă, germanul are zebra.", "ok");
+    updateAnswers(true);
+  } else if(wrong === 0){
+    setStatus(`Până aici este bine: ${correct} din ${placed} jetoane sunt corecte.`, "ok");
+  } else {
+    setStatus(`${correct} corecte, ${wrong} greșite, ${25-placed} necompletate. Celulele greșite sunt marcate cu roșu.`, "bad");
+  }
+}
+
+function updateAnswers(force){
+  const state = placedState();
+
+  function nationalityAt(index){
+    if(index < 0) return null;
+    const id = state.nationality[index];
+    if(!id) return null;
+    return labelOf("nationality", id);
+  }
+
+  if(force){
+    const waterHouse = solution.drink.indexOf("water");
+    const zebraHouse = solution.pet.indexOf("zebra");
+    waterAnswer.textContent = labelOf("nationality", solution.nationality[waterHouse]);
+    zebraAnswer.textContent = labelOf("nationality", solution.nationality[zebraHouse]);
+    return;
+  }
+
+  const waterIndex = state.drink.indexOf("water");
+  const zebraIndex = state.pet.indexOf("zebra");
+  waterAnswer.textContent = nationalityAt(waterIndex) || "—";
+  zebraAnswer.textContent = nationalityAt(zebraIndex) || "—";
+}
+
+function labelOf(kind, id){
+  return data[kind].find(x=>x.id===id)?.label || id;
+}
+
+function reset(){
+  solution = solvePuzzle();
+  buildBoard();
+  buildTray();
+  setupInteractions();
+  clearSelection();
+  clearCheckMarks();
+  updateVisuals();
+  setStatus("Tabla a fost resetată. Jetoanele sunt sus. Poți folosi drag and drop sau click pe jeton + click pe celulă.", "");
+  waterAnswer.textContent = "—";
+  zebraAnswer.textContent = "—";
+}
+
+function solve(){
+  if(!solution) solution = solvePuzzle();
+
+  clearSelection();
+  clearCheckMarks();
+
+  const allChips = {};
+  document.querySelectorAll(".chip").forEach(chip=>{
+    allChips[`${chip.dataset.kind}:${chip.dataset.id}`] = chip;
+  });
+
+  document.querySelectorAll(".slot").forEach(slot=>{
+    slot.innerHTML = "";
+  });
+
+  for(const row of rows){
+    for(let i=1;i<=5;i++){
+      const wantedId = solution[row.key][i-1];
+      const chip = allChips[`${row.key}:${wantedId}`];
+      const slot = document.querySelector(`.slot[data-kind="${row.key}"][data-house="${i}"]`);
+      if(chip && slot) slot.appendChild(chip);
+    }
+  }
+
+  updateVisuals();
+  updateAnswers(true);
+  setStatus("Soluția a fost calculată și afișată: norvegianul bea apă, germanul are zebra.", "ok");
+}
+
+function hint(){
+  if(!solution) solution = solvePuzzle();
+
+  clearSelection();
+  clearCheckMarks();
+
+  const priority = [
+    ["nationality",1], ["drink",3], ["color",2], ["color",4], ["color",5],
+    ["drink",4], ["smoke",4], ["pet",4], ["drink",1]
+  ];
+
+  let target = null;
+  for(const [kind, house] of priority){
+    const slot = document.querySelector(`.slot[data-kind="${kind}"][data-house="${house}"]`);
+    if(slot && !slot.querySelector(".chip")) { target = slot; break; }
+  }
+
+  if(!target){
+    target = [...document.querySelectorAll(".slot")].find(slot=>!slot.querySelector(".chip"));
+  }
+
+  if(!target){
+    checkBoard();
+    return;
+  }
+
+  const kind = target.dataset.kind;
+  const house = Number(target.dataset.house);
+  const wantedId = solution[kind][house-1];
+  const chip = document.querySelector(`.chip[data-kind="${kind}"][data-id="${wantedId}"]`);
+
+  if(!chip){
+    setStatus("Nu am găsit jetonul pentru indiciu. Încearcă Reset.", "bad");
+    return;
+  }
+
+  moveChipTo(chip, target);
+  target.classList.add("ok-cell");
+  setStatus(`Indiciu: ${labelOf(kind, wantedId)} la ${rows.find(r=>r.key===kind).label}, casa ${house}.`, "ok");
+}
+
+document.getElementById("resetBtn").addEventListener("click", reset);
+document.getElementById("checkBtn").addEventListener("click", checkBoard);
+document.getElementById("solveBtn").addEventListener("click", solve);
+document.getElementById("hintBtn").addEventListener("click", hint);
+
+try {
+  reset();
+} catch(err) {
+  console.error(err);
+  setStatus("A apărut o eroare la inițializare: " + err.message, "bad");
+}
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Zebra Puzzle</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

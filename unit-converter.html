@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conversii Unități — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #4af0b0;
+  --accent-dim: rgba(74,240,176,0.10);
+  --accent-border: rgba(74,240,176,0.28);
+}
+
+/* ── Category tabs ── */
+.cat-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: var(--content-gap);
+}
+.cat-tab {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+.cat-tab:hover { border-color: var(--accent-border); }
+.cat-tab.active {
+  background: var(--accent-dim);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+/* ── Conversion pair ── */
+.convert-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 12px;
+  align-items: center;
+}
+@media (max-width: 560px) {
+  .convert-grid { grid-template-columns: 1fr; }
+  .swap-btn { justify-self: center; transform: rotate(90deg); }
+}
+
+.unit-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+.unit-card select {
+  width: 100%;
+  margin-bottom: 10px;
+  font-size: 0.85rem;
+  padding: 7px 10px;
+}
+.unit-card input {
+  font-size: 1.3rem;
+}
+
+.swap-btn {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text2);
+  font-size: 1.1rem;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.swap-btn:hover { border-color: var(--accent-border); color: var(--accent); background: var(--accent-dim); transform: scale(1.05); }
+.swap-btn:active { transform: scale(0.95); }
+
+/* ── Quick reference ── */
+.quick-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.quick-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.quick-row:hover { background: var(--bg3); }
+.quick-from { color: var(--text2); }
+.quick-eq { color: var(--text3); margin: 0 8px; }
+.quick-to { color: var(--accent); font-weight: 500; }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Conversii unități</h1>
+    <p>Lungime, masă, volum, temperatură, presiune, energie, putere, viteză</p>
+  </div>
+
+  <!-- Categorii -->
+  <div class="cat-tabs" id="cat-tabs"></div>
+
+  <!-- Conversie principală -->
+  <div class="convert-grid" style="margin-bottom:var(--content-gap)">
+    <div class="unit-card">
+      <select class="unit-select" id="from-unit" style="width:100%" onchange="compute()"></select>
+      <input class="input-calc" id="from-value" type="number" step="any" value="1"
+             style="--input-color:var(--accent)" oninput="compute()">
+    </div>
+    <div class="swap-btn" onclick="swapUnits()" title="Inversează">⇄</div>
+    <div class="unit-card">
+      <select class="unit-select" id="to-unit" style="width:100%" onchange="compute()"></select>
+      <input class="input-calc" id="to-value" type="number" step="any" readonly
+             style="--input-color:var(--accent)">
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:var(--content-gap)">
+    <div class="field-label" style="margin-bottom:0" id="formula-text"></div>
+  </div>
+
+  <!-- Referință rapidă -->
+  <div class="card">
+    <div class="field-label" style="margin-bottom:10px">Conversii rapide comune</div>
+    <div class="quick-list" id="quick-list"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+// Fiecare categorie: unități cu factor de conversie la o unitate de bază (SI)
+// Excepție: temperatura, care necesită formule speciale (offset, nu doar factor)
+const CATEGORIES = {
+  length: {
+    label: 'Lungime',
+    base: 'm',
+    units: {
+      mm: { name: 'Milimetri', factor: 0.001 },
+      cm: { name: 'Centimetri', factor: 0.01 },
+      m:  { name: 'Metri', factor: 1 },
+      km: { name: 'Kilometri', factor: 1000 },
+      in: { name: 'Inch', factor: 0.0254 },
+      ft: { name: 'Picioare', factor: 0.3048 },
+      yd: { name: 'Yarzi', factor: 0.9144 },
+      mi: { name: 'Mile', factor: 1609.344 },
+      nmi:{ name: 'Mile marine', factor: 1852 },
+    },
+    quick: [ ['km','mi'], ['m','ft'], ['cm','in'], ['mi','km'] ]
+  },
+  mass: {
+    label: 'Masă',
+    base: 'kg',
+    units: {
+      mg: { name: 'Miligrame', factor: 0.000001 },
+      g:  { name: 'Grame', factor: 0.001 },
+      kg: { name: 'Kilograme', factor: 1 },
+      t:  { name: 'Tone', factor: 1000 },
+      oz: { name: 'Uncii', factor: 0.0283495 },
+      lb: { name: 'Livre', factor: 0.453592 },
+      st: { name: 'Stone', factor: 6.35029 },
+    },
+    quick: [ ['kg','lb'], ['g','oz'], ['lb','kg'], ['t','lb'] ]
+  },
+  volume: {
+    label: 'Volum',
+    base: 'l',
+    units: {
+      ml: { name: 'Mililitri', factor: 0.001 },
+      l:  { name: 'Litri', factor: 1 },
+      m3: { name: 'Metri cubi', factor: 1000 },
+      tsp:{ name: 'Linguriță (US)', factor: 0.00492892 },
+      tbsp:{ name: 'Lingură (US)', factor: 0.0147868 },
+      cup:{ name: 'Cană (US)', factor: 0.236588 },
+      floz:{ name: 'Uncie fluidă (US)', factor: 0.0295735 },
+      pt: { name: 'Pintă (US)', factor: 0.473176 },
+      qt: { name: 'Quart (US)', factor: 0.946353 },
+      gal:{ name: 'Galon (US)', factor: 3.78541 },
+    },
+    quick: [ ['l','gal'], ['ml','floz'], ['gal','l'], ['cup','ml'] ]
+  },
+  temperature: {
+    label: 'Temperatură',
+    special: true,
+    units: {
+      c: { name: 'Celsius' },
+      f: { name: 'Fahrenheit' },
+      k: { name: 'Kelvin' },
+    },
+    quick: [ ['c','f'], ['f','c'], ['c','k'], ['k','c'] ]
+  },
+  pressure: {
+    label: 'Presiune',
+    base: 'pa',
+    units: {
+      pa: { name: 'Pascali', factor: 1 },
+      kpa:{ name: 'Kilopascali', factor: 1000 },
+      bar:{ name: 'Bar', factor: 100000 },
+      atm:{ name: 'Atmosfere', factor: 101325 },
+      psi:{ name: 'PSI', factor: 6894.76 },
+      mmhg:{ name: 'mmHg (Torr)', factor: 133.322 },
+    },
+    quick: [ ['bar','psi'], ['atm','pa'], ['psi','bar'], ['mmhg','pa'] ]
+  },
+  energy: {
+    label: 'Energie',
+    base: 'j',
+    units: {
+      j:  { name: 'Jouli', factor: 1 },
+      kj: { name: 'Kilojouli', factor: 1000 },
+      cal:{ name: 'Calorii', factor: 4.184 },
+      kcal:{ name: 'Kilocalorii', factor: 4184 },
+      wh: { name: 'Watt-oră', factor: 3600 },
+      kwh:{ name: 'Kilowatt-oră', factor: 3600000 },
+      btu:{ name: 'BTU', factor: 1055.06 },
+    },
+    quick: [ ['kwh','j'], ['kcal','kj'], ['j','cal'], ['btu','kj'] ]
+  },
+  power: {
+    label: 'Putere',
+    base: 'w',
+    units: {
+      w:  { name: 'Watt', factor: 1 },
+      kw: { name: 'Kilowatt', factor: 1000 },
+      mw_mega: { name: 'Megawatt', factor: 1000000 },
+      hp: { name: 'Cai putere (mecanic)', factor: 745.7 },
+      hpM:{ name: 'Cai putere (metric)', factor: 735.499 },
+      btuh:{ name: 'BTU/oră', factor: 0.293071 },
+    },
+    quick: [ ['kw','hp'], ['hp','kw'], ['w','btuh'], ['hpM','kw'] ]
+  },
+  speed: {
+    label: 'Viteză',
+    base: 'ms',
+    units: {
+      ms: { name: 'Metri/secundă', factor: 1 },
+      kmh:{ name: 'Km/oră', factor: 0.277778 },
+      mph:{ name: 'Mile/oră', factor: 0.44704 },
+      fts:{ name: 'Picioare/secundă', factor: 0.3048 },
+      kn: { name: 'Noduri', factor: 0.514444 },
+      mach:{ name: 'Mach (aer standard)', factor: 343 },
+    },
+    quick: [ ['kmh','mph'], ['mph','kmh'], ['kn','kmh'], ['ms','kmh'] ]
+  },
+};
+
+let currentCat = 'length';
+
+function trim(n) {
+  if (Math.abs(n) < 0.0001 && n !== 0) return n.toExponential(4);
+  return parseFloat(n.toPrecision(8)).toString();
+}
+
+function buildCatTabs() {
+  const wrap = document.getElementById('cat-tabs');
+  Object.entries(CATEGORIES).forEach(([key, cat]) => {
+    const btn = document.createElement('div');
+    btn.className = 'cat-tab' + (key === currentCat ? ' active' : '');
+    btn.textContent = cat.label;
+    btn.dataset.key = key;
+    btn.onclick = () => setCategory(key);
+    wrap.appendChild(btn);
+  });
+}
+
+function setCategory(key) {
+  currentCat = key;
+  document.querySelectorAll('.cat-tab').forEach(t => t.classList.toggle('active', t.dataset.key === key));
+  populateUnitSelects();
+  buildQuickList();
+  compute();
+}
+
+function populateUnitSelects() {
+  const cat = CATEGORIES[currentCat];
+  const fromSel = document.getElementById('from-unit');
+  const toSel = document.getElementById('to-unit');
+  fromSel.innerHTML = '';
+  toSel.innerHTML = '';
+
+  const keys = Object.keys(cat.units);
+  keys.forEach((k, i) => {
+    const opt1 = document.createElement('option');
+    opt1.value = k; opt1.textContent = cat.units[k].name;
+    fromSel.appendChild(opt1);
+
+    const opt2 = document.createElement('option');
+    opt2.value = k; opt2.textContent = cat.units[k].name;
+    toSel.appendChild(opt2);
+  });
+
+  fromSel.value = keys[0];
+  toSel.value = keys.length > 1 ? keys[1] : keys[0];
+}
+
+function convertValue(val, fromKey, toKey) {
+  const cat = CATEGORIES[currentCat];
+  if (cat.special) {
+    // Temperature: convertim prin Celsius ca punte
+    let celsius;
+    if (fromKey === 'c') celsius = val;
+    else if (fromKey === 'f') celsius = (val - 32) * 5/9;
+    else if (fromKey === 'k') celsius = val - 273.15;
+
+    if (toKey === 'c') return celsius;
+    if (toKey === 'f') return celsius * 9/5 + 32;
+    if (toKey === 'k') return celsius + 273.15;
+  } else {
+    const baseVal = val * cat.units[fromKey].factor;
+    return baseVal / cat.units[toKey].factor;
+  }
+}
+
+function compute() {
+  const fromKey = document.getElementById('from-unit').value;
+  const toKey = document.getElementById('to-unit').value;
+  const fromVal = parseFloat(document.getElementById('from-value').value);
+
+  const formulaEl = document.getElementById('formula-text');
+
+  if (isNaN(fromVal)) {
+    document.getElementById('to-value').value = '';
+    formulaEl.textContent = 'Introdu o valoare';
+    return;
+  }
+
+  const result = convertValue(fromVal, fromKey, toKey);
+  document.getElementById('to-value').value = trim(result);
+
+  const cat = CATEGORIES[currentCat];
+  formulaEl.textContent = `${fromVal} ${cat.units[fromKey].name.toLowerCase()} = ${trim(result)} ${cat.units[toKey].name.toLowerCase()}`;
+}
+
+function swapUnits() {
+  const fromSel = document.getElementById('from-unit');
+  const toSel = document.getElementById('to-unit');
+  const tmp = fromSel.value;
+  fromSel.value = toSel.value;
+  toSel.value = tmp;
+
+  // Punem și valoarea rezultată ca input nou
+  const toVal = document.getElementById('to-value').value;
+  if (toVal) document.getElementById('from-value').value = toVal;
+  compute();
+}
+
+function buildQuickList() {
+  const cat = CATEGORIES[currentCat];
+  const wrap = document.getElementById('quick-list');
+  wrap.innerHTML = '';
+  (cat.quick || []).forEach(([fromK, toK]) => {
+    const val = 1;
+    const result = convertValue(val, fromK, toK);
+    const row = document.createElement('div');
+    row.className = 'quick-row';
+    row.innerHTML = `
+      <span class="quick-from">1 ${cat.units[fromK].name}</span>
+      <span class="quick-eq">=</span>
+      <span class="quick-to">${trim(result)} ${cat.units[toK].name}</span>
+    `;
+    row.onclick = () => {
+      document.getElementById('from-unit').value = fromK;
+      document.getElementById('to-unit').value = toK;
+      document.getElementById('from-value').value = 1;
+      compute();
+    };
+    wrap.appendChild(row);
+  });
+}
+
+buildCatTabs();
+populateUnitSelects();
+buildQuickList();
+compute();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Conversii unități</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

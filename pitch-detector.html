@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pitch Detector — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #d070f0;
+  --accent-dim: rgba(208,112,240,0.10);
+  --accent-border: rgba(208,112,240,0.28);
+}
+
+.status-msg {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text2);
+  margin-bottom: var(--content-gap);
+  min-height: 1.5em;
+}
+.status-msg.error { color: #f06060; }
+.status-msg.active { color: #4af0b0; }
+
+.start-btn {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.12s;
+  margin-bottom: var(--content-gap);
+}
+.start-btn.active { background: rgba(240,96,96,0.15); border-color: rgba(240,96,96,0.4); color: #f06060; }
+
+.result-card {
+  background: var(--bg2);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius);
+  padding: 30px;
+  text-align: center;
+  margin-bottom: var(--content-gap);
+}
+.result-note { font-family: var(--font-mono); font-size: 3.5rem; font-weight: 700; color: var(--accent); line-height: 1; }
+.result-note-ro { font-family: var(--font-mono); font-size: 1rem; color: var(--text3); margin-top: 6px; }
+.result-hz { font-family: var(--font-mono); font-size: 1.1rem; color: var(--text); margin-top: 8px; }
+
+.cents-meter {
+  position: relative;
+  height: 40px;
+  background: var(--bg3);
+  border-radius: 20px;
+  margin-top: 16px;
+  overflow: hidden;
+}
+.cents-center-line { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: var(--border2); }
+.cents-indicator {
+  position: absolute;
+  top: 4px; bottom: 4px;
+  width: 8px;
+  border-radius: 4px;
+  background: var(--accent);
+  transition: left 0.1s ease-out;
+}
+.cents-label { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text3); display: flex; justify-content: space-between; margin-top: 4px; }
+
+.privacy-note {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text3);
+  text-align: center;
+  line-height: 1.6;
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Pitch detector</h1>
+    <p>Autocorelație pe semnalul microfonului — nota estimată în timp real</p>
+  </div>
+
+  <div class="status-msg" id="status-msg">Apasă START pentru a activa microfonul</div>
+
+  <button class="start-btn" id="start-btn" onclick="toggleMic()">🎤 Pornește microfonul</button>
+
+  <div class="result-card">
+    <div class="result-note" id="result-note">—</div>
+    <div class="result-note-ro" id="result-note-ro"></div>
+    <div class="result-hz" id="result-hz"></div>
+
+    <div class="cents-meter">
+      <div class="cents-center-line"></div>
+      <div class="cents-indicator" id="cents-indicator" style="left:50%"></div>
+    </div>
+    <div class="cents-label">
+      <span>−50¢</span><span>acordat</span><span>+50¢</span>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:var(--content-gap)">
+    <div class="field-label" style="margin-bottom:8px">Nivel semnal microfon (verifică dacă e prea slab)</div>
+    <div style="height:14px;background:var(--bg3);border-radius:7px;overflow:hidden">
+      <div id="signal-bar" style="height:100%;width:0%;background:var(--accent);transition:width 0.05s"></div>
+    </div>
+  </div>
+
+  <p class="privacy-note">
+    Microfonul e procesat 100% local, în browser. Cântă sau fluieră o notă susținută pentru cele mai bune rezultate.
+  </p>
+</div>
+
+<script>
+const NOTE_NAMES_EN = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const NOTE_NAMES_RO = ['Do','Do#','Re','Re#','Mi','Fa','Fa#','Sol','Sol#','La','La#','Si'];
+
+let audioCtx = null;
+let analyser = null;
+let stream = null;
+let animationId = null;
+let isActive = false;
+let smoothedHz = null; // medie exponențială — reduce țopăiala firească a autocorelației frame-cu-frame
+
+async function toggleMic() {
+  if (isActive) stopMic(); else await startMic();
+}
+
+async function startMic() {
+  const statusEl = document.getElementById('status-msg');
+  try {
+    statusEl.textContent = 'Se solicită acces la microfon...';
+    statusEl.className = 'status-msg';
+
+    stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const source = audioCtx.createMediaStreamSource(stream);
+
+    // Amplificare proprie — fără autoGainControl, semnalul brut e adesea prea slab pentru un fluierat/voce normală
+    const boost = audioCtx.createGain();
+    boost.gain.value = 6;
+
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 2048;
+    source.connect(boost);
+    boost.connect(analyser);
+
+    isActive = true;
+    document.getElementById('start-btn').textContent = '■ Oprește microfonul';
+    document.getElementById('start-btn').classList.add('active');
+    statusEl.textContent = '🎤 Ascult... cântă sau fluieră o notă';
+    statusEl.className = 'status-msg active';
+
+    detectPitch();
+  } catch (err) {
+    statusEl.textContent = 'Acces refuzat sau microfon indisponibil: ' + err.message;
+    statusEl.className = 'status-msg error';
+  }
+}
+
+function stopMic() {
+  if (animationId) cancelAnimationFrame(animationId);
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  if (audioCtx) audioCtx.close();
+
+  isActive = false;
+  smoothedHz = null;
+  document.getElementById('start-btn').textContent = '🎤 Pornește microfonul';
+  document.getElementById('start-btn').classList.remove('active');
+  document.getElementById('status-msg').textContent = 'Microfon oprit';
+  document.getElementById('status-msg').className = 'status-msg';
+  document.getElementById('result-note').textContent = '—';
+  document.getElementById('result-note-ro').textContent = '';
+  document.getElementById('result-hz').textContent = '';
+}
+
+// Autocorelație normalizată — algoritm standard pentru detecția pitch-ului monofonic
+// (funcționează bine pentru voce/instrumente unice, nu pentru acorduri/polifonie)
+function autoCorrelate(buffer, sampleRate) {
+  const SIZE = buffer.length;
+  let rms = 0;
+  for (let i = 0; i < SIZE; i++) rms += buffer[i]*buffer[i];
+  rms = Math.sqrt(rms/SIZE);
+  if (rms < 0.003) return { hz: -1, rms }; // prag mult mai permisiv decât înainte
+
+  // Trimming: ignorăm porțiunile de la capete unde semnalul e sub prag
+  let r1 = 0, r2 = SIZE-1;
+  const threshold = 0.2;
+  for (let i = 0; i < SIZE/2; i++) { if (Math.abs(buffer[i]) < threshold) { r1 = i; break; } }
+  for (let i = 1; i < SIZE/2; i++) { if (Math.abs(buffer[SIZE-i]) < threshold) { r2 = SIZE-i; break; } }
+
+  const trimmedBuffer = buffer.slice(r1, r2);
+  const newSize = trimmedBuffer.length;
+
+  const c = new Array(newSize).fill(0);
+  for (let lag = 0; lag < newSize; lag++) {
+    for (let i = 0; i < newSize-lag; i++) {
+      c[lag] += trimmedBuffer[i] * trimmedBuffer[i+lag];
+    }
+  }
+
+  let d = 0;
+  while (d < newSize-1 && c[d] > c[d+1]) d++;
+
+  let maxVal = -1, maxPos = -1;
+  for (let i = d; i < newSize; i++) {
+    if (c[i] > maxVal) { maxVal = c[i]; maxPos = i; }
+  }
+
+  let T0 = maxPos;
+  // Interpolare parabolică pentru precizie sub-eșantion
+  if (maxPos > 0 && maxPos < newSize-1) {
+    const x1 = c[maxPos-1], x2 = c[maxPos], x3 = c[maxPos+1];
+    const a = (x1 + x3 - 2*x2) / 2;
+    const b = (x3 - x1) / 2;
+    if (a) T0 = maxPos - b/(2*a);
+  }
+
+  return { hz: T0 > 0 ? sampleRate/T0 : -1, rms };
+}
+
+function hzToNoteInfo(hz) {
+  const semitone = 12 * Math.log2(hz/440);
+  const roundedSemitone = Math.round(semitone);
+  const cents = Math.round((semitone - roundedSemitone) * 100);
+
+  const aIndex = NOTE_NAMES_EN.indexOf('A');
+  let noteIdx = (aIndex + roundedSemitone) % 12;
+  if (noteIdx < 0) noteIdx += 12;
+  const octave = 4 + Math.floor((roundedSemitone + aIndex) / 12);
+
+  return { en: NOTE_NAMES_EN[noteIdx], ro: NOTE_NAMES_RO[noteIdx], octave, cents };
+}
+
+function detectPitch() {
+  animationId = requestAnimationFrame(detectPitch);
+
+  const bufferLength = analyser.fftSize;
+  const buffer = new Float32Array(bufferLength);
+  analyser.getFloatTimeDomainData(buffer);
+
+  const { hz, rms } = autoCorrelate(buffer, audioCtx.sampleRate);
+
+  // Bara de nivel semnal — se actualizează mereu, indiferent dacă am detectat o notă sau nu,
+  // ca să vezi clar dacă microfonul primește ceva chiar și atunci când nu recunoaște o notă
+  const levelPct = Math.min(100, rms * 400);
+  document.getElementById('signal-bar').style.width = levelPct + '%';
+
+  const statusEl = document.getElementById('status-msg');
+
+  if (hz === -1 || hz < 50 || hz > 2000) {
+    if (rms < 0.003) {
+      statusEl.textContent = '🎤 Ascult... (semnal foarte slab — vorbește/fluieră mai aproape de microfon)';
+    } else {
+      statusEl.textContent = '🎤 Ascult... (nicio notă clară detectată încă)';
+    }
+    statusEl.className = 'status-msg active';
+    return;
+  }
+
+  statusEl.textContent = '🎤 Ascult...';
+  statusEl.className = 'status-msg active';
+
+  // Netezire: urmărim lent fluctuațiile mici (jitter normal), dar sărim instant peste salturi mari
+  // (schimbare reală de notă) — altfel ar întârzia vizibil când chiar schimbi nota cântată
+  if (smoothedHz === null) {
+    smoothedHz = hz;
+  } else {
+    const ratio = hz / smoothedHz;
+    if (ratio > 1.15 || ratio < 1/1.15) {
+      smoothedHz = hz;
+    } else {
+      smoothedHz = smoothedHz * 0.7 + hz * 0.3;
+    }
+  }
+
+  const info = hzToNoteInfo(smoothedHz);
+  document.getElementById('result-note').textContent = `${info.en}${info.octave}`;
+  document.getElementById('result-note-ro').textContent = `${info.ro} (octava ${info.octave})`;
+  document.getElementById('result-hz').textContent = smoothedHz.toFixed(1) + ' Hz';
+
+  // Poziționăm indicatorul pe scala −50 la +50 cenți
+  const clampedCents = Math.max(-50, Math.min(50, info.cents));
+  const pct = 50 + clampedCents; // 0-100%
+  document.getElementById('cents-indicator').style.left = pct + '%';
+}
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Pitch detector</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

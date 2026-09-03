@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tabel Periodic — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #f07090;
+  --accent-dim: rgba(240,112,144,0.10);
+  --accent-border: rgba(240,112,144,0.28);
+}
+
+.tool-page { max-width: 1280px; padding-bottom: 84px; }
+
+.leg-item { display: flex; align-items: center; gap: 5px; font-family: var(--font-mono); font-size: 0.68rem; color: var(--text2); }
+.leg-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.legend{
+  display:flex !important;flex-wrap:nowrap !important;align-items:center;justify-content:center;
+  gap:10px !important;margin-bottom:10px !important;white-space:nowrap;overflow-x:auto;overflow-y:hidden;
+  padding-bottom:2px;scrollbar-width:thin
+}
+.leg-item{font-size:.60rem;gap:4px;flex:0 0 auto}
+@media(max-width:1180px){.legend{justify-content:flex-start}.leg-item{font-size:.57rem}.leg-dot{width:9px;height:9px}}
+
+ .grid {
+  display:grid;
+  grid-template-columns:repeat(18,1fr);
+  row-gap:5px;
+  column-gap:3px;
+  width:min(100%,1120px);
+  min-width:820px;
+  margin:0 auto;
+}
+.cell {
+  border-radius: 5px;
+  padding: 2px 2px;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+  position: relative;
+  aspect-ratio: 1.08;
+}
+.cell:hover { transform: scale(1.15); z-index: 10; box-shadow: 0 2px 10px rgba(0,0,0,0.25); }
+.cell .num { line-height: 1.2; opacity: 0.75; font-family: var(--font-mono); font-size: var(--num-size, 0.6rem); }
+.cell .sym { font-weight: 700; line-height: 1.25; font-family: var(--font-mono); font-size: var(--sym-size, 1rem); }
+.cell .name {
+  line-height: 1.25;
+  opacity: 0.9;
+  font-size: var(--name-size, 0.65rem);
+  font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  overflow: visible;
+  word-break: break-word;
+}
+.cell.empty { background: transparent; cursor: default; pointer-events: none; }
+.cell.gap-label { background: transparent; cursor: default; pointer-events: none; display: flex; align-items: center; justify-content: center; font-size: 0.5rem; color: var(--text3); }
+
+#tooltip {
+  position: fixed;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  pointer-events: none;
+  display: none;
+  z-index: 100;
+  min-width: 170px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+#tooltip .t-sym { font-size: 1.7rem; font-weight: 700; color: var(--text); }
+#tooltip .t-name { font-size: 0.8rem; color: var(--text2); margin-bottom: 6px; }
+#tooltip .t-row { display: flex; justify-content: space-between; gap: 16px; font-size: 0.68rem; color: var(--text3); padding: 1px 0; }
+#tooltip .t-row span:last-child { color: var(--text); font-weight: 600; }
+
+@media (max-width: 960px) {
+  .cell:hover { transform: none; box-shadow: none; }
+}
+@media (pointer: coarse) {
+  .cell { -webkit-tap-highlight-color: transparent; }
+}
+
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Tabel periodic</h1>
+    <p>Toate cele 118 elemente — hover pentru detalii, categorii colorate</p>
+  </div>
+
+  <div class="legend" id="legend"></div>
+  <div class="grid" id="grid"></div>
+
+</div>
+
+<div id="tooltip">
+</div>
+
+<script>
+const CATS = {
+  "alkali":    {label:"Metale alcaline",    bg:"#FFD6D6",tc:"#7A2020"},
+  "alkaline":  {label:"Metale alcalino-păm.",bg:"#FFE8C2",tc:"#6B3D00"},
+  "trans":     {label:"Metale de tranziție", bg:"#C7E8FF",tc:"#0A3A5C"},
+  "post":      {label:"Metale post-tr.",     bg:"#D4F0D4",tc:"#1A4A1A"},
+  "metalloid": {label:"Metaloizi",           bg:"#E8D4F5",tc:"#4A1A6A"},
+  "nonmetal":  {label:"Nemetale",            bg:"#FFF4B0",tc:"#5A4800"},
+  "halogen":   {label:"Halogeni",            bg:"#FFD6F0",tc:"#6A1840"},
+  "noble":     {label:"Gaze nobile",         bg:"#C8F5F5",tc:"#0A4A4A"},
+  "lanthanoid":{label:"Lantanide",           bg:"#E2D9FF",tc:"#2A1A6A"},
+  "actinoid":  {label:"Actinide",            bg:"#FFE0CC",tc:"#6A2A0A"},
+};
+
+const EL = [
+  [1,"H","Hidrogen",1,1,"nonmetal",1.008,1],
+  [2,"He","Heliu",1,18,"noble",4.003,2],
+  [3,"Li","Litiu",2,1,"alkali",6.941,2],
+  [4,"Be","Beriliu",2,2,"alkaline",9.012,2],
+  [5,"B","Bor",2,13,"metalloid",10.811,2],
+  [6,"C","Carbon",2,14,"nonmetal",12.011,2],
+  [7,"N","Azot",2,15,"nonmetal",14.007,2],
+  [8,"O","Oxigen",2,16,"nonmetal",15.999,2],
+  [9,"F","Fluor",2,17,"halogen",18.998,2],
+  [10,"Ne","Neon",2,18,"noble",20.180,2],
+  [11,"Na","Sodiu",3,1,"alkali",22.990,3],
+  [12,"Mg","Magneziu",3,2,"alkaline",24.305,3],
+  [13,"Al","Aluminiu",3,13,"post",26.982,3],
+  [14,"Si","Siliciu",3,14,"metalloid",28.086,3],
+  [15,"P","Fosfor",3,15,"nonmetal",30.974,3],
+  [16,"S","Sulf",3,16,"nonmetal",32.065,3],
+  [17,"Cl","Clor",3,17,"halogen",35.453,3],
+  [18,"Ar","Argon",3,18,"noble",39.948,3],
+  [19,"K","Potasiu",4,1,"alkali",39.098,4],
+  [20,"Ca","Calciu",4,2,"alkaline",40.078,4],
+  [21,"Sc","Scandiu",4,3,"trans",44.956,4],
+  [22,"Ti","Titan",4,4,"trans",47.867,4],
+  [23,"V","Vanadiu",4,5,"trans",50.942,4],
+  [24,"Cr","Crom",4,6,"trans",51.996,4],
+  [25,"Mn","Mangan",4,7,"trans",54.938,4],
+  [26,"Fe","Fier",4,8,"trans",55.845,4],
+  [27,"Co","Cobalt",4,9,"trans",58.933,4],
+  [28,"Ni","Nichel",4,10,"trans",58.693,4],
+  [29,"Cu","Cupru",4,11,"trans",63.546,4],
+  [30,"Zn","Zinc",4,12,"trans",65.38,4],
+  [31,"Ga","Galiu",4,13,"post",69.723,4],
+  [32,"Ge","Germaniu",4,14,"metalloid",72.630,4],
+  [33,"As","Arsen",4,15,"metalloid",74.922,4],
+  [34,"Se","Seleniu",4,16,"nonmetal",78.971,4],
+  [35,"Br","Brom",4,17,"halogen",79.904,4],
+  [36,"Kr","Kripton",4,18,"noble",83.798,4],
+  [37,"Rb","Rubidiu",5,1,"alkali",85.468,5],
+  [38,"Sr","Stronțiu",5,2,"alkaline",87.620,5],
+  [39,"Y","Ytriu",5,3,"trans",88.906,5],
+  [40,"Zr","Zirconiu",5,4,"trans",91.224,5],
+  [41,"Nb","Niobiu",5,5,"trans",92.906,5],
+  [42,"Mo","Molibden",5,6,"trans",95.960,5],
+  [43,"Tc","Technețiu",5,7,"trans",97,5],
+  [44,"Ru","Ruteniu",5,8,"trans",101.07,5],
+  [45,"Rh","Rodiu",5,9,"trans",102.906,5],
+  [46,"Pd","Paladiu",5,10,"trans",106.42,5],
+  [47,"Ag","Argint",5,11,"trans",107.868,5],
+  [48,"Cd","Cadmiu",5,12,"trans",112.414,5],
+  [49,"In","Indiu",5,13,"post",114.818,5],
+  [50,"Sn","Staniu",5,14,"post",118.710,5],
+  [51,"Sb","Antimoniu",5,15,"metalloid",121.760,5],
+  [52,"Te","Telur",5,16,"metalloid",127.60,5],
+  [53,"I","Iod",5,17,"halogen",126.904,5],
+  [54,"Xe","Xenon",5,18,"noble",131.293,5],
+  [55,"Cs","Cesiu",6,1,"alkali",132.905,6],
+  [56,"Ba","Bariu",6,2,"alkaline",137.327,6],
+  [57,"La","Lantan",8,3,"lanthanoid",138.905,6],
+  [58,"Ce","Ceriu",8,4,"lanthanoid",140.116,6],
+  [59,"Pr","Praseodim",8,5,"lanthanoid",140.908,6],
+  [60,"Nd","Neodim",8,6,"lanthanoid",144.242,6],
+  [61,"Pm","Prometiu",8,7,"lanthanoid",145,6],
+  [62,"Sm","Samariu",8,8,"lanthanoid",150.36,6],
+  [63,"Eu","Europiu",8,9,"lanthanoid",151.964,6],
+  [64,"Gd","Gadoliniu",8,10,"lanthanoid",157.25,6],
+  [65,"Tb","Terbiu",8,11,"lanthanoid",158.925,6],
+  [66,"Dy","Disprosiu",8,12,"lanthanoid",162.500,6],
+  [67,"Ho","Holmiu",8,13,"lanthanoid",164.930,6],
+  [68,"Er","Erbiu",8,14,"lanthanoid",167.259,6],
+  [69,"Tm","Tuliu",8,15,"lanthanoid",168.934,6],
+  [70,"Yb","Yterbiu",8,16,"lanthanoid",173.054,6],
+  [71,"Lu","Lutețiu",8,17,"lanthanoid",174.967,6],
+  [72,"Hf","Hafniu",6,4,"trans",178.49,6],
+  [73,"Ta","Tantal",6,5,"trans",180.948,6],
+  [74,"W","Wolfram",6,6,"trans",183.84,6],
+  [75,"Re","Reniu",6,7,"trans",186.207,6],
+  [76,"Os","Osmiu",6,8,"trans",190.23,6],
+  [77,"Ir","Iridiu",6,9,"trans",192.217,6],
+  [78,"Pt","Platină",6,10,"trans",195.084,6],
+  [79,"Au","Aur",6,11,"trans",196.967,6],
+  [80,"Hg","Mercur",6,12,"trans",200.592,6],
+  [81,"Tl","Taliu",6,13,"post",204.383,6],
+  [82,"Pb","Plumb",6,14,"post",207.2,6],
+  [83,"Bi","Bismut",6,15,"post",208.980,6],
+  [84,"Po","Poloniu",6,16,"metalloid",209,6],
+  [85,"At","Astat",6,17,"halogen",210,6],
+  [86,"Rn","Radon",6,18,"noble",222,6],
+  [87,"Fr","Franciu",7,1,"alkali",223,7],
+  [88,"Ra","Radiu",7,2,"alkaline",226,7],
+  [89,"Ac","Actiniu",9,3,"actinoid",227,7],
+  [90,"Th","Toriu",9,4,"actinoid",232.038,7],
+  [91,"Pa","Protactiniu",9,5,"actinoid",231.036,7],
+  [92,"U","Uraniu",9,6,"actinoid",238.029,7],
+  [93,"Np","Neptuniu",9,7,"actinoid",237,7],
+  [94,"Pu","Plutoniu",9,8,"actinoid",244,7],
+  [95,"Am","Americiu",9,9,"actinoid",243,7],
+  [96,"Cm","Curiu",9,10,"actinoid",247,7],
+  [97,"Bk","Berkeliu",9,11,"actinoid",247,7],
+  [98,"Cf","Californiu",9,12,"actinoid",251,7],
+  [99,"Es","Einsteinium",9,13,"actinoid",252,7],
+  [100,"Fm","Fermiu",9,14,"actinoid",257,7],
+  [101,"Md","Mendeleviu",9,15,"actinoid",258,7],
+  [102,"No","Nobeliu",9,16,"actinoid",259,7],
+  [103,"Lr","Lavrenciu",9,17,"actinoid",262,7],
+  [104,"Rf","Rutherfordiu",7,4,"trans",267,7],
+  [105,"Db","Dubniu",7,5,"trans",270,7],
+  [106,"Sg","Seaborgiu",7,6,"trans",271,7],
+  [107,"Bh","Bohriu",7,7,"trans",270,7],
+  [108,"Hs","Hassiu",7,8,"trans",277,7],
+  [109,"Mt","Meitneriu",7,9,"trans",276,7],
+  [110,"Ds","Darmstadtiu",7,10,"trans",281,7],
+  [111,"Rg","Roentgeniu",7,11,"trans",280,7],
+  [112,"Cn","Coperniciu",7,12,"trans",285,7],
+  [113,"Nh","Nihonium",7,13,"post",284,7],
+  [114,"Fl","Fleroviu",7,14,"post",289,7],
+  [115,"Mc","Moscoviu",7,15,"post",288,7],
+  [116,"Lv","Livermoriu",7,16,"post",293,7],
+  [117,"Ts","Tenessine",7,17,"halogen",294,7],
+  [118,"Og","Oganesson",7,18,"noble",294,7],
+];
+
+const grid = document.getElementById('grid');
+const tooltip = document.getElementById('tooltip');
+
+function makeCell(el){
+  const [num,sym,name,row,col,cat,mass]=el;
+  const c=CATS[cat];
+  const div=document.createElement('div');
+  div.className='cell';
+  div.style.background=c.bg;
+  div.style.color=c.tc;
+  div.innerHTML=`<div class="num">${num}</div><div class="sym">${sym}</div><div class="name">${name}</div>`;
+  const showTip = ev => {
+    tooltip.style.display='block';
+    tooltip.innerHTML=`<div class="t-sym">${sym}</div><div class="t-name">${name}</div><div class="t-row"><span>Nr. atomic</span><span>${num}</span></div><div class="t-row"><span>Masă atomică</span><span>${mass}</span></div><div class="t-row"><span>Perioadă</span><span>${row<=7?row:'—'}</span></div><div class="t-row"><span>Grupă</span><span>${col}</span></div><div class="t-row"><span>Categorie</span><span>${c.label}</span></div>`;
+    positionTip(ev);
+  };
+
+  div.addEventListener('pointerenter', ev => {
+    if (ev.pointerType === 'mouse' || ev.pointerType === 'pen') showTip(ev);
+  });
+  div.addEventListener('pointermove', ev => {
+    if (ev.pointerType === 'mouse' || ev.pointerType === 'pen') positionTip(ev);
+  });
+  div.addEventListener('pointerleave', ev => {
+    if (ev.pointerType === 'mouse' || ev.pointerType === 'pen') tooltip.style.display='none';
+  });
+  div.addEventListener('pointerup', ev => {
+    if (ev.pointerType === 'touch') showTip(ev);
+  });
+  return div;
+}
+
+
+document.addEventListener('pointerdown', ev => {
+  if (ev.pointerType === 'touch' && !ev.target.closest('.cell')) {
+    tooltip.style.display = 'none';
+  }
+});
+
+function positionTip(ev){
+  const x=ev.clientX+12, y=ev.clientY-10;
+  tooltip.style.left=Math.min(x,window.innerWidth-190)+'px';
+  tooltip.style.top=Math.max(y,4)+'px';
+}
+
+function emptyCell(){
+  const d=document.createElement('div');
+  d.className='cell empty';
+  return d;
+}
+
+const ROWS=9;
+const COLS=18;
+const occupied={};
+EL.forEach(e=>{ occupied[`${e[3]}-${e[4]}`]=e; });
+
+for(let r=1;r<=ROWS;r++){
+  for(let c=1;c<=COLS;c++){
+    const key=`${r}-${c}`;
+    if(occupied[key]){
+      grid.appendChild(makeCell(occupied[key]));
+    } else {
+      grid.appendChild(emptyCell());
+    }
+  }
+}
+
+const leg = document.getElementById('legend');
+Object.entries(CATS).forEach(([k,v])=>{
+  const item=document.createElement('div');
+  item.className='leg-item';
+  item.innerHTML=`<div class="leg-dot" style="background:${v.bg};border:1px solid ${v.tc}44"></div><span>${v.label}</span>`;
+  leg.appendChild(item);
+});
+
+// Scalăm fontul proporțional cu dimensiunea reală a celulei (nu valori fixe) —
+// astfel textul rămâne lizibil indiferent de lățimea monitorului/ferestrei.
+function scaleFonts() {
+  const sample = grid.querySelector('.cell:not(.empty)');
+  if (!sample) return;
+  const w = sample.getBoundingClientRect().width;
+  if (w <= 0) return;
+
+  const numPx = Math.max(8, w * 0.12);
+  const symPx = Math.max(11, w * 0.255);
+  const namePx = Math.max(8.5, w * 0.135);
+
+  grid.style.setProperty('--num-size', numPx + 'px');
+  grid.style.setProperty('--sym-size', symPx + 'px');
+  grid.style.setProperty('--name-size', namePx + 'px');
+}
+
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(scaleFonts, 100);
+});
+
+scaleFonts();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Tabel periodic</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini Pian Browser — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #d070f0;
+  --accent-dim: rgba(208,112,240,0.10);
+  --accent-border: rgba(208,112,240,0.28);
+}
+
+.options-row { display: flex; gap: 16px; margin-bottom: var(--content-gap); align-items: center; flex-wrap: wrap; }
+.option-item { display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 0.72rem; color: var(--text2); }
+
+.piano-wrap {
+  overflow-x: auto;
+  padding: 8px 0 12px;
+  margin-bottom: var(--content-gap);
+  overscroll-behavior-x: contain;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+}
+.piano {
+  display: flex;
+  height: 200px;
+  min-width: 900px; /* ~43 px / clapă albă: păstrăm ținte tactile utilizabile */
+  position: relative;
+}
+.piano-key {
+  flex: 1;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 0 0 6px 6px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--text3);
+  transition: background 0.08s;
+  cursor: pointer;
+  user-select: none;
+  touch-action: pan-x;
+  -webkit-tap-highlight-color: transparent;
+}
+.piano-key.white.pressed { background: var(--accent-dim); border-color: var(--accent-border); }
+.key-hint { font-size: 0.5rem; opacity: 0.6; display: block; }
+
+.piano-key.black {
+  position: absolute;
+  top: 0;
+  width: 60%;
+  height: 62%;
+  background: #1a1a1a;
+  border: 1px solid #000;
+  border-radius: 0 0 4px 4px;
+  z-index: 2;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  color: #d0d0d0;
+  user-select: none;
+  touch-action: pan-x;
+  -webkit-tap-highlight-color: transparent;
+}
+.piano-key.black.pressed { background: var(--accent); color: #1a1a1a; }
+
+.keyboard-map {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text3);
+  text-align: center;
+  line-height: 1.6;
+}
+.piano-scroll-hint {
+  display: none;
+  margin: -6px 0 10px;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--text3);
+  text-align: center;
+}
+@media (max-width: 760px) {
+  .piano { height: 176px; }
+  .piano-scroll-hint { display: block; }
+  .keyboard-map { font-size: 0.61rem; }
+}
+
+/* Clapele albe rămân clape albe indiferent de tema paginii. */
+.piano-key.white {
+  background: #f7f7f4;
+  color: #42464d;
+  border-color: #aeb4bd;
+}
+
+.piano-key.white.pressed {
+  background: #dff8ee;
+  color: #146b4c;
+  border-color: #58b993;
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Mini pian browser</h1>
+    <p>3 octave — click, atingere, sau tastatura fizică</p>
+  </div>
+
+  <div class="options-row">
+    <label class="option-item">
+      <input type="checkbox" id="opt-showkeys" checked onchange="render()">
+      Afișează tasta corespunzătoare
+    </label>
+    <label class="option-item">
+      Formă undă:
+      <select class="unit-select" id="in-wave" style="padding:4px 8px">
+        <option value="sine">Sinusoidal</option>
+        <option value="triangle">Triunghi</option>
+        <option value="square">Pătrat</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="piano-wrap" aria-label="Claviatură de pian, derulabilă orizontal pe ecrane mici">
+    <div class="piano" id="piano"></div>
+  </div>
+  <div class="piano-scroll-hint">← glisează orizontal pentru celelalte clape →</div>
+
+  <div class="card">
+    <div class="keyboard-map">
+      Tastatură albă: <b>A S D F G H J K L ; '</b> · Tastatură neagră: <b>W E T Y U O P</b><br>
+      Rândul de jos (A,S,D...) = clapele albe; rândul de deasupra (W,E,T...) = clapele negre — ca poziția lor reală pe un pian.
+    </div>
+  </div>
+</div>
+
+<script>
+const NOTE_NAMES_EN = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const WHITE_KEYS_EN = ['C','D','E','F','G','A','B'];
+const BLACK_AFTER = { C:'C#', D:'D#', F:'F#', G:'G#', A:'A#' };
+
+// Mapare tastatură fizică → notă+octavă (stil pian virtual clasic)
+const KEY_MAP = {
+  'a':['C',3], 'w':['C#',3], 's':['D',3], 'e':['D#',3], 'd':['E',3],
+  'f':['F',3], 't':['F#',3], 'g':['G',3], 'y':['G#',3], 'h':['A',3],
+  'u':['A#',3], 'j':['B',3],
+  'k':['C',4], 'o':['C#',4], 'l':['D',4], 'p':['D#',4], ';':['E',4],
+};
+
+let audioCtx = null;
+const activeOscillators = {};
+
+function noteToHz(noteName, octave) {
+  const noteIdx = NOTE_NAMES_EN.indexOf(noteName);
+  const aIndex = NOTE_NAMES_EN.indexOf('A');
+  const semitone = (octave-4)*12 + (noteIdx - aIndex);
+  return 440 * Math.pow(2, semitone/12);
+}
+
+function keyId(noteName, octave) { return noteName + octave; }
+
+function startNote(noteName, octave) {
+  const id = keyId(noteName, octave);
+  if (activeOscillators[id]) return; // deja sună
+
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const hz = noteToHz(noteName, octave);
+  const bassBoost = hz < 200 ? Math.min(2, 1 + (200-hz)/150) : 1;
+  const peakGain = 0.32 * bassBoost;
+  const sustainGain = peakGain * 0.35; // un pian real scade mult volumul după atac, chiar ținând clapa
+
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = document.getElementById('in-wave').value;
+  osc.frequency.value = hz;
+
+  const t = audioCtx.currentTime;
+  gain.gain.setValueAtTime(0, t);
+  gain.gain.linearRampToValueAtTime(peakGain, t + 0.012);       // attack rapid
+  gain.gain.exponentialRampToValueAtTime(sustainGain, t + 0.35); // decay spre nivelul susținut
+
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+
+  activeOscillators[id] = { osc, gain, sustainGain };
+  markKeyVisual(noteName, octave, true);
+}
+
+function stopNote(noteName, octave) {
+  const id = keyId(noteName, octave);
+  const entry = activeOscillators[id];
+  if (!entry) return;
+
+  const t = audioCtx.currentTime;
+  entry.gain.gain.cancelScheduledValues(t);
+  entry.gain.gain.setValueAtTime(entry.gain.gain.value, t);
+  entry.gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25); // release gradual, nu tăiere bruscă
+  entry.osc.stop(t + 0.26);
+  delete activeOscillators[id];
+  markKeyVisual(noteName, octave, false);
+}
+
+function markKeyVisual(noteName, octave, pressed) {
+  const noteIdx = NOTE_NAMES_EN.indexOf(noteName);
+  const el = document.querySelector(`.piano-key[data-note="${noteIdx}"][data-octave="${octave}"]`);
+  if (el) el.classList.toggle('pressed', pressed);
+}
+
+function render() {
+  buildPiano();
+}
+
+function buildPiano() {
+  const piano = document.getElementById('piano');
+  piano.innerHTML = '';
+  const showKeys = document.getElementById('opt-showkeys').checked;
+  const whiteKeyEls = [];
+
+  // Găsim taste fizice pentru afișare (reverse lookup din KEY_MAP)
+  const reverseMap = {};
+  Object.entries(KEY_MAP).forEach(([physKey, [note, oct]]) => {
+    reverseMap[note+oct] = physKey.toUpperCase();
+  });
+
+  for (let octave = 3; octave <= 5; octave++) {
+    WHITE_KEYS_EN.forEach(letter => {
+      const noteIdx = NOTE_NAMES_EN.indexOf(letter);
+      const key = document.createElement('div');
+      key.className = 'piano-key white';
+      key.dataset.note = noteIdx;
+      key.dataset.octave = octave;
+      const physKey = reverseMap[letter+octave];
+      key.innerHTML = letter + octave + (showKeys && physKey ? `<span class="key-hint">${physKey}</span>` : '');
+      attachPointerEvents(key, letter, octave);
+      piano.appendChild(key);
+      whiteKeyEls.push({ letter, octave });
+    });
+  }
+
+  const whiteKeyWidth = 100 / whiteKeyEls.length;
+  whiteKeyEls.forEach((wk, i) => {
+    const sharpName = BLACK_AFTER[wk.letter];
+    if (!sharpName) return;
+    const noteIdx = NOTE_NAMES_EN.indexOf(sharpName);
+    const black = document.createElement('div');
+    black.className = 'piano-key black';
+    const physKey = reverseMap[sharpName+wk.octave];
+    black.innerHTML = sharpName + (showKeys && physKey ? `<span class="key-hint">${physKey}</span>` : '');
+    black.dataset.note = noteIdx;
+    black.dataset.octave = wk.octave;
+    black.style.left = `calc(${(i+1) * whiteKeyWidth}% - ${whiteKeyWidth*0.3}%)`;
+    black.style.width = `${whiteKeyWidth*0.6}%`;
+    attachPointerEvents(black, sharpName, wk.octave);
+    piano.appendChild(black);
+  });
+}
+
+function attachPointerEvents(el, noteName, octave) {
+  // Pointer Events acoperă mouse, stylus și touch fără handlers dublați.
+  el.addEventListener('pointerdown', () => startNote(noteName, octave));
+  el.addEventListener('pointerup', () => stopNote(noteName, octave));
+  el.addEventListener('pointercancel', () => stopNote(noteName, octave));
+  el.addEventListener('pointerleave', e => {
+    if (e.pointerType === 'mouse') stopNote(noteName, octave);
+  });
+}
+
+const pressedPhysicalKeys = new Set();
+
+document.addEventListener('keydown', e => {
+  const key = e.key.toLowerCase();
+  if (KEY_MAP[key] && !pressedPhysicalKeys.has(key)) {
+    pressedPhysicalKeys.add(key);
+    const [note, octave] = KEY_MAP[key];
+    startNote(note, octave);
+  }
+});
+
+document.addEventListener('keyup', e => {
+  const key = e.key.toLowerCase();
+  if (KEY_MAP[key]) {
+    pressedPhysicalKeys.delete(key);
+    const [note, octave] = KEY_MAP[key];
+    stopNote(note, octave);
+  }
+});
+
+buildPiano();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Mini pian browser</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

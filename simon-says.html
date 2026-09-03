@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simon Says — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #f0a040;
+  --accent-dim: rgba(240,160,64,0.10);
+  --accent-border: rgba(240,160,64,0.28);
+}
+
+.stats-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--content-gap);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+.stat-item { display: flex; gap: 6px; align-items: center; }
+.stat-label { color: var(--text3); }
+.stat-val { color: var(--accent); font-weight: 700; }
+
+.simon-wrap { display: flex; justify-content: center; padding: 1rem 0; }
+.simon-board {
+  position: relative;
+  width: 280px;
+  height: 280px;
+}
+.simon-quad {
+  position: absolute;
+  width: 130px;
+  height: 130px;
+  cursor: pointer;
+  transition: filter 0.1s, opacity 0.1s;
+  opacity: 0.55;
+}
+.simon-quad.active { opacity: 1; filter: brightness(1.4); }
+.simon-quad.green  { top: 0; left: 0; background: #4af0b0; border-radius: 100% 0 0 0; }
+.simon-quad.red    { top: 0; right: 0; background: #f06060; border-radius: 0 100% 0 0; }
+.simon-quad.yellow { bottom: 0; left: 0; background: #f0e050; border-radius: 0 0 0 100%; }
+.simon-quad.blue   { bottom: 0; right: 0; background: #60a0f0; border-radius: 0 0 100% 0; }
+.simon-center {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  width: 90px; height: 90px;
+  border-radius: 50%;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  z-index: 5;
+  border: 3px solid var(--border2);
+}
+
+.status-msg {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text2);
+  margin: var(--content-gap) 0;
+  min-height: 1.5em;
+}
+
+.start-btn {
+  display: block;
+  margin: 0 auto;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 12px 28px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.start-btn:hover { filter: brightness(1.15); }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Simon Says</h1>
+    <p>Repetă secvența de culori — memorie și reflexe</p>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat-item"><span class="stat-label">Nivel</span> <span class="stat-val" id="stat-level">0</span></div>
+    <div class="stat-item"><span class="stat-label">Record</span> <span class="stat-val" id="stat-best">0</span></div>
+  </div>
+
+  <div class="simon-wrap">
+    <div class="simon-board">
+      <div class="simon-quad green" data-color="green" onclick="playerClick('green')"></div>
+      <div class="simon-quad red" data-color="red" onclick="playerClick('red')"></div>
+      <div class="simon-quad yellow" data-color="yellow" onclick="playerClick('yellow')"></div>
+      <div class="simon-quad blue" data-color="blue" onclick="playerClick('blue')"></div>
+      <div class="simon-center" id="simon-center">▶</div>
+    </div>
+  </div>
+
+  <div class="status-msg" id="status-msg">Apasă START pentru a începe</div>
+
+  <button class="start-btn" id="start-btn" onclick="startGame()">START</button>
+</div>
+
+<script>
+const COLORS = ['green','red','yellow','blue'];
+const FREQ = { green: 329.63, red: 261.63, yellow: 220.00, blue: 164.81 };
+
+let sequence = [];
+let playerSeq = [];
+let level = 0;
+let best = 0;
+let playing = false;
+let acceptingInput = false;
+let audioCtx = null;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playTone(color, duration=0.3) {
+  const ctx = getAudioCtx();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.frequency.value = FREQ[color];
+  osc.type = 'sine';
+  gain.gain.setValueAtTime(0, ctx.currentTime);
+  gain.gain.linearRampToValueAtTime(0.25, ctx.currentTime+0.02);
+  gain.gain.linearRampToValueAtTime(0, ctx.currentTime+duration);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start();
+  osc.stop(ctx.currentTime+duration);
+}
+
+function flashQuad(color, duration=400) {
+  const el = document.querySelector(`.simon-quad[data-color="${color}"]`);
+  el.classList.add('active');
+  playTone(color, duration/1000);
+  setTimeout(() => el.classList.remove('active'), duration*0.7);
+}
+
+function startGame() {
+  sequence = [];
+  playerSeq = [];
+  level = 0;
+  playing = true;
+  document.getElementById('start-btn').style.display = 'none';
+  nextRound();
+}
+
+function nextRound() {
+  level++;
+  playerSeq = [];
+  acceptingInput = false;
+  document.getElementById('stat-level').textContent = level;
+  document.getElementById('status-msg').textContent = 'Urmărește secvența...';
+  document.getElementById('simon-center').textContent = level;
+
+  sequence.push(COLORS[Math.floor(Math.random()*4)]);
+  playSequence();
+}
+
+function playSequence() {
+  let i = 0;
+  const interval = setInterval(() => {
+    flashQuad(sequence[i]);
+    i++;
+    if (i >= sequence.length) {
+      clearInterval(interval);
+      setTimeout(() => {
+        acceptingInput = true;
+        document.getElementById('status-msg').textContent = 'Rândul tău — repetă secvența';
+      }, 500);
+    }
+  }, 700);
+}
+
+function playerClick(color) {
+  if (!acceptingInput || !playing) return;
+
+  flashQuad(color, 250);
+  playerSeq.push(color);
+
+  const idx = playerSeq.length - 1;
+  if (playerSeq[idx] !== sequence[idx]) {
+    endGame();
+    return;
+  }
+
+  if (playerSeq.length === sequence.length) {
+    acceptingInput = false;
+    if (level > best) {
+      best = level;
+      document.getElementById('stat-best').textContent = best;
+    }
+    document.getElementById('status-msg').textContent = 'Corect! Următorul nivel...';
+    setTimeout(nextRound, 1000);
+  }
+}
+
+function endGame() {
+  playing = false;
+  acceptingInput = false;
+  document.getElementById('status-msg').textContent = `Greșit! Ai ajuns la nivelul ${level}. Apasă START pentru a reîncerca.`;
+  document.getElementById('simon-center').textContent = '✕';
+  document.getElementById('start-btn').style.display = 'block';
+  document.getElementById('start-btn').textContent = 'ÎNCEARCĂ DIN NOU';
+}
+
+document.getElementById('simon-center').textContent = '▶';
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Simon Says</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

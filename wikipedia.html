@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wikipedia Summary — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #80e8b0;
+  --accent-dim: rgba(96,160,240,0.10);
+  --accent-border: rgba(96,160,240,0.28);
+}
+
+.search-row { display: flex; gap: 8px; margin-bottom: var(--content-gap); }
+.search-row input { flex: 1; }
+.btn-primary {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+}
+.btn-primary:hover { filter: brightness(1.15); }
+.btn-primary:disabled { opacity: 0.5; cursor: default; }
+
+.lang-row { display: flex; gap: 6px; margin-bottom: var(--content-gap); }
+.lang-btn {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 5px 12px;
+  border-radius: 99px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text2);
+  cursor: pointer;
+}
+.lang-btn.active { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+
+.status-msg { text-align: center; font-family: var(--font-mono); font-size: 0.78rem; color: var(--text3); margin-bottom: var(--content-gap); }
+.status-msg.error { color: #f06060; }
+
+.result-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: var(--content-gap);
+  display: none;
+}
+.result-card.show { display: block; }
+.result-header { display: flex; gap: 14px; margin-bottom: 12px; }
+.result-thumb { width: 90px; height: 90px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+.result-title { font-family: var(--font-sans); font-size: 1.15rem; font-weight: 700; color: var(--text); }
+.result-desc { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text3); margin-top: 4px; }
+.result-extract { font-family: var(--font-sans); font-size: 0.88rem; color: var(--text2); line-height: 1.6; }
+.result-link {
+  display: inline-block;
+  margin-top: 14px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--accent);
+  text-decoration: none;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+}
+.result-link:hover { background: var(--accent-dim); }
+
+.suggestions-list { display: flex; flex-direction: column; gap: 6px; }
+.suggestion-row {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text2);
+}
+.suggestion-row:hover { border-color: var(--accent-border); color: var(--accent); }
+
+.attribution { font-family: var(--font-mono); font-size: 0.6rem; color: var(--text3); text-align: center; margin-top: var(--content-gap); }
+.attribution a { color: var(--text2); }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Wikipedia summary</h1>
+    <p>Rezumat rapid al oricărui subiect, fără să deschizi Wikipedia</p>
+  </div>
+
+  <div class="lang-row" id="lang-row"></div>
+
+  <div class="search-row">
+    <input class="input-calc" id="in-query" type="text" placeholder="Caută un subiect..." value="Nicolae Iorga"
+           style="--input-color:var(--accent);font-size:0.95rem" onkeydown="if(event.key==='Enter')search()">
+    <button class="btn-primary" id="search-btn" onclick="search()">Caută</button>
+  </div>
+
+  <div class="status-msg" id="status-msg"></div>
+
+  <div class="result-card" id="result-card"></div>
+
+  <div class="suggestions-list" id="suggestions-list"></div>
+</div>
+
+<script>
+let lang = 'ro';
+
+const LANGS = [
+  { code: 'ro', name: 'Română' },
+  { code: 'en', name: 'English' },
+];
+
+function buildLangRow() {
+  const wrap = document.getElementById('lang-row');
+  LANGS.forEach(l => {
+    const btn = document.createElement('div');
+    btn.className = 'lang-btn' + (l.code===lang?' active':'');
+    btn.textContent = l.name;
+    btn.onclick = () => {
+      lang = l.code;
+      document.querySelectorAll('.lang-btn').forEach((b,i) => b.classList.toggle('active', LANGS[i].code===l.code));
+    };
+    wrap.appendChild(btn);
+  });
+}
+
+async function search() {
+  const query = document.getElementById('in-query').value.trim();
+  if (!query) return;
+
+  const statusEl = document.getElementById('status-msg');
+  const resultCard = document.getElementById('result-card');
+  const suggestionsList = document.getElementById('suggestions-list');
+  const btn = document.getElementById('search-btn');
+
+  btn.disabled = true;
+  statusEl.className = 'status-msg';
+  statusEl.textContent = 'Se caută...';
+  resultCard.classList.remove('show');
+  suggestionsList.innerHTML = '';
+
+  try {
+    const url = `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`;
+    const res = await fetch(url);
+
+    if (res.status === 404) {
+      // Nu s-a găsit exact — încercăm căutare pentru sugestii similare
+      statusEl.textContent = 'Nicio pagină exactă găsită — sugestii similare mai jos';
+      await loadSuggestions(query);
+      btn.disabled = false;
+      return;
+    }
+    if (!res.ok) throw new Error('Răspuns invalid de la Wikipedia');
+
+    const data = await res.json();
+
+    if (data.type === 'disambiguation') {
+      statusEl.textContent = 'Termen ambiguu — mai multe subiecte posibile:';
+      await loadSuggestions(query);
+      btn.disabled = false;
+      return;
+    }
+
+    renderResult(data);
+    statusEl.textContent = '';
+  } catch (err) {
+    statusEl.textContent = 'Eroare: ' + err.message;
+    statusEl.className = 'status-msg error';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function loadSuggestions(query) {
+  try {
+    const url = `https://${lang}.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(query)}&limit=6&format=json&origin=*`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const titles = data[1] || [];
+
+    const suggestionsList = document.getElementById('suggestions-list');
+    if (titles.length === 0) {
+      suggestionsList.innerHTML = '<div style="font-family:var(--font-mono);font-size:0.78rem;color:var(--text3)">Nicio sugestie găsită</div>';
+      return;
+    }
+    suggestionsList.innerHTML = titles.map(t => `
+      <div class="suggestion-row" onclick="selectSuggestion('${t.replace(/'/g,"\\'")}')">${t}</div>
+    `).join('');
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function selectSuggestion(title) {
+  document.getElementById('in-query').value = title;
+  search();
+}
+
+function renderResult(data) {
+  const card = document.getElementById('result-card');
+  const thumbHtml = data.thumbnail
+    ? `<img class="result-thumb" src="${data.thumbnail.source}" alt="">`
+    : '';
+
+  card.innerHTML = `
+    <div class="result-header">
+      ${thumbHtml}
+      <div>
+        <div class="result-title">${data.title}</div>
+        <div class="result-desc">${data.description || ''}</div>
+      </div>
+    </div>
+    <div class="result-extract">${data.extract}</div>
+    <a class="result-link" href="${data.content_urls?.desktop?.page || '#'}" target="_blank" rel="noopener">Citește articolul complet →</a>
+  `;
+  card.classList.add('show');
+  document.getElementById('suggestions-list').innerHTML = '';
+}
+
+buildLangRow();
+search();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Wikipedia summary</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

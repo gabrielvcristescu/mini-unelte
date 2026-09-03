@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Legea lui Ohm — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+/* ── Accent pentru această unealtă ── */
+:root { --accent: #70d0f0; --accent-dim: rgba(112,208,240,0.10); --accent-border: rgba(112,208,240,0.28); }
+
+.tool-page {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* ── 4 câmpuri principale ── */
+.fields-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--content-gap);
+  margin-bottom: var(--content-gap);
+}
+@media (max-width: 700px) { .fields-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 400px) { .fields-grid { grid-template-columns: 1fr; } }
+
+.field-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 14px 12px;
+  transition: border-color 0.15s;
+  position: relative;
+}
+.field-card.active  { border-color: var(--f-color); background: var(--bg2); }
+.field-card.derived { border-color: var(--border); }
+
+.field-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  gap: 6px;
+}
+.field-symbol {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--f-color);
+}
+.field-unit {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text3);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+.field-name {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--text3);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+/* .input-calc din shared.css — suprascriem doar culoarea */
+.field-input { --input-color: var(--f-color); }
+
+.clear-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text3);
+  font-size: 0.7rem;
+  padding: 2px 5px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+  line-height: 1;
+  font-family: var(--font-mono);
+}
+.field-card:hover .clear-btn { opacity: 1; }
+.clear-btn:hover { color: var(--text2); background: var(--bg3); }
+
+/* ── Formule ── */
+.formulas {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--content-gap);
+  margin-bottom: var(--content-gap);
+}
+@media (max-width: 500px) { .formulas { grid-template-columns: 1fr; } }
+
+.formula-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  text-align: center;
+}
+.formula-card.used { border-color: var(--accent-border); background: var(--accent-dim); }
+.formula-expr {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 3px;
+}
+.formula-card.used .formula-expr { color: var(--accent); }
+.formula-desc {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--text3);
+}
+
+/* ── Mesaj ── */
+.msg-bar {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text3);
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--content-gap);
+}
+.msg-bar.ok   { border-color: var(--accent-border); color: var(--text2); }
+.msg-bar.warn { border-color: rgba(240,192,64,0.3); color: #c8a020; }
+.msg-bar.err  { border-color: rgba(240,96,96,0.3);  color: #c05050; }
+
+/* ── Referință rapidă ── */
+.ref-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--content-gap);
+}
+@media (max-width: 500px) { .ref-grid { grid-template-columns: 1fr; } }
+
+.ref-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+.ref-table th {
+  text-align: left;
+  color: var(--text3);
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.ref-table td {
+  padding: 4px 8px;
+  border-bottom: 1px solid rgba(128,128,128,0.06);
+  color: var(--text2);
+}
+.ref-table td:first-child { color: var(--accent); font-weight: 500; }
+.ref-table tr:last-child td { border-bottom: none; }
+
+/* colors per field */
+.v-col { --f-color: #f0c040; }
+.i-col { --f-color: #f06060; }
+.r-col { --f-color: #70d0f0; }
+.p-col { --f-color: #a0d070; }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Legea lui Ohm</h1>
+    <p>Introduci oricare două valori — celelalte două se calculează automat.</p>
+  </div>
+
+  <!-- 4 câmpuri -->
+  <div class="fields-grid">
+    <div class="field-card v-col" id="card-V">
+      <div class="field-top">
+        <span class="field-symbol">V</span>
+        <span class="field-name" style="margin:0;flex:1;padding-left:8px">Tensiune</span>
+        <button class="clear-btn" onclick="clearField('V')" title="Șterge câmpul">clr</button>
+        <span class="field-unit">Volt</span>
+      </div>
+      <input class="field-input input-calc" id="inp-V" type="number" placeholder="—" step="any" min="0">
+    </div>
+    <div class="field-card i-col" id="card-I">
+      <div class="field-top">
+        <span class="field-symbol">I</span>
+        <span class="field-name" style="margin:0;flex:1;padding-left:8px">Curent</span>
+        <button class="clear-btn" onclick="clearField('I')" title="Șterge câmpul">clr</button>
+        <span class="field-unit">Amper</span>
+      </div>
+      <input class="field-input input-calc" id="inp-I" type="number" placeholder="—" step="any" min="0">
+    </div>
+    <div class="field-card r-col" id="card-R">
+      <div class="field-top">
+        <span class="field-symbol">R</span>
+        <span class="field-name" style="margin:0;flex:1;padding-left:8px">Rezistență</span>
+        <button class="clear-btn" onclick="clearField('R')" title="Șterge câmpul">clr</button>
+        <span class="field-unit">Ohm</span>
+      </div>
+      <input class="field-input input-calc" id="inp-R" type="number" placeholder="—" step="any" min="0">
+    </div>
+    <div class="field-card p-col" id="card-P">
+      <div class="field-top">
+        <span class="field-symbol">P</span>
+        <span class="field-name" style="margin:0;flex:1;padding-left:8px">Putere</span>
+        <button class="clear-btn" onclick="clearField('P')" title="Șterge câmpul">clr</button>
+        <span class="field-unit">Watt</span>
+      </div>
+      <input class="field-input input-calc" id="inp-P" type="number" placeholder="—" step="any" min="0">
+    </div>
+  </div>
+
+  <!-- Mesaj stare -->
+  <div class="msg-bar" id="msg-bar">Introduceți oricare două valori.</div>
+
+  <!-- Formule active -->
+  <div class="formulas">
+    <div class="formula-card" id="f0">
+      <div class="formula-expr">V = I × R</div>
+      <div class="formula-desc">Tensiune din curent și rezistență</div>
+    </div>
+    <div class="formula-card" id="f1">
+      <div class="formula-expr">I = V / R</div>
+      <div class="formula-desc">Curent din tensiune și rezistență</div>
+    </div>
+    <div class="formula-card" id="f2">
+      <div class="formula-expr">P = V × I</div>
+      <div class="formula-desc">Putere din tensiune și curent</div>
+    </div>
+  </div>
+
+  <!-- Referință -->
+  <div class="ref-grid">
+    <div class="card">
+      <div class="field-name" style="margin-bottom:8px">Formule complete</div>
+      <table class="ref-table">
+        <thead><tr><th>Calculezi</th><th>Formula</th></tr></thead>
+        <tbody>
+          <tr><td>V</td><td>I × R &nbsp;|&nbsp; P / I &nbsp;|&nbsp; √(P × R)</td></tr>
+          <tr><td>I</td><td>V / R &nbsp;|&nbsp; P / V &nbsp;|&nbsp; √(P / R)</td></tr>
+          <tr><td>R</td><td>V / I &nbsp;|&nbsp; V² / P &nbsp;|&nbsp; P / I²</td></tr>
+          <tr><td>P</td><td>V × I &nbsp;|&nbsp; I² × R &nbsp;|&nbsp; V² / R</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="field-name" style="margin-bottom:8px">Prefixe utile</div>
+      <table class="ref-table">
+        <thead><tr><th>Prefix</th><th>Factor</th><th>Exemplu</th></tr></thead>
+        <tbody>
+          <tr><td>μ (micro)</td><td>× 10⁻⁶</td><td>100 μA = 0.0001 A</td></tr>
+          <tr><td>m (mili)</td><td>× 10⁻³</td><td>470 mA = 0.47 A</td></tr>
+          <tr><td>k (kilo)</td><td>× 10³</td><td>10 kΩ = 10000 Ω</td></tr>
+          <tr><td>M (mega)</td><td>× 10⁶</td><td>1 MΩ = 1000000 Ω</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+const FIELDS = ['V','I','R','P'];
+
+// Păstrăm exact 2 câmpuri active — cel mai vechi și cel mai nou editat manual
+let pinned = []; // max 2 elemente, în ordine cronologică
+
+function val(f) {
+  const v = parseFloat(document.getElementById('inp-'+f).value);
+  return isNaN(v) || v < 0 ? null : v;
+}
+
+function fmt(n) {
+  if (n === 0) return '0';
+  const s = parseFloat(n.toPrecision(6)).toString();
+  return s;
+}
+
+function msg(text, type='') {
+  const el = document.getElementById('msg-bar');
+  el.textContent = text;
+  el.className = 'msg-bar' + (type ? ' ' + type : '');
+}
+
+function highlightFormula(ids) {
+  [0,1,2].forEach(i =>
+    document.getElementById('f'+i).classList.toggle('used', ids.includes(i))
+  );
+}
+
+function renderCards() {
+  FIELDS.forEach(f => {
+    const card = document.getElementById('card-'+f);
+    card.classList.remove('active','derived');
+    if (pinned.includes(f)) card.classList.add('active');
+    else if (document.getElementById('inp-'+f).value !== '') card.classList.add('derived');
+  });
+}
+
+function compute() {
+  // Curăță câmpurile derivate din UI
+  FIELDS.forEach(f => {
+    if (!pinned.includes(f)) document.getElementById('inp-'+f).value = '';
+  });
+
+  renderCards();
+  highlightFormula([]);
+
+  if (pinned.length < 2) {
+    msg(pinned.length === 0 ? 'Introduceți oricare două valori.' : 'Mai introduceți o valoare.');
+    return;
+  }
+
+  const [a, b] = pinned;
+  const va = val(a), vb = val(b);
+
+  if (va === null || vb === null) {
+    msg('Valoare lipsă sau invalidă.', 'err');
+    return;
+  }
+
+  let rV=null, rI=null, rR=null, rP=null;
+  const pair = [a,b].sort().join('');
+
+  // Setăm valorile cunoscute
+  const known = {}; known[a]=va; known[b]=vb;
+  if (a==='V'||b==='V') rV = known['V'];
+  if (a==='I'||b==='I') rI = known['I'];
+  if (a==='R'||b==='R') rR = known['R'];
+  if (a==='P'||b==='P') rP = known['P'];
+
+  // Calculăm restul
+  if (rV!==null && rI!==null) { rR=rV/rI;          rP=rV*rI;       highlightFormula([0,1,2]); }
+  else if (rV!==null && rR!==null) { rI=rV/rR;      rP=rV*rV/rR;   highlightFormula([1,2]); }
+  else if (rV!==null && rP!==null) { rI=rP/rV;      rR=rV*rV/rP;   highlightFormula([1,2]); }
+  else if (rI!==null && rR!==null) { rV=rI*rR;      rP=rI*rI*rR;   highlightFormula([0,2]); }
+  else if (rI!==null && rP!==null) { rV=rP/rI;      rR=rP/(rI*rI); highlightFormula([0,2]); }
+  else if (rR!==null && rP!==null) { rV=Math.sqrt(rP*rR); rI=Math.sqrt(rP/rR); highlightFormula([0,1]); }
+
+  const results = {V:rV, I:rI, R:rR, P:rP};
+
+  if (Object.values(results).some(x => x!==null && (!isFinite(x)||x<0))) {
+    msg('Rezultat invalid — verificați valorile introduse.', 'err');
+    return;
+  }
+
+  // Scrie valorile derivate
+  FIELDS.forEach(f => {
+    if (!pinned.includes(f) && results[f]!==null) {
+      document.getElementById('inp-'+f).value = fmt(results[f]);
+    }
+  });
+
+  renderCards();
+
+  const units = {V:'V', I:'A', R:'Ω', P:'W'};
+  const parts = FIELDS.map(f => results[f]!==null ? fmt(results[f])+units[f] : '?');
+  msg(parts.join(' · '), 'ok');
+}
+
+function pin(f) {
+  // Adaugă f la pinned; dacă era deja, mută-l la final; dacă sunt 3, scoate cel mai vechi
+  pinned = pinned.filter(x => x !== f);
+  pinned.push(f);
+  if (pinned.length > 2) pinned.shift();
+}
+
+function clearField(f) {
+  document.getElementById('inp-'+f).value = '';
+  pinned = pinned.filter(x => x !== f);
+  compute();
+}
+
+function clearAll() {
+  FIELDS.forEach(f => { document.getElementById('inp-'+f).value = ''; });
+  pinned = [];
+  renderCards();
+  highlightFormula([]);
+  msg('Introduceți oricare două valori.');
+}
+
+FIELDS.forEach(f => {
+  const inp = document.getElementById('inp-'+f);
+
+  inp.addEventListener('input', () => {
+    if (inp.value.trim() === '') {
+      pinned = pinned.filter(x => x !== f);
+    } else {
+      pin(f);
+    }
+    compute();
+  });
+
+  // La focus pe câmp derivat: selectăm textul ca hint vizual că e editabil
+  // NU ștergem valoarea — utilizatorul va tasta și abia atunci pinuim
+  inp.addEventListener('focus', () => {
+    inp.select();
+  });
+});
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') clearAll(); });
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Legea lui Ohm</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

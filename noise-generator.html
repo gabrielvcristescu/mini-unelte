@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generator Zgomot — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #d070f0;
+  --accent-dim: rgba(208,112,240,0.10);
+  --accent-border: rgba(208,112,240,0.28);
+}
+
+.type-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: var(--content-gap); }
+@media (max-width: 500px) { .type-grid { grid-template-columns: 1fr; } }
+.type-btn {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.type-btn:hover { border-color: var(--accent-border); }
+.type-btn.active { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+.type-name { font-family: var(--font-mono); font-size: 0.85rem; font-weight: 700; }
+.type-desc { font-family: var(--font-mono); font-size: 0.6rem; color: var(--text3); margin-top: 4px; }
+.type-btn.active .type-desc { color: var(--accent); opacity: 0.8; }
+
+.field-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: var(--content-gap);
+}
+.slider-row { display: flex; align-items: center; gap: 10px; }
+.slider-row input[type=range] { flex: 1; accent-color: var(--accent); }
+.slider-val { font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent); font-weight: 700; width: 50px; text-align: right; }
+
+.play-btn {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.12s;
+  margin-bottom: var(--content-gap);
+}
+.play-btn:hover { filter: brightness(1.15); }
+.play-btn.playing { background: rgba(240,96,96,0.15); border-color: rgba(240,96,96,0.4); color: #f06060; }
+
+.info-note {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text3);
+  line-height: 1.6;
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Generator zgomot</h1>
+    <p>Alb, roz, brun — pentru concentrare, somn, sau mascarea altor sunete</p>
+  </div>
+
+  <div class="type-grid" id="type-grid"></div>
+
+  <div class="field-card">
+    <span class="field-name" style="font-family:var(--font-mono);font-size:0.7rem;color:var(--text2);font-weight:500;margin-bottom:8px;display:block">Volum</span>
+    <div class="slider-row">
+      <input type="range" id="s-volume" min="0" max="100" value="40" oninput="onVolumeChange()">
+      <span class="slider-val" id="v-volume">40%</span>
+    </div>
+  </div>
+
+  <button class="play-btn" id="play-btn" onclick="togglePlay()">▶ Redă</button>
+
+  <p class="info-note" id="info-note"></p>
+</div>
+
+<script>
+const TYPES = {
+  white: { name: 'Alb', desc: 'toate frecvențele egal', info: 'Zgomot alb: energie egală pe toate frecvențele. Cel mai "aspru" perceptiv — util pentru mascarea sunetelor bruște.' },
+  pink:  { name: 'Roz', desc: 'mai natural, echilibrat', info: 'Zgomot roz: energie descrescătoare cu frecvența (−3dB/octavă). Sună mai natural și "cald" — asemănător ploii sau valurilor.' },
+  brown: { name: 'Brun', desc: 'grav, profund', info: 'Zgomot brun (roșu): și mai multă energie în frecvențe joase (−6dB/octavă). Sunet profund, gros — util pentru mascarea zgomotelor de trafic.' },
+};
+
+let audioCtx = null;
+let noiseSource = null;
+let gainNode = null;
+let isPlaying = false;
+let currentType = 'white';
+
+function buildTypeGrid() {
+  const grid = document.getElementById('type-grid');
+  Object.entries(TYPES).forEach(([key, t]) => {
+    const btn = document.createElement('div');
+    btn.className = 'type-btn' + (key===currentType?' active':'');
+    btn.innerHTML = `<div class="type-name">${t.name}</div><div class="type-desc">${t.desc}</div>`;
+    btn.onclick = () => {
+      currentType = key;
+      document.querySelectorAll('.type-btn').forEach((b,i) => b.classList.toggle('active', Object.keys(TYPES)[i]===key));
+      updateInfo();
+      if (isPlaying) { stopNoise(); startNoise(); } // regenerăm bufferul cu noul tip
+    };
+    grid.appendChild(btn);
+  });
+  updateInfo();
+}
+
+function updateInfo() {
+  document.getElementById('info-note').textContent = TYPES[currentType].info;
+}
+
+function generateNoiseBuffer(type, duration = 4) {
+  const sampleRate = audioCtx.sampleRate;
+  const bufferSize = sampleRate * duration;
+  const buffer = audioCtx.createBuffer(1, bufferSize, sampleRate);
+  const data = buffer.getChannelData(0);
+
+  if (type === 'white') {
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+  } else if (type === 'pink') {
+    // Algoritmul lui Paul Kellet (aproximare economică, larg folosită)
+    let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+    for (let i = 0; i < bufferSize; i++) {
+      const white = Math.random() * 2 - 1;
+      b0 = 0.99886*b0 + white*0.0555179;
+      b1 = 0.99332*b1 + white*0.0750759;
+      b2 = 0.96900*b2 + white*0.1538520;
+      b3 = 0.86650*b3 + white*0.3104856;
+      b4 = 0.55000*b4 + white*0.5329522;
+      b5 = -0.7616*b5 - white*0.0168980;
+      const pink = b0+b1+b2+b3+b4+b5+b6+white*0.5362;
+      b6 = white*0.115926;
+      data[i] = pink * 0.11; // normalizare aproximativă la interval rezonabil
+    }
+  } else if (type === 'brown') {
+    // Integrare simplă a zgomotului alb (random walk), normalizată
+    let lastOut = 0;
+    for (let i = 0; i < bufferSize; i++) {
+      const white = Math.random() * 2 - 1;
+      lastOut = (lastOut + (0.02 * white)) / 1.02;
+      data[i] = lastOut * 3.5; // normalizare aproximativă
+    }
+  }
+
+  return buffer;
+}
+
+function onVolumeChange() {
+  const vol = document.getElementById('s-volume').value;
+  document.getElementById('v-volume').textContent = vol + '%';
+  if (gainNode) gainNode.gain.setValueAtTime(vol/100 * 0.5, audioCtx.currentTime);
+}
+
+function togglePlay() {
+  if (isPlaying) stopNoise(); else startNoise();
+}
+
+function startNoise() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  const buffer = generateNoiseBuffer(currentType);
+  noiseSource = audioCtx.createBufferSource();
+  noiseSource.buffer = buffer;
+  noiseSource.loop = true;
+
+  gainNode = audioCtx.createGain();
+  const vol = document.getElementById('s-volume').value;
+  gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+  gainNode.gain.linearRampToValueAtTime(vol/100 * 0.5, audioCtx.currentTime + 0.05);
+
+  noiseSource.connect(gainNode);
+  gainNode.connect(audioCtx.destination);
+  noiseSource.start();
+
+  isPlaying = true;
+  const btn = document.getElementById('play-btn');
+  btn.textContent = '■ Oprește';
+  btn.classList.add('playing');
+}
+
+function stopNoise() {
+  if (gainNode) gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.05);
+  if (noiseSource) noiseSource.stop(audioCtx.currentTime + 0.06);
+
+  isPlaying = false;
+  const btn = document.getElementById('play-btn');
+  btn.textContent = '▶ Redă';
+  btn.classList.remove('playing');
+}
+
+buildTypeGrid();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Generator zgomot</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

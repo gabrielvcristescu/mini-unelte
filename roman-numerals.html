@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cifre Romane — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #4af0b0;
+  --accent-dim: rgba(74,240,176,0.10);
+  --accent-border: rgba(74,240,176,0.28);
+}
+
+.fields-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: center; margin-bottom: var(--content-gap); }
+@media (max-width: 500px) { .fields-grid { grid-template-columns: 1fr; } .swap-btn { justify-self: center; transform: rotate(90deg); } }
+
+#card-arabic { order: 1; }
+#swap-button { order: 2; }
+#card-roman { order: 3; }
+.fields-grid.swapped #card-arabic { order: 3; }
+.fields-grid.swapped #card-roman { order: 1; }
+
+.field-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+.field-name { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text2); font-weight: 500; margin-bottom: 8px; display: block; }
+
+.swap-btn {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: var(--text2);
+  font-size: 1.1rem;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.swap-btn:hover { border-color: var(--accent-border); color: var(--accent); background: var(--accent-dim); transform: scale(1.05); }
+
+.error-msg {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: #f06060;
+  margin-top: 6px;
+}
+
+/* ── Breakdown visualization ── */
+.breakdown-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.breakdown-chip {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 6px;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-border);
+  color: var(--accent);
+}
+
+/* ── Reference table ── */
+.ref-table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.76rem; }
+.ref-table th { text-align: left; color: var(--text3); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.08em; padding: 5px 10px; border-bottom: 1px solid var(--border); }
+.ref-table th:not(:first-child) { text-align: center; }
+.ref-table td { padding: 4px 10px; border-bottom: 1px solid rgba(128,128,128,0.05); color: var(--text2); cursor: pointer; }
+.ref-table td:not(:first-child) { text-align: center; }
+.ref-table tr:hover td { background: var(--bg3); }
+.ref-roman { color: var(--accent); font-weight: 600; }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Cifre romane</h1>
+    <p>Arab ↔ Roman, interval 1–3999</p>
+  </div>
+
+  <div class="fields-grid" id="fields-grid">
+    <div class="field-card" id="card-arabic">
+      <span class="field-name">Arab</span>
+      <input class="input-calc" id="in-arabic" type="number" min="1" max="3999" step="1" value="2026"
+             style="--input-color:var(--accent);font-size:1.2rem" oninput="computeFromArabic()">
+      <div class="error-msg" id="error-arabic"></div>
+    </div>
+    <div class="swap-btn" id="swap-button" onclick="swapPositions()" title="Inversează pozițiile câmpurilor">⇄</div>
+    <div class="field-card" id="card-roman">
+      <span class="field-name">Roman</span>
+      <input class="input-calc" id="in-roman" type="text" value="MMXXVI"
+             style="--input-color:var(--accent);font-size:1.2rem;text-transform:uppercase" oninput="computeFromRoman()">
+      <div class="error-msg" id="error-roman"></div>
+    </div>
+  </div>
+
+  <!-- Breakdown -->
+  <div class="card" style="margin-bottom:var(--content-gap)">
+    <div class="field-label" style="margin-bottom:10px">Descompunere</div>
+    <div class="breakdown-list" id="breakdown-list"></div>
+  </div>
+
+  <!-- Tabel referință -->
+  <div class="card">
+    <div class="field-label" style="margin-bottom:10px">Valori de bază (click pentru a completa)</div>
+    <table class="ref-table" id="ref-table"></table>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+const ROMAN_VALUES = [
+  [1000,'M'], [900,'CM'], [500,'D'], [400,'CD'],
+  [100,'C'], [90,'XC'], [50,'L'], [40,'XL'],
+  [10,'X'], [9,'IX'], [5,'V'], [4,'IV'], [1,'I'],
+];
+
+function arabicToRoman(num) {
+  let result = '';
+  let remaining = num;
+  for (const [val, sym] of ROMAN_VALUES) {
+    while (remaining >= val) {
+      result += sym;
+      remaining -= val;
+    }
+  }
+  return result;
+}
+
+function romanToArabic(roman) {
+  const map = { I:1, V:5, X:10, L:50, C:100, D:500, M:1000 };
+  const upper = roman.toUpperCase();
+  let result = 0;
+  let prevVal = 0;
+
+  for (let i = upper.length - 1; i >= 0; i--) {
+    const ch = upper[i];
+    if (!(ch in map)) throw new Error(`Caracter invalid: "${ch}"`);
+    const val = map[ch];
+    if (val < prevVal) result -= val;
+    else result += val;
+    prevVal = val;
+  }
+  return result;
+}
+
+function isValidRomanFormat(roman) {
+  // Regex care validează formatul standard (nu doar suma corectă, ci și ordinea/repetițiile valide)
+  const pattern = /^M{0,3}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/i;
+  return pattern.test(roman) && roman.length > 0;
+}
+
+function getBreakdown(num) {
+  const parts = [];
+  let remaining = num;
+  for (const [val, sym] of ROMAN_VALUES) {
+    let count = 0;
+    while (remaining >= val) { remaining -= val; count++; }
+    if (count > 0) parts.push({ sym, val, count });
+  }
+  return parts;
+}
+
+function renderBreakdown(num) {
+  const wrap = document.getElementById('breakdown-list');
+  if (isNaN(num) || num < 1 || num > 3999) { wrap.innerHTML = ''; return; }
+  const parts = getBreakdown(num);
+  wrap.innerHTML = parts.map(p =>
+    `<div class="breakdown-chip">${p.sym.repeat(p.count).length <= 4 ? p.sym.repeat(p.count) : p.count+'×'+p.sym} = ${p.val * p.count}</div>`
+  ).join('');
+}
+
+function computeFromArabic() {
+  const val = document.getElementById('in-arabic').value;
+  const num = parseInt(val);
+  const errorEl = document.getElementById('error-arabic');
+
+  if (val === '' || isNaN(num)) { errorEl.textContent = ''; return; }
+
+  if (num < 1 || num > 3999) {
+    errorEl.textContent = 'Intervalul valid este 1–3999 (fără simbol standard pentru 0 sau peste 3999)';
+    document.getElementById('in-roman').value = '';
+    renderBreakdown(NaN);
+    return;
+  }
+
+  errorEl.textContent = '';
+  document.getElementById('in-roman').value = arabicToRoman(num);
+  renderBreakdown(num);
+}
+
+function computeFromRoman() {
+  const val = document.getElementById('in-roman').value.trim();
+  const errorEl = document.getElementById('error-roman');
+
+  if (val === '') { errorEl.textContent = ''; return; }
+
+  if (!isValidRomanFormat(val)) {
+    errorEl.textContent = 'Format roman invalid (verifică ordinea și repetițiile simbolurilor)';
+    document.getElementById('in-arabic').value = '';
+    renderBreakdown(NaN);
+    return;
+  }
+
+  try {
+    const num = romanToArabic(val);
+    errorEl.textContent = '';
+    document.getElementById('in-arabic').value = num;
+    renderBreakdown(num);
+  } catch (err) {
+    errorEl.textContent = err.message;
+  }
+}
+
+function buildRefTable() {
+  const table = document.getElementById('ref-table');
+  table.innerHTML = `<thead><tr><th>Roman</th><th>Arab</th></tr></thead>`;
+  const tbody = document.createElement('tbody');
+  const bases = [1,4,5,9,10,40,50,90,100,400,500,900,1000];
+  bases.forEach(n => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="ref-roman">${arabicToRoman(n)}</td><td>${n}</td>`;
+    tr.onclick = () => {
+      document.getElementById('in-arabic').value = n;
+      computeFromArabic();
+    };
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+}
+
+function swapPositions() {
+  const grid = document.getElementById('fields-grid');
+  grid.classList.toggle('swapped');
+}
+
+buildRefTable();
+computeFromArabic();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Conversie cifre romane</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

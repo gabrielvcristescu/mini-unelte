@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Text ↔ Morse — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #e070a0;
+  --accent-dim: rgba(96,192,208,0.10);
+  --accent-border: rgba(96,192,208,0.28);
+}
+
+.big-textarea {
+  width: 100%;
+  min-height: 120px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--text);
+  outline: none;
+  resize: vertical;
+  line-height: 1.7;
+}
+.big-textarea:focus { border-color: var(--accent-border); box-shadow: 0 0 0 3px var(--accent-dim); }
+.big-textarea.output { color: var(--accent); }
+
+.area-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.area-name { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; }
+.mini-btn {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text2);
+  cursor: pointer;
+}
+.mini-btn:hover { border-color: var(--accent-border); color: var(--accent); }
+
+.play-row { display: flex; gap: 8px; margin: var(--content-gap) 0; }
+.play-btn {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+}
+.play-btn:hover { filter: brightness(1.15); }
+.play-btn:disabled { opacity: 0.4; cursor: default; }
+
+.speed-row { display: flex; align-items: center; gap: 10px; margin-bottom: var(--content-gap); }
+.speed-row input[type=range] { flex: 1; accent-color: var(--accent); }
+.speed-val { font-family: var(--font-mono); font-size: 0.78rem; color: var(--accent); width: 70px; text-align: right; }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Text ↔ Morse</h1>
+    <p>Conversie bidirecțională + redare audio a codului Morse</p>
+  </div>
+
+  <div style="margin-bottom:var(--content-gap)">
+    <div class="area-label">
+      <span class="area-name">Text</span>
+      <div style="display:flex;gap:6px">
+        <button class="mini-btn" onclick="pasteInto('text')">Lipește</button>
+        <button class="mini-btn" onclick="clearAll()">Șterge</button>
+      </div>
+    </div>
+    <textarea class="big-textarea" id="in-text" oninput="fromText()">SOS MINI UNELTE</textarea>
+  </div>
+
+  <div style="margin-bottom:var(--content-gap)">
+    <div class="area-label">
+      <span class="area-name">Cod Morse</span>
+      <button class="mini-btn" onclick="copyMorse()">Copiază</button>
+    </div>
+    <textarea class="big-textarea output" id="in-morse" oninput="fromMorse()"></textarea>
+  </div>
+
+  <div class="speed-row">
+    <span style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text3)">Viteză</span>
+    <input type="range" id="s-speed" min="5" max="35" value="20" oninput="onSpeedChange()">
+    <span class="speed-val" id="v-speed">20 WPM</span>
+  </div>
+
+  <div class="play-row">
+    <button class="play-btn" id="play-btn" onclick="playMorse()">🔊 Redă audio</button>
+    <button class="play-btn" onclick="stopMorse()">■ Oprește</button>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+const MORSE_MAP = {
+  A:'.-', B:'-...', C:'-.-.', D:'-..', E:'.', F:'..-.', G:'--.', H:'....',
+  I:'..', J:'.---', K:'-.-', L:'.-..', M:'--', N:'-.', O:'---', P:'.--.',
+  Q:'--.-', R:'.-.', S:'...', T:'-', U:'..-', V:'...-', W:'.--', X:'-..-',
+  Y:'-.--', Z:'--..',
+  '0':'-----','1':'.----','2':'..---','3':'...--','4':'....-',
+  '5':'.....','6':'-....','7':'--...','8':'---..','9':'----.',
+  '.':'.-.-.-', ',':'--..--', '?':'..--..', "'":'.----.', '!':'-.-.--',
+  '/':'-..-.', '(':'-.--.', ')':'-.--.-', '&':'.-...', ':':'---...',
+  ';':'-.-.-.', '=':'-...-', '+':'.-.-.', '-':'-....-', '_':'..--.-',
+  '"':'.-..-.', '$':'...-..-', '@':'.--.-.',
+};
+const REVERSE_MORSE = Object.fromEntries(Object.entries(MORSE_MAP).map(([k,v])=>[v,k]));
+
+let updating = false;
+let audioCtx = null;
+let stopFlag = false;
+
+function textToMorse(text) {
+  return text.toUpperCase().split('').map(ch => {
+    if (ch === ' ') return '/';
+    return MORSE_MAP[ch] || '';
+  }).filter(x => x !== '').join(' ');
+}
+
+function morseToText(morse) {
+  return morse.trim().split(/\s+/).map(code => {
+    if (code === '/') return ' ';
+    return REVERSE_MORSE[code] || '';
+  }).join('');
+}
+
+function fromText() {
+  if (updating) return;
+  updating = true;
+  document.getElementById('in-morse').value = textToMorse(document.getElementById('in-text').value);
+  updating = false;
+}
+
+function fromMorse() {
+  if (updating) return;
+  updating = true;
+  document.getElementById('in-text').value = morseToText(document.getElementById('in-morse').value);
+  updating = false;
+}
+
+function clearAll() {
+  document.getElementById('in-text').value = '';
+  document.getElementById('in-morse').value = '';
+}
+
+function pasteInto(target) {
+  navigator.clipboard.readText().then(text => {
+    document.getElementById('in-'+target).value = text;
+    if (target === 'text') fromText(); else fromMorse();
+  }).catch(() => showToast('Nu s-a putut accesa clipboard-ul'));
+}
+
+function copyMorse() {
+  const val = document.getElementById('in-morse').value;
+  if (!val) return;
+  navigator.clipboard.writeText(val).then(() => showToast('Copiat!'));
+}
+
+function onSpeedChange() {
+  document.getElementById('v-speed').textContent = document.getElementById('s-speed').value + ' WPM';
+}
+
+// Formula standard PARIS: durata unui dit (ms) = 1200 / WPM
+function wpmToUnit(wpm) {
+  return (1200 / wpm) / 1000; // rezultat în secunde
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+function playTone(ctx, startTime, duration) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.frequency.value = 600;
+  osc.type = 'sine';
+  gain.gain.setValueAtTime(0, startTime);
+  gain.gain.linearRampToValueAtTime(0.3, startTime+0.005);
+  gain.gain.setValueAtTime(0.3, startTime+duration-0.005);
+  gain.gain.linearRampToValueAtTime(0, startTime+duration);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(startTime);
+  osc.stop(startTime+duration);
+}
+
+function playMorse() {
+  const morse = document.getElementById('in-morse').value.trim();
+  if (!morse) return;
+
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  const unit = wpmToUnit(parseInt(document.getElementById('s-speed').value));
+  let t = audioCtx.currentTime + 0.1;
+
+  const tokens = morse.split(/\s+/); // fiecare token = o literă (ex "...") sau "/" (spațiu între cuvinte)
+
+  tokens.forEach((token, idx) => {
+    if (token === '/') {
+      t += unit*7; // pauză completă între cuvinte — fără ton
+      return;
+    }
+
+    // Redăm fiecare element (. sau -) din litera curentă, cu pauză de 1 unitate între ele
+    [...token].forEach((sym, i) => {
+      const dur = sym === '.' ? unit : unit*3;
+      playTone(audioCtx, t, dur);
+      t += dur;
+      if (i < token.length-1) t += unit; // gap intra-literă
+    });
+
+    // Pauză între litere (3 unități), doar dacă urmează o altă literă (nu un separator de cuvânt,
+    // care își gestionează singur pauza completă de 7 unități)
+    const next = tokens[idx+1];
+    if (next !== undefined && next !== '/') {
+      t += unit*3;
+    }
+  });
+}
+
+function stopMorse() {
+  if (audioCtx) { audioCtx.close(); audioCtx = null; }
+}
+
+fromText(); // populăm Morse din textul implicit la încărcarea paginii
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Text ↔ Morse</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

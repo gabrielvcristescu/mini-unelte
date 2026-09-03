@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sunet Spațial Demo — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #d070f0;
+  --accent-dim: rgba(208,112,240,0.10);
+  --accent-border: rgba(208,112,240,0.28);
+}
+
+.field-space {
+  position: relative;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  height: 280px;
+  margin-bottom: var(--content-gap);
+  cursor: crosshair;
+  overflow: hidden;
+}
+.listener-icon {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%,-50%);
+  font-size: 1.8rem;
+  pointer-events: none;
+}
+.source-dot {
+  position: absolute;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  transform: translate(-50%,-50%);
+  box-shadow: 0 0 16px var(--accent);
+  pointer-events: none;
+  transition: left 0.05s, top 0.05s;
+}
+.range-ring {
+  position: absolute;
+  border: 1px dashed var(--border2);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.info-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: var(--content-gap); }
+.info-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; text-align: center; }
+.info-val { font-family: var(--font-mono); font-size: 0.95rem; font-weight: 600; color: var(--accent); }
+.info-key { font-family: var(--font-mono); font-size: 0.58rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+
+.play-btn {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.12s;
+  margin-bottom: var(--content-gap);
+}
+.play-btn.playing { background: rgba(240,96,96,0.15); border-color: rgba(240,96,96,0.4); color: #f06060; }
+
+.info-note {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text3);
+  text-align: center;
+  line-height: 1.6;
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Sunet spațial demo</h1>
+    <p>Trage sursa de sunet — pan stânga/dreapta, volum după distanță</p>
+  </div>
+
+  <div class="field-space" id="field-space">
+    <div class="range-ring" id="ring1" style="width:100px;height:100px;left:50%;top:50%;transform:translate(-50%,-50%)"></div>
+    <div class="range-ring" id="ring2" style="width:200px;height:200px;left:50%;top:50%;transform:translate(-50%,-50%)"></div>
+    <div class="listener-icon">👂</div>
+    <div class="source-dot" id="source-dot" style="left:75%;top:30%"></div>
+  </div>
+
+  <div class="info-row">
+    <div class="info-card"><div class="info-val" id="info-pan">—</div><div class="info-key">pan (−1..1)</div></div>
+    <div class="info-card"><div class="info-val" id="info-dist">—</div><div class="info-key">distanță relativă</div></div>
+    <div class="info-card"><div class="info-val" id="info-vol">—</div><div class="info-key">volum</div></div>
+  </div>
+
+  <button class="play-btn" id="play-btn" onclick="togglePlay()">▶ Pornește sunetul continuu</button>
+
+  <p class="info-note">
+    Trage punctul mov oriunde în zonă — 👂 reprezintă poziția ta (ascultătorul). Distanța și poziția stânga/dreapta afectează live volumul și panoramarea sunetului.
+  </p>
+</div>
+
+<script>
+let audioCtx = null;
+let oscillator = null;
+let gainNode = null;
+let pannerNode = null;
+let isPlaying = false;
+let dragging = false;
+
+const field = document.getElementById('field-space');
+const sourceDot = document.getElementById('source-dot');
+
+function getRelativePosition(clientX, clientY) {
+  const rect = field.getBoundingClientRect();
+  const x = (clientX - rect.left) / rect.width; // 0-1
+  const y = (clientY - rect.top) / rect.height;
+  return { x, y };
+}
+
+function updateSoundParams(x, y) {
+  // Centru = ascultător (0.5, 0.5). Calculăm pan și distanță relativă
+  const dx = (x - 0.5) * 2; // -1 (stânga) .. 1 (dreapta)
+  const dy = (y - 0.5) * 2;
+  const dist = Math.sqrt(dx*dx + dy*dy); // 0 = pe ascultător, ~1.41 = colț
+
+  const pan = Math.max(-1, Math.min(1, dx));
+  const normalizedDist = Math.min(1, dist / 1.0); // normalizăm la raza "utilă"
+  const volume = Math.max(0.05, 1 - normalizedDist*0.85); // niciodată complet 0, doar foarte încet
+
+  document.getElementById('info-pan').textContent = pan.toFixed(2);
+  document.getElementById('info-dist').textContent = normalizedDist.toFixed(2);
+  document.getElementById('info-vol').textContent = Math.round(volume*100) + '%';
+
+  if (pannerNode) pannerNode.pan.setValueAtTime(pan, audioCtx.currentTime);
+  if (gainNode && isPlaying) gainNode.gain.setValueAtTime(volume*0.25, audioCtx.currentTime);
+
+  return { pan, volume };
+}
+
+function moveSource(clientX, clientY) {
+  const { x, y } = getRelativePosition(clientX, clientY);
+  const clampedX = Math.max(0.02, Math.min(0.98, x));
+  const clampedY = Math.max(0.02, Math.min(0.98, y));
+
+  sourceDot.style.left = (clampedX*100) + '%';
+  sourceDot.style.top = (clampedY*100) + '%';
+
+  updateSoundParams(clampedX, clampedY);
+}
+
+field.addEventListener('mousedown', e => { dragging = true; moveSource(e.clientX, e.clientY); });
+document.addEventListener('mousemove', e => { if (dragging) moveSource(e.clientX, e.clientY); });
+document.addEventListener('mouseup', () => dragging = false);
+
+field.addEventListener('touchstart', e => { dragging = true; const t=e.touches[0]; moveSource(t.clientX, t.clientY); }, {passive:true});
+document.addEventListener('touchmove', e => { if (dragging) { const t=e.touches[0]; moveSource(t.clientX, t.clientY); } }, {passive:true});
+document.addEventListener('touchend', () => dragging = false);
+
+function togglePlay() {
+  if (isPlaying) stopSound(); else startSound();
+}
+
+function startSound() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  oscillator = audioCtx.createOscillator();
+  gainNode = audioCtx.createGain();
+  pannerNode = audioCtx.createStereoPanner();
+
+  oscillator.type = 'sine';
+  oscillator.frequency.value = 440;
+
+  const rect = field.getBoundingClientRect();
+  const x = parseFloat(sourceDot.style.left)/100;
+  const y = parseFloat(sourceDot.style.top)/100;
+  const { pan, volume } = updateSoundParams(x, y);
+
+  pannerNode.pan.value = pan;
+  gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+  gainNode.gain.linearRampToValueAtTime(volume*0.25, audioCtx.currentTime+0.05);
+
+  oscillator.connect(gainNode);
+  gainNode.connect(pannerNode);
+  pannerNode.connect(audioCtx.destination);
+  oscillator.start();
+
+  isPlaying = true;
+  const btn = document.getElementById('play-btn');
+  btn.textContent = '■ Oprește';
+  btn.classList.add('playing');
+}
+
+function stopSound() {
+  if (gainNode) gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime+0.05);
+  if (oscillator) oscillator.stop(audioCtx.currentTime+0.06);
+
+  isPlaying = false;
+  const btn = document.getElementById('play-btn');
+  btn.textContent = '▶ Pornește sunetul continuu';
+  btn.classList.remove('playing');
+}
+
+// Inițializăm afișajul info cu poziția implicită a punctului
+updateSoundParams(0.75, 0.3);
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Sunet spațial demo</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz Alfabet NATO — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #f0a040;
+  --accent-dim: rgba(240,160,64,0.10);
+  --accent-border: rgba(240,160,64,0.28);
+}
+
+.mode-row { display: flex; gap: 8px; margin-bottom: var(--content-gap); }
+.mode-btn {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.mode-btn.active { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+
+.score-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--content-gap);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+.score-item { display: flex; gap: 6px; align-items: center; }
+.score-label { color: var(--text3); }
+.score-val { color: var(--accent); font-weight: 700; }
+
+.question-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 34px 24px;
+  text-align: center;
+  margin-bottom: var(--content-gap);
+}
+.question-label { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px; }
+.question-main { font-family: var(--font-mono); font-size: 3rem; font-weight: 700; color: var(--text); }
+.question-main.word { font-size: 1.8rem; }
+#replay-btn { display: inline-flex; }
+
+.options-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: var(--content-gap); }
+@media (max-width: 500px) { .options-grid { grid-template-columns: 1fr; } }
+.option-btn {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.option-btn:hover:not(:disabled) { border-color: var(--accent-border); background: var(--accent-dim); }
+.option-btn:disabled { cursor: default; }
+.option-btn.correct { border-color: #4af0b0; background: rgba(74,240,176,0.12); color: #4af0b0; }
+.option-btn.wrong { border-color: #f06060; background: rgba(240,96,96,0.12); color: #f06060; }
+
+.next-btn {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.12s;
+  display: none;
+  margin-bottom: var(--content-gap);
+}
+.next-btn.show { display: block; }
+.next-btn:hover { filter: brightness(1.15); }
+
+.final-card {
+  background: var(--bg2);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius);
+  padding: 30px 24px;
+  text-align: center;
+  display: none;
+}
+.final-card.show { display: block; }
+.final-score { font-family: var(--font-mono); font-size: 2.2rem; font-weight: 700; color: var(--accent); }
+.final-label { font-family: var(--font-mono); font-size: 0.75rem; color: var(--text3); margin-top: 6px; }
+.restart-btn {
+  margin-top: 16px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.ref-table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.76rem; }
+.ref-table td { padding: 4px 10px; border-bottom: 1px solid rgba(128,128,128,0.05); color: var(--text2); }
+.ref-table td:first-child { color: var(--accent); font-weight: 700; width: 30px; }
+.ref-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0 16px; }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Quiz alfabet NATO</h1>
+    <p>Literă → cuvânt, sau cuvânt → literă</p>
+  </div>
+
+  <div class="mode-row">
+    <button class="mode-btn active" id="btn-letter" onclick="setMode('letter')">Literă → Cuvânt</button>
+    <button class="mode-btn" id="btn-word" onclick="setMode('word')">🔊 Ascultă → Literă</button>
+  </div>
+
+  <div class="score-bar">
+    <div class="score-item"><span class="score-label">Întrebare</span> <span class="score-val" id="q-num">1</span><span class="score-label">/10</span></div>
+    <div class="score-item"><span class="score-label">Scor</span> <span class="score-val" id="score-val">0</span></div>
+  </div>
+
+  <div id="quiz-area">
+    <div class="question-card">
+      <div class="question-label" id="question-label">Ce cuvânt corespunde literei...</div>
+      <div class="question-main" id="question-main">—</div>
+      <button class="mode-btn" id="replay-btn" onclick="playCurrentWord()" style="display:none;margin-top:14px">🔊 Repetă</button>
+    </div>
+
+    <div class="options-grid" id="options-grid"></div>
+
+    <button class="next-btn" id="next-btn" onclick="nextQuestion()">Următoarea întrebare →</button>
+  </div>
+
+  <div class="final-card" id="final-card">
+    <div class="final-score" id="final-score">—</div>
+    <div class="final-label">răspunsuri corecte din 10</div>
+    <button class="restart-btn" onclick="startQuiz()">Joacă din nou</button>
+  </div>
+
+  <div class="card" style="margin-top:var(--content-gap)">
+    <div class="field-label" style="margin-bottom:10px">Alfabetul NATO complet</div>
+    <div class="ref-grid" id="ref-grid"></div>
+  </div>
+</div>
+
+<script>
+const NATO = [
+  ['A','Alfa'],['B','Bravo'],['C','Charlie'],['D','Delta'],['E','Echo'],
+  ['F','Foxtrot'],['G','Golf'],['H','Hotel'],['I','India'],['J','Juliett'],
+  ['K','Kilo'],['L','Lima'],['M','Mike'],['N','November'],['O','Oscar'],
+  ['P','Papa'],['Q','Quebec'],['R','Romeo'],['S','Sierra'],['T','Tango'],
+  ['U','Uniform'],['V','Victor'],['W','Whiskey'],['X','X-ray'],['Y','Yankee'],['Z','Zulu'],
+];
+
+// Cuvinte "momeală" care încep cu aceeași literă — previn ghicitul trivial din prima literă vizibilă
+const DECOYS = {
+  A: ['Apollo','Amber','Atlas'], B: ['Baron','Beacon','Bishop'], C: ['Cobra','Comet','Copper'],
+  D: ['Dagger','Diamond','Dakota'], E: ['Eagle','Ember','Everest'],
+  F: ['Falcon','Fusion','Fabric'], G: ['Gamma','Ghost','Granite'], H: ['Harbor','Helix','Horizon'],
+  I: ['Iris','Ivory','Iceberg'], J: ['Jaguar','Jasper','Jupiter'],
+  K: ['Kraken','Karma','Kestrel'], L: ['Lunar','Legend','Lantern'], M: ['Magnet','Mercury','Meridian'],
+  N: ['Nebula','Nomad','Nectar'], O: ['Onyx','Orbit','Opal'],
+  P: ['Phoenix','Prism','Pioneer'], Q: ['Quartz','Quill','Quest'], R: ['Raptor','Ripple','Ruby'],
+  S: ['Saturn','Signal','Summit'], T: ['Talon','Titan','Trident'],
+  U: ['Ultra','Umbra','Utopia'], V: ['Vertex','Vortex','Vulcan'], W: ['Willow','Wolfram','Wander'],
+  X: ['Xenon','Xylo','Xerus'], Y: ['Yonder','Yodel','Yield'], Z: ['Zenith','Zephyr','Zircon'],
+};
+
+let mode = 'letter';
+let quizOrder = [];
+let currentQ = 0;
+let score = 0;
+let answered = false;
+let autoAdvanceTimer = null;
+let currentSpokenWord = '';
+
+function playCurrentWord() {
+  if (!currentSpokenWord) return;
+  if (!('speechSynthesis' in window)) {
+    document.getElementById('question-label').textContent =
+      'Browserul nu suportă sinteza vocală — comută la modul Literă → Cuvânt';
+    return;
+  }
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(currentSpokenWord);
+  utter.lang = 'en-US'; // cuvintele NATO se pronunță conform standardului englez
+  utter.rate = 0.85;
+  window.speechSynthesis.speak(utter);
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('btn-letter').classList.toggle('active', m==='letter');
+  document.getElementById('btn-word').classList.toggle('active', m==='word');
+  startQuiz();
+}
+
+function startQuiz() {
+  clearTimeout(autoAdvanceTimer);
+  quizOrder = shuffle(NATO).slice(0, 10);
+  currentQ = 0;
+  score = 0;
+  document.getElementById('final-card').classList.remove('show');
+  document.getElementById('quiz-area').style.display = 'block';
+  renderQuestion();
+}
+
+function renderQuestion() {
+  answered = false;
+  const [letter, word] = quizOrder[currentQ];
+  document.getElementById('q-num').textContent = currentQ+1;
+  document.getElementById('score-val').textContent = score;
+  document.getElementById('next-btn').classList.remove('show');
+
+  const mainEl = document.getElementById('question-main');
+  const labelEl = document.getElementById('question-label');
+  const replayBtn = document.getElementById('replay-btn');
+
+  let correct, wrongSource;
+  if (mode === 'letter') {
+    labelEl.textContent = 'Ce cuvânt corespunde literei...';
+    mainEl.textContent = letter;
+    mainEl.classList.remove('word');
+    mainEl.style.display = '';
+    replayBtn.style.display = 'none';
+    correct = word;
+    wrongSource = DECOYS[letter]; // toate încep cu aceeași literă — previne ghicitul trivial
+  } else {
+    labelEl.textContent = 'Ce literă corespunde cuvântului auzit?';
+    mainEl.textContent = '🔊';
+    mainEl.classList.remove('word');
+    replayBtn.style.display = 'inline-block';
+    currentSpokenWord = word;
+    playCurrentWord();
+    correct = letter;
+    wrongSource = NATO.filter(n => n[1] !== word).map(n => n[0]);
+  }
+
+  const wrongs = shuffle(wrongSource).slice(0,3);
+  const options = shuffle([correct, ...wrongs]);
+
+  const grid = document.getElementById('options-grid');
+  grid.innerHTML = '';
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.textContent = opt;
+    btn.onclick = () => selectAnswer(btn, opt, correct);
+    grid.appendChild(btn);
+  });
+}
+
+function selectAnswer(btn, selected, correct) {
+  if (answered) return;
+  answered = true;
+
+  document.querySelectorAll('.option-btn').forEach(b => {
+    b.disabled = true;
+    if (b.textContent === correct) b.classList.add('correct');
+    else if (b === btn) b.classList.add('wrong');
+  });
+
+  if (selected === correct) score++;
+  document.getElementById('score-val').textContent = score;
+  document.getElementById('next-btn').classList.add('show');
+  document.getElementById('next-btn').textContent = currentQ < 9 ? 'Următoarea întrebare →' : 'Vezi rezultatul final →';
+
+  // Avansare automată după o scurtă pauză, ca să se vadă feedback-ul (verde/roșu)
+  clearTimeout(autoAdvanceTimer);
+  autoAdvanceTimer = setTimeout(() => { if (answered) nextQuestion(); }, 1400);
+}
+
+function nextQuestion() {
+  clearTimeout(autoAdvanceTimer);
+  currentQ++;
+  if (currentQ >= 10) showFinal(); else renderQuestion();
+}
+
+function showFinal() {
+  document.getElementById('quiz-area').style.display = 'none';
+  document.getElementById('final-score').textContent = score + '/10';
+  document.getElementById('final-card').classList.add('show');
+}
+
+function buildRefTable() {
+  const grid = document.getElementById('ref-grid');
+  const perCol = Math.ceil(NATO.length / 3);
+  for (let col=0; col<3; col++) {
+    const table = document.createElement('table');
+    table.className = 'ref-table';
+    const tbody = document.createElement('tbody');
+    NATO.slice(col*perCol, (col+1)*perCol).forEach(([l,w]) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${l}</td><td>${w}</td>`;
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    grid.appendChild(table);
+  }
+}
+
+buildRefTable();
+startQuiz();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Quiz alfabet NATO</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

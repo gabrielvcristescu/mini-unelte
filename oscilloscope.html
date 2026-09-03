@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Osciloscop Microfon — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #d070f0;
+  --accent-dim: rgba(208,112,240,0.10);
+  --accent-border: rgba(208,112,240,0.28);
+}
+
+.status-msg {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text2);
+  margin-bottom: var(--content-gap);
+  min-height: 1.5em;
+}
+.status-msg.error { color: #f06060; }
+.status-msg.active { color: #4af0b0; }
+
+.scope-wrap {
+  background: #0a0a0a;
+  border-radius: var(--radius);
+  padding: 8px;
+  margin-bottom: var(--content-gap);
+}
+#scope-canvas { display: block; width: 100%; height: 260px; }
+
+.controls-row { display: flex; gap: 16px; margin-bottom: var(--content-gap); align-items: center; flex-wrap: wrap; }
+.control-item { display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 0.72rem; color: var(--text2); }
+.control-item input[type=range] { width: 120px; max-width: 100%; accent-color: var(--accent); }
+
+@media (max-width: 560px) {
+  #scope-canvas { height: 220px; }
+  .controls-row { gap: 10px; }
+  .control-item {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .control-item input[type=range] {
+    width: min(58vw, 240px);
+  }
+}
+
+.start-btn {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.12s;
+  margin-bottom: var(--content-gap);
+}
+.start-btn.active { background: rgba(240,96,96,0.15); border-color: rgba(240,96,96,0.4); color: #f06060; }
+
+.privacy-note {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text3);
+  text-align: center;
+  line-height: 1.6;
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Osciloscop microfon</h1>
+    <p>Forma de undă live a sunetului captat — Web Audio API</p>
+  </div>
+
+  <div class="status-msg" id="status-msg">Apasă START pentru a activa microfonul</div>
+
+  <button class="start-btn" id="start-btn" onclick="toggleMic()">🎤 Pornește microfonul</button>
+
+  <div class="scope-wrap">
+    <canvas id="scope-canvas"></canvas>
+  </div>
+
+  <div class="controls-row">
+    <div class="control-item">
+      <span>Amplificare</span>
+      <input type="range" id="s-gain" min="1" max="10" value="3" step="0.5">
+    </div>
+    <div class="control-item">
+      <span>Grosime linie</span>
+      <input type="range" id="s-linewidth" min="1" max="5" value="2">
+    </div>
+  </div>
+
+  <p class="privacy-note">
+    Microfonul e procesat 100% local, în browser — niciun sunet nu e trimis către niciun server. Accesul se poate revoca oricând din setările browserului.
+  </p>
+</div>
+
+<script>
+let audioCtx = null;
+let analyser = null;
+let stream = null;
+let animationId = null;
+let isActive = false;
+
+const canvas = document.getElementById('scope-canvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * window.devicePixelRatio;
+  canvas.height = rect.height * window.devicePixelRatio;
+}
+
+async function toggleMic() {
+  if (isActive) {
+    stopMic();
+  } else {
+    await startMic();
+  }
+}
+
+async function startMic() {
+  const statusEl = document.getElementById('status-msg');
+  try {
+    statusEl.textContent = 'Se solicită acces la microfon...';
+    statusEl.className = 'status-msg';
+
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const source = audioCtx.createMediaStreamSource(stream);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 2048;
+    source.connect(analyser);
+
+    resizeCanvas();
+    isActive = true;
+    document.getElementById('start-btn').textContent = '■ Oprește microfonul';
+    document.getElementById('start-btn').classList.add('active');
+    statusEl.textContent = '🎤 Microfon activ — vorbește sau fă zgomot';
+    statusEl.className = 'status-msg active';
+
+    draw();
+  } catch (err) {
+    statusEl.textContent = 'Acces refuzat sau microfon indisponibil: ' + err.message;
+    statusEl.className = 'status-msg error';
+  }
+}
+
+function stopMic() {
+  if (animationId) cancelAnimationFrame(animationId);
+  if (stream) stream.getTracks().forEach(track => track.stop());
+  if (audioCtx) audioCtx.close();
+
+  isActive = false;
+  document.getElementById('start-btn').textContent = '🎤 Pornește microfonul';
+  document.getElementById('start-btn').classList.remove('active');
+  document.getElementById('status-msg').textContent = 'Microfon oprit';
+  document.getElementById('status-msg').className = 'status-msg';
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function draw() {
+  animationId = requestAnimationFrame(draw);
+
+  const bufferLength = analyser.fftSize;
+  const dataArray = new Uint8Array(bufferLength);
+  analyser.getByteTimeDomainData(dataArray);
+
+  const gainMultiplier = parseFloat(document.getElementById('s-gain').value);
+  const lineWidth = parseFloat(document.getElementById('s-linewidth').value);
+
+  const w = canvas.width, h = canvas.height;
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, w, h);
+
+  // Linie centrală de referință
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, h/2);
+  ctx.lineTo(w, h/2);
+  ctx.stroke();
+
+  ctx.lineWidth = lineWidth;
+  ctx.strokeStyle = '#d070f0';
+  ctx.beginPath();
+
+  const sliceWidth = w / bufferLength;
+  let x = 0;
+
+  for (let i = 0; i < bufferLength; i++) {
+    const normalized = (dataArray[i] - 128) / 128; // -1..1
+    const amplified = normalized * gainMultiplier;
+    const y = h/2 + amplified * (h/2);
+
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+
+    x += sliceWidth;
+  }
+
+  ctx.stroke();
+}
+
+window.addEventListener('resize', () => { if (isActive) resizeCanvas(); });
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Osciloscop microfon</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generator Sweep — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #d070f0;
+  --accent-dim: rgba(208,112,240,0.10);
+  --accent-border: rgba(208,112,240,0.28);
+}
+
+.fields-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--content-gap); margin-bottom: var(--content-gap); }
+@media (max-width: 500px) { .fields-grid { grid-template-columns: 1fr; } }
+.field-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+.field-name { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text2); font-weight: 500; margin-bottom: 8px; display: block; }
+
+.mode-row { display: flex; gap: 8px; margin-bottom: var(--content-gap); }
+.mode-btn {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.mode-btn.active { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+
+.progress-wrap {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: var(--content-gap);
+  text-align: center;
+}
+.progress-freq { font-family: var(--font-mono); font-size: 1.6rem; font-weight: 700; color: var(--accent); }
+.progress-bar-bg { height: 8px; background: var(--bg3); border-radius: 4px; overflow: hidden; margin-top: 12px; }
+.progress-bar-fill { height: 100%; background: var(--accent); border-radius: 4px; width: 0%; transition: width 0.05s linear; }
+
+.play-btn {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.12s;
+  margin-bottom: var(--content-gap);
+}
+.play-btn.playing { background: rgba(240,96,96,0.15); border-color: rgba(240,96,96,0.4); color: #f06060; }
+
+.warning-note {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: #f0a040;
+  background: rgba(240,160,64,0.08);
+  border: 1px solid rgba(240,160,64,0.25);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Generator sweep</h1>
+    <p>Baleiaj de frecvență — util pentru testarea difuzoarelor sau a auzului</p>
+  </div>
+
+  <div class="fields-grid">
+    <div class="field-card">
+      <span class="field-name">Frecvență start (Hz)</span>
+      <input class="input-calc" id="in-start" type="number" min="1" max="24000" value="100"
+             style="--input-color:var(--accent);font-size:1rem">
+    </div>
+    <div class="field-card">
+      <span class="field-name">Frecvență final (Hz)</span>
+      <input class="input-calc" id="in-end" type="number" min="1" max="24000" value="10000"
+             style="--input-color:var(--accent);font-size:1rem">
+    </div>
+  </div>
+
+  <div class="fields-grid">
+    <div class="field-card">
+      <span class="field-name">Durată (secunde)</span>
+      <input class="input-calc" id="in-duration" type="number" min="1" max="60" value="10"
+             style="--input-color:var(--accent);font-size:1rem">
+    </div>
+    <div class="field-card">
+      <span class="field-name">Volum</span>
+      <input type="range" id="in-volume" min="0" max="100" value="30" style="width:100%;margin-top:10px;accent-color:var(--accent)">
+    </div>
+  </div>
+
+  <div class="mode-row">
+    <button class="mode-btn active" id="btn-linear" onclick="setMode('linear')">Liniar</button>
+    <button class="mode-btn" id="btn-log" onclick="setMode('log')">Logaritmic</button>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-freq" id="progress-freq">—</div>
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-bar"></div></div>
+  </div>
+
+  <button class="play-btn" id="play-btn" onclick="togglePlay()">▶ Pornește sweep-ul</button>
+
+  <p class="warning-note">⚠ Începe cu volum scăzut. Frecvențele foarte joase/înalte pot fi neplăcute — testarea auzului nu înlocuiește o audiogramă profesională.</p>
+</div>
+
+<script>
+let audioCtx = null;
+let oscillator = null;
+let gainNode = null;
+let isPlaying = false;
+let sweepMode = 'linear';
+let progressAnimId = null;
+let sweepStartTime = 0;
+let sweepDuration = 0;
+
+function setMode(m) {
+  sweepMode = m;
+  document.getElementById('btn-linear').classList.toggle('active', m==='linear');
+  document.getElementById('btn-log').classList.toggle('active', m==='log');
+}
+
+function togglePlay() {
+  if (isPlaying) stopSweep(); else startSweep();
+}
+
+function startSweep() {
+  const startHz = parseFloat(document.getElementById('in-start').value);
+  const endHz = parseFloat(document.getElementById('in-end').value);
+  const duration = parseFloat(document.getElementById('in-duration').value);
+  const volume = parseFloat(document.getElementById('in-volume').value) / 100;
+
+  if (isNaN(startHz) || isNaN(endHz) || isNaN(duration) || startHz<=0 || endHz<=0 || duration<=0) return;
+
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  oscillator = audioCtx.createOscillator();
+  gainNode = audioCtx.createGain();
+  oscillator.type = 'sine';
+
+  const t0 = audioCtx.currentTime;
+  oscillator.frequency.setValueAtTime(startHz, t0);
+
+  if (sweepMode === 'linear') {
+    oscillator.frequency.linearRampToValueAtTime(endHz, t0 + duration);
+  } else {
+    // Rampa exponențială necesită valori strict pozitive (deja garantat de validare)
+    oscillator.frequency.exponentialRampToValueAtTime(endHz, t0 + duration);
+  }
+
+  gainNode.gain.setValueAtTime(0, t0);
+  gainNode.gain.linearRampToValueAtTime(volume*0.3, t0+0.05);
+  gainNode.gain.setValueAtTime(volume*0.3, t0+duration-0.05);
+  gainNode.gain.linearRampToValueAtTime(0, t0+duration);
+
+  oscillator.connect(gainNode);
+  gainNode.connect(audioCtx.destination);
+  oscillator.start(t0);
+  oscillator.stop(t0+duration);
+
+  sweepStartTime = t0;
+  sweepDuration = duration;
+
+  isPlaying = true;
+  const btn = document.getElementById('play-btn');
+  btn.textContent = '■ Oprește';
+  btn.classList.add('playing');
+
+  updateProgress(startHz, endHz);
+
+  oscillator.onended = () => {
+    if (isPlaying) stopSweep();
+  };
+}
+
+function updateProgress(startHz, endHz) {
+  const elapsed = audioCtx.currentTime - sweepStartTime;
+  const pct = Math.min(100, (elapsed/sweepDuration)*100);
+
+  let currentHz;
+  if (sweepMode === 'linear') {
+    currentHz = startHz + (endHz-startHz) * (elapsed/sweepDuration);
+  } else {
+    currentHz = startHz * Math.pow(endHz/startHz, elapsed/sweepDuration);
+  }
+  currentHz = Math.max(Math.min(startHz,endHz), Math.min(Math.max(startHz,endHz), currentHz));
+
+  document.getElementById('progress-freq').textContent = Math.round(currentHz) + ' Hz';
+  document.getElementById('progress-bar').style.width = pct + '%';
+
+  if (elapsed < sweepDuration && isPlaying) {
+    progressAnimId = requestAnimationFrame(() => updateProgress(startHz, endHz));
+  }
+}
+
+function stopSweep() {
+  if (progressAnimId) cancelAnimationFrame(progressAnimId);
+  if (oscillator) {
+    try { oscillator.stop(); } catch(e) {}
+  }
+  isPlaying = false;
+  const btn = document.getElementById('play-btn');
+  btn.textContent = '▶ Pornește sweep-ul';
+  btn.classList.remove('playing');
+  document.getElementById('progress-freq').textContent = '—';
+  document.getElementById('progress-bar').style.width = '0%';
+}
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Generator sweep</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

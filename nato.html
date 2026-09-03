@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alfabet NATO Trainer — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #e070a0;
+  --accent-dim: rgba(224,112,160,0.10);
+  --accent-border: rgba(224,112,160,0.28);
+}
+
+.section-title {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
+}
+
+.input-row { display: flex; gap: 8px; margin-bottom: var(--content-gap); }
+.input-row input { flex: 1; text-transform: uppercase; }
+.action-btn {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+}
+.action-btn:hover { filter: brightness(1.15); }
+
+.spelling-output {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: var(--content-gap);
+  min-height: 60px;
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  color: var(--text);
+  line-height: 1.8;
+}
+.spelling-letter { color: var(--accent); font-weight: 700; }
+
+.ref-table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.78rem; }
+.ref-table th { text-align: left; color: var(--text3); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.06em; padding: 6px 10px; border-bottom: 1px solid var(--border); }
+.ref-table td { padding: 5px 10px; border-bottom: 1px solid rgba(128,128,128,0.05); color: var(--text2); cursor: pointer; }
+.ref-table tr:hover td { background: var(--bg3); }
+.ref-letter { color: var(--accent); font-weight: 700; width: 30px; }
+.ref-word { color: var(--text); font-weight: 600; }
+.ref-pronunciation { color: var(--text3); font-style: italic; }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Alfabet NATO trainer</h1>
+    <p>Referință completă + silabisire practică a oricărui cuvânt</p>
+  </div>
+
+  <div class="section-title">Silabisește orice cuvânt</div>
+  <div class="input-row">
+    <input class="input-calc" id="in-word" type="text" value="MINI UNELTE" style="--input-color:var(--accent);font-size:1rem" oninput="renderSpelling()">
+    <button class="action-btn" onclick="playSpelling()">🔊 Ascultă</button>
+  </div>
+
+  <div class="spelling-output" id="spelling-output"></div>
+
+  <div class="section-title">Tabel de referință (click pentru a asculta)</div>
+  <table class="ref-table" id="ref-table"></table>
+</div>
+
+<script>
+const NATO = [
+  ['A','Alfa','AL-fah'],['B','Bravo','BRAH-voh'],['C','Charlie','CHAR-lee'],['D','Delta','DELL-tah'],
+  ['E','Echo','ECK-oh'],['F','Foxtrot','FOKS-trot'],['G','Golf','GOLF'],['H','Hotel','hoh-TELL'],
+  ['I','India','IN-dee-ah'],['J','Juliett','JEW-lee-ett'],['K','Kilo','KEY-loh'],['L','Lima','LEE-mah'],
+  ['M','Mike','MIKE'],['N','November','no-VEM-ber'],['O','Oscar','OSS-cah'],['P','Papa','pah-PAH'],
+  ['Q','Quebec','keh-BECK'],['R','Romeo','ROW-me-oh'],['S','Sierra','see-AIR-ah'],['T','Tango','TANG-go'],
+  ['U','Uniform','YOU-nee-form'],['V','Victor','VIK-tah'],['W','Whiskey','WISS-key'],['X','X-ray','ECKS-ray'],
+  ['Y','Yankee','YANG-key'],['Z','Zulu','ZOO-loo'],
+];
+const NATO_MAP = Object.fromEntries(NATO.map(([l,w])=>[l,w]));
+
+let audioCtx = null;
+
+function renderSpelling() {
+  const word = document.getElementById('in-word').value.toUpperCase();
+  const output = document.getElementById('spelling-output');
+
+  if (!word) { output.innerHTML = ''; return; }
+
+  output.innerHTML = [...word].map(ch => {
+    if (ch === ' ') return '<br>';
+    const nato = NATO_MAP[ch];
+    if (!nato) return ch;
+    return `<span class="spelling-letter">${ch}</span> — ${nato}<br>`;
+  }).join('');
+}
+
+function speakWord(text) {
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'en-US';
+  utter.rate = 0.85;
+  window.speechSynthesis.speak(utter);
+}
+
+function playSpelling() {
+  const word = document.getElementById('in-word').value.toUpperCase();
+  const words = [...word].filter(ch => NATO_MAP[ch]).map(ch => NATO_MAP[ch]);
+  if (words.length === 0) return;
+  speakWord(words.join(', '));
+}
+
+function playLetter(letter) {
+  speakWord(NATO_MAP[letter]);
+}
+
+function buildRefTable() {
+  const table = document.getElementById('ref-table');
+  table.innerHTML = `<thead><tr><th>Literă</th><th>Cuvânt</th><th>Pronunție aprox.</th></tr></thead>`;
+  const tbody = document.createElement('tbody');
+  NATO.forEach(([letter, word, pron]) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="ref-letter">${letter}</td><td class="ref-word">${word}</td><td class="ref-pronunciation">${pron}</td>`;
+    tr.onclick = () => playLetter(letter);
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+}
+
+buildRefTable();
+renderSpelling();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Alfabet NATO trainer</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

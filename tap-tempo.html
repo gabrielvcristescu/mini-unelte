@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tap Tempo — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #d070f0;
+  --accent-dim: rgba(208,112,240,0.10);
+  --accent-border: rgba(208,112,240,0.28);
+}
+
+.bpm-display { text-align: center; margin-bottom: var(--content-gap); }
+.bpm-val { font-family: var(--font-mono); font-size: 4rem; font-weight: 700; color: var(--accent); line-height: 1; transition: transform 0.05s; }
+.bpm-val.pulse { transform: scale(1.08); }
+.bpm-label { font-family: var(--font-mono); font-size: 0.75rem; color: var(--text3); margin-top: 4px; }
+
+.tap-btn {
+  width: 100%;
+  height: 180px;
+  border-radius: var(--radius);
+  border: 2px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 1.3rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.08s;
+  margin-bottom: var(--content-gap);
+  user-select: none;
+}
+.tap-btn:active { transform: scale(0.97); filter: brightness(1.2); }
+
+.stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: var(--content-gap); }
+.stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; text-align: center; }
+.stat-val { font-family: var(--font-mono); font-size: 0.9rem; font-weight: 600; color: var(--text); }
+.stat-key { font-family: var(--font-mono); font-size: 0.58rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+
+.reset-btn {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.reset-btn:hover { border-color: var(--accent-border); color: var(--accent); }
+
+.info-note {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text3);
+  text-align: center;
+  margin-top: var(--content-gap);
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Tap tempo</h1>
+    <p>Bate ritmul cu tastatura sau click — BPM calculat automat</p>
+  </div>
+
+  <div class="bpm-display">
+    <div class="bpm-val" id="bpm-val">—</div>
+    <div class="bpm-label">BPM</div>
+  </div>
+
+  <button class="tap-btn" id="tap-btn" onclick="tap()">TAP<br><span style="font-size:0.7rem;opacity:0.7">(sau apasă bara de spațiu)</span></button>
+
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-val" id="stat-taps">0</div><div class="stat-key">bătăi</div></div>
+    <div class="stat-card"><div class="stat-val" id="stat-lastms">—</div><div class="stat-key">ultim interval (ms)</div></div>
+    <div class="stat-card"><div class="stat-val" id="stat-confidence">—</div><div class="stat-key">consistență</div></div>
+  </div>
+
+  <button class="reset-btn" onclick="reset()">Resetează</button>
+
+  <p class="info-note">Bate cel puțin 4 ori pentru un calcul stabil. Resetare automată dacă pauza depășește 2 secunde.</p>
+</div>
+
+<script>
+let taps = [];
+let lastTapTime = 0;
+
+function tap() {
+  const now = performance.now();
+
+  // Resetare automată dacă a trecut prea mult timp de la ultimul tap
+  if (lastTapTime > 0 && (now - lastTapTime) > 2000) {
+    taps = [];
+  }
+
+  taps.push(now);
+  lastTapTime = now;
+
+  // Păstrăm doar ultimele 8 taps pentru calcul (media recentă e mai relevantă decât toată istoria)
+  if (taps.length > 8) taps.shift();
+
+  updateStats();
+  pulseAnimation();
+}
+
+function updateStats() {
+  document.getElementById('stat-taps').textContent = taps.length;
+
+  if (taps.length < 2) {
+    document.getElementById('bpm-val').textContent = '—';
+    document.getElementById('stat-lastms').textContent = '—';
+    document.getElementById('stat-confidence').textContent = '—';
+    return;
+  }
+
+  const intervals = [];
+  for (let i = 1; i < taps.length; i++) {
+    intervals.push(taps[i] - taps[i-1]);
+  }
+
+  const avgInterval = intervals.reduce((a,b)=>a+b, 0) / intervals.length;
+  const bpm = 60000 / avgInterval;
+
+  document.getElementById('bpm-val').textContent = Math.round(bpm);
+  document.getElementById('stat-lastms').textContent = Math.round(intervals[intervals.length-1]);
+
+  // "Consistență" = cât de uniforme sunt intervalele (deviație standard relativă)
+  const variance = intervals.reduce((sum, iv) => sum + (iv-avgInterval)**2, 0) / intervals.length;
+  const stdDev = Math.sqrt(variance);
+  const relDev = stdDev / avgInterval;
+
+  let confidenceLabel;
+  if (intervals.length < 3) confidenceLabel = 'calcul...';
+  else if (relDev < 0.03) confidenceLabel = 'excelentă';
+  else if (relDev < 0.08) confidenceLabel = 'bună';
+  else confidenceLabel = 'instabilă';
+
+  document.getElementById('stat-confidence').textContent = confidenceLabel;
+}
+
+function pulseAnimation() {
+  const el = document.getElementById('bpm-val');
+  el.classList.add('pulse');
+  setTimeout(() => el.classList.remove('pulse'), 80);
+}
+
+function reset() {
+  taps = [];
+  lastTapTime = 0;
+  updateStats();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space') {
+    e.preventDefault();
+    tap();
+  }
+});
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Tap tempo</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

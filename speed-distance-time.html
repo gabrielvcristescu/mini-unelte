@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculator Viteză-Distanță-Timp — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #4af0b0;
+  --accent-dim: rgba(74,240,176,0.10);
+  --accent-border: rgba(74,240,176,0.28);
+}
+
+.fields-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--content-gap); margin-bottom: var(--content-gap); }
+@media (max-width: 600px) { .fields-grid { grid-template-columns: 1fr; } }
+
+.field-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.field-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.field-name { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text2); font-weight: 500; }
+
+.msg-bar {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text3);
+  margin-bottom: var(--content-gap);
+}
+.msg-bar.ok { color: var(--accent); border-color: var(--accent-border); }
+
+.ref-table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.74rem; }
+.ref-table th { text-align: left; color: var(--text3); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.08em; padding: 5px 10px; border-bottom: 1px solid var(--border); }
+.ref-table td { padding: 4px 10px; border-bottom: 1px solid rgba(128,128,128,0.05); color: var(--text2); cursor: pointer; }
+.ref-table tr:hover td { background: var(--bg3); }
+.ref-name { color: var(--text); }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Viteză · Distanță · Timp</h1>
+    <p>v = d / t — introduci oricare 2, calculezi al treilea</p>
+  </div>
+
+  <div class="fields-grid">
+    <div class="field-card" id="card-speed">
+      <div class="field-top">
+        <span class="field-name">Viteză</span>
+        <select class="unit-select" id="unit-speed" onchange="compute()">
+          <option value="1" selected>km/h</option>
+          <option value="0.277778">m/s</option>
+          <option value="1.609344">mph</option>
+        </select>
+      </div>
+      <input class="input-calc" id="in-speed" type="number" min="0" step="any" value="90"
+             style="--input-color:var(--accent);font-size:1.05rem" oninput="onEdit('speed')">
+    </div>
+    <div class="field-card" id="card-distance">
+      <div class="field-top">
+        <span class="field-name">Distanță</span>
+        <select class="unit-select" id="unit-distance" onchange="compute()">
+          <option value="1" selected>km</option>
+          <option value="0.001">m</option>
+          <option value="1.609344">mile</option>
+        </select>
+      </div>
+      <input class="input-calc" id="in-distance" type="number" min="0" step="any" value="180"
+             style="--input-color:var(--accent);font-size:1.05rem" oninput="onEdit('distance')">
+    </div>
+    <div class="field-card" id="card-time">
+      <div class="field-top">
+        <span class="field-name">Timp</span>
+        <select class="unit-select" id="unit-time" onchange="compute()">
+          <option value="1" selected>ore</option>
+          <option value="0.0166667">minute</option>
+          <option value="0.000277778">secunde</option>
+        </select>
+      </div>
+      <input class="input-calc" id="in-time" type="number" min="0" step="any" placeholder="calculat"
+             style="--input-color:var(--accent);font-size:1.05rem" oninput="onEdit('time')">
+    </div>
+  </div>
+
+  <div class="msg-bar" id="msg-bar"></div>
+
+  <div class="card">
+    <div class="field-label" style="margin-bottom:10px">Viteze de referință (click pentru a completa)</div>
+    <table class="ref-table" id="ref-table"></table>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+const REF_SPEEDS = [
+  { name: 'Mers pe jos', kmh: 5 },
+  { name: 'Alergare ușoară', kmh: 10 },
+  { name: 'Bicicletă oraș', kmh: 18 },
+  { name: 'Limită oraș (RO)', kmh: 50 },
+  { name: 'Limită drum național', kmh: 90 },
+  { name: 'Limită autostradă (RO)', kmh: 130 },
+  { name: 'Tren de mare viteză', kmh: 300 },
+  { name: 'Avion comercial (croazieră)', kmh: 900 },
+  { name: 'Viteza sunetului (nivelul mării)', kmh: 1235 },
+];
+
+let pinned = ['speed', 'distance']; // acestea au valori implicite; time se calculează
+
+function trim(n) {
+  if (!isFinite(n)) return '—';
+  return parseFloat(n.toPrecision(6)).toString();
+}
+
+function pin(field) {
+  pinned = pinned.filter(f => f !== field);
+  pinned.push(field);
+  if (pinned.length > 2) pinned.shift();
+}
+
+function onEdit(field) {
+  const val = document.getElementById('in-'+field).value;
+  if (val.trim() === '') pinned = pinned.filter(f => f !== field);
+  else pin(field);
+  compute();
+}
+
+function compute() {
+  const speedFactor = parseFloat(document.getElementById('unit-speed').value);
+  const distFactor = parseFloat(document.getElementById('unit-distance').value);
+  const timeFactor = parseFloat(document.getElementById('unit-time').value);
+
+  const speedRaw = parseFloat(document.getElementById('in-speed').value);
+  const distRaw = parseFloat(document.getElementById('in-distance').value);
+  const timeRaw = parseFloat(document.getElementById('in-time').value);
+
+  const msgBar = document.getElementById('msg-bar');
+  msgBar.classList.remove('ok');
+
+  if (pinned.length < 2) {
+    msgBar.textContent = 'Selectează 2 din cele 3 câmpuri (editează-le).';
+    return;
+  }
+
+  // SI: km/h, km, h
+  const speedSI = pinned.includes('speed') && !isNaN(speedRaw) ? speedRaw * speedFactor : null;
+  const distSI = pinned.includes('distance') && !isNaN(distRaw) ? distRaw * distFactor : null;
+  const timeSI = pinned.includes('time') && !isNaN(timeRaw) ? timeRaw * timeFactor : null;
+
+  let resultSpeed = speedSI, resultDist = distSI, resultTime = timeSI;
+
+  if (speedSI !== null && distSI !== null) {
+    if (speedSI === 0) { msgBar.textContent = 'Viteza nu poate fi 0.'; return; }
+    resultTime = distSI / speedSI;
+  } else if (speedSI !== null && timeSI !== null) {
+    resultDist = speedSI * timeSI;
+  } else if (distSI !== null && timeSI !== null) {
+    if (timeSI === 0) { msgBar.textContent = 'Timpul nu poate fi 0.'; return; }
+    resultSpeed = distSI / timeSI;
+  } else {
+    msgBar.textContent = 'Completează valorile pentru cele 2 câmpuri selectate.';
+    return;
+  }
+
+  if (!pinned.includes('speed')) document.getElementById('in-speed').value = trim(resultSpeed / speedFactor);
+  if (!pinned.includes('distance')) document.getElementById('in-distance').value = trim(resultDist / distFactor);
+  if (!pinned.includes('time')) document.getElementById('in-time').value = trim(resultTime / timeFactor);
+
+  msgBar.classList.add('ok');
+  msgBar.textContent = `${trim(resultSpeed)} km/h · ${trim(resultDist)} km · ${trim(resultTime)} h (${trim(resultTime*60)} min)`;
+}
+
+function buildRefTable() {
+  const table = document.getElementById('ref-table');
+  table.innerHTML = `<thead><tr><th>Context</th><th>Viteză</th></tr></thead>`;
+  const tbody = document.createElement('tbody');
+  REF_SPEEDS.forEach(s => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="ref-name">${s.name}</td><td>${s.kmh.toLocaleString('ro-RO')} km/h</td>`;
+    tr.onclick = () => {
+      document.getElementById('unit-speed').value = '1';
+      document.getElementById('in-speed').value = s.kmh;
+      pin('speed');
+      compute();
+    };
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+}
+
+buildRefTable();
+compute();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Calculator viteză-dist-timp</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

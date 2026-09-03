@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pixel Art Converter — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #f08060;
+  --accent-dim: rgba(240,128,96,0.10);
+  --accent-border: rgba(240,128,96,0.28);
+}
+
+.file-drop {
+  border: 2px dashed var(--border2);
+  border-radius: var(--radius);
+  padding: 40px 20px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text3);
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: var(--content-gap);
+}
+.file-drop:hover, .file-drop.dragover { border-color: var(--accent-border); color: var(--accent); background: var(--accent-dim); }
+
+.preview-wrap {
+  display: none;
+  justify-content: center;
+  background: var(--bg3);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-bottom: var(--content-gap);
+}
+.preview-wrap.show { display: flex; }
+#preview-canvas {
+  max-width: 100%;
+  max-height: min(52vh, 520px);
+  height: auto;
+  border-radius: 6px;
+  image-rendering: pixelated;
+}
+
+.slider-row { display: flex; align-items: center; gap: 10px; margin-bottom: var(--content-gap); }
+.slider-row input[type=range] { flex: 1; accent-color: var(--accent); }
+.slider-val { font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent); font-weight: 700; width: 70px; text-align: right; }
+
+.options-row { display: flex; gap: 16px; margin-bottom: var(--content-gap); align-items: center; flex-wrap: wrap; }
+.option-item { display: flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 0.72rem; color: var(--text2); }
+
+.download-btn {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.download-btn:hover { filter: brightness(1.15); }
+.download-btn:disabled { opacity: 0.4; cursor: default; }
+
+@media (max-width: 620px) {
+  .file-drop { padding: 28px 14px; }
+  .preview-wrap { padding: 8px; }
+
+  .slider-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 7px 10px;
+  }
+  .slider-row > span:first-child { grid-column: 1; }
+  .slider-row .slider-val {
+    grid-column: 2;
+    width: auto;
+    min-width: 64px;
+  }
+  .slider-row input[type=range] {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-height: 34px;
+  }
+
+  .options-row {
+    align-items: stretch;
+    gap: 10px;
+  }
+  .option-item {
+    min-height: 44px;
+    flex-wrap: wrap;
+  }
+  #colors-count-wrap {
+    width: 100%;
+  }
+  #s-colors {
+    flex: 1;
+    width: auto !important;
+    min-width: 120px;
+  }
+}
+
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Pixel art converter</h1>
+    <p>Imagine → mozaic pixelat, dimensiune bloc reglabilă</p>
+  </div>
+
+  <div class="file-drop" id="file-drop" onclick="document.getElementById('file-input').click()">
+    Trage o imagine aici sau click pentru a o încărca
+    <input type="file" id="file-input" accept="image/*" style="display:none">
+  </div>
+
+  <div class="preview-wrap" id="preview-wrap">
+    <canvas id="preview-canvas"></canvas>
+  </div>
+
+  <div class="slider-row">
+    <span style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text3)">Bloc pixel</span>
+    <input type="range" id="s-blocksize" min="2" max="60" value="12" oninput="render()">
+    <span class="slider-val" id="v-blocksize">12px</span>
+  </div>
+
+  <div class="options-row">
+    <label class="option-item">
+      <input type="checkbox" id="opt-reduce-colors" onchange="render()">
+      Reduce paleta de culori
+    </label>
+    <div id="colors-count-wrap" style="display:none;align-items:center;gap:8px" class="option-item">
+      <span>Culori:</span>
+      <input type="range" id="s-colors" min="2" max="32" value="8" oninput="render()" style="width:100px;accent-color:var(--accent)">
+      <span id="v-colors" style="color:var(--accent);font-weight:700">8</span>
+    </div>
+  </div>
+
+  <button class="download-btn" id="download-btn" onclick="downloadPixelArt()" disabled>⬇ Descarcă pixel art</button>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+let originalImg = null;
+
+function handleFile(file) {
+  if (!file || !file.type.startsWith('image/')) {
+    showToast('Te rog selectează un fișier imagine valid');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      originalImg = img;
+      document.getElementById('preview-wrap').classList.add('show');
+      document.getElementById('download-btn').disabled = false;
+      render();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+document.getElementById('opt-reduce-colors').addEventListener('change', function() {
+  document.getElementById('colors-count-wrap').style.display = this.checked ? 'flex' : 'none';
+  render();
+});
+
+function quantizeChannel(value, levels) {
+  const step = 255 / (levels - 1);
+  return Math.round(Math.round(value / step) * step);
+}
+
+function render() {
+  if (!originalImg) return;
+
+  const blockSize = parseInt(document.getElementById('s-blocksize').value);
+  const reduceColors = document.getElementById('opt-reduce-colors').checked;
+  const colorLevels = parseInt(document.getElementById('s-colors').value);
+
+  document.getElementById('v-blocksize').textContent = blockSize + 'px';
+  document.getElementById('v-colors').textContent = colorLevels;
+
+  const w = originalImg.width, h = originalImg.height;
+  const smallW = Math.max(1, Math.round(w / blockSize));
+  const smallH = Math.max(1, Math.round(h / blockSize));
+
+  // Pasul 1: micșorăm imaginea la rezoluție mică (fiecare pixel = o "medie" a blocului original)
+  const smallCanvas = document.createElement('canvas');
+  smallCanvas.width = smallW;
+  smallCanvas.height = smallH;
+  const smallCtx = smallCanvas.getContext('2d');
+  smallCtx.imageSmoothingEnabled = true;
+  smallCtx.drawImage(originalImg, 0, 0, smallW, smallH);
+
+  // Pasul 2 (opțional): reducem paleta de culori per pixel mic
+  if (reduceColors) {
+    const imgData = smallCtx.getImageData(0, 0, smallW, smallH);
+    const data = imgData.data;
+    // aproximăm "n culori" ca n niveluri per canal RGB — simplu, dar eficient vizual
+    const levelsPerChannel = Math.max(2, Math.round(Math.cbrt(colorLevels)) + 1);
+    for (let i = 0; i < data.length; i += 4) {
+      data[i]   = quantizeChannel(data[i], levelsPerChannel);
+      data[i+1] = quantizeChannel(data[i+1], levelsPerChannel);
+      data[i+2] = quantizeChannel(data[i+2], levelsPerChannel);
+    }
+    smallCtx.putImageData(imgData, 0, 0);
+  }
+
+  // Pasul 3: mărim înapoi la dimensiunea originală, fără interpolare (pixelat)
+  const canvas = document.getElementById('preview-canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(smallCanvas, 0, 0, w, h);
+}
+
+function downloadPixelArt() {
+  const canvas = document.getElementById('preview-canvas');
+  canvas.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'pixel-art.png';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Descărcat!');
+  }, 'image/png');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+const fileInput = document.getElementById('file-input');
+const fileDrop = document.getElementById('file-drop');
+fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+fileDrop.addEventListener('dragover', e => { e.preventDefault(); fileDrop.classList.add('dragover'); });
+fileDrop.addEventListener('dragleave', () => fileDrop.classList.remove('dragover'));
+fileDrop.addEventListener('drop', e => {
+  e.preventDefault();
+  fileDrop.classList.remove('dragover');
+  handleFile(e.dataTransfer.files[0]);
+});
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Pixel art converter</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

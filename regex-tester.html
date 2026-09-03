@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Regex Tester — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #60a0f0;
+  --accent-dim: rgba(96,160,240,0.10);
+  --accent-border: rgba(96,160,240,0.28);
+}
+
+.pattern-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: var(--content-gap);
+}
+.pattern-slash { font-family: var(--font-mono); font-size: 1.1rem; color: var(--text3); }
+.pattern-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  color: var(--accent);
+}
+.pattern-input.error { color: #f06060; }
+.flags-input {
+  width: 60px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 5px;
+  padding: 4px 8px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text2);
+  outline: none;
+  text-align: center;
+}
+
+.flags-legend { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: var(--content-gap); }
+.flag-chip {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--text3);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 7px;
+}
+.flag-chip.active { color: var(--accent); border-color: var(--accent-border); background: var(--accent-dim); }
+
+.big-textarea {
+  width: 100%;
+  min-height: 140px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text);
+  outline: none;
+  resize: vertical;
+  line-height: 1.7;
+}
+.big-textarea:focus { border-color: var(--accent-border); box-shadow: 0 0 0 3px var(--accent-dim); }
+
+.area-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.area-name { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; }
+
+.result-preview {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text2);
+  line-height: 1.8;
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 60px;
+}
+.match-highlight {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-radius: 3px;
+  padding: 1px 2px;
+  font-weight: 600;
+}
+
+.matches-list { display: flex; flex-direction: column; gap: 6px; margin-top: var(--content-gap); }
+.match-row {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+.match-idx { color: var(--text3); margin-right: 8px; }
+.match-text { color: var(--accent); font-weight: 600; }
+.match-groups { color: var(--text3); font-size: 0.68rem; margin-top: 3px; }
+
+.status-bar {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  margin-bottom: var(--content-gap);
+  color: var(--text3);
+}
+.status-bar.error { color: #f06060; }
+
+.cheatsheet { display: flex; flex-wrap: wrap; gap: 6px; }
+.cheat-chip {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  padding: 4px 9px;
+  border-radius: 99px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.cheat-chip:hover { border-color: var(--accent-border); color: var(--accent); }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Regex Tester</h1>
+    <p>Pattern + flags, evidențiere potriviri live</p>
+  </div>
+
+  <!-- Pattern -->
+  <div class="pattern-row">
+    <span class="pattern-slash">/</span>
+    <input class="pattern-input" id="pattern-input" type="text" placeholder="pattern-ul tău regex"
+           value="\d+" oninput="compute()">
+    <span class="pattern-slash">/</span>
+    <input class="flags-input" id="flags-input" type="text" placeholder="flags" value="g" oninput="compute()">
+  </div>
+
+  <div class="flags-legend">
+    <span class="flag-chip" data-flag="g">g — global</span>
+    <span class="flag-chip" data-flag="i">i — case-insensitive</span>
+    <span class="flag-chip" data-flag="m">m — multiline</span>
+    <span class="flag-chip" data-flag="s">s — dotall</span>
+  </div>
+
+  <div class="status-bar" id="status-bar"></div>
+
+  <div style="margin-bottom:var(--content-gap)">
+    <div class="area-label"><span class="area-name">Text de testat</span></div>
+    <textarea class="big-textarea" id="test-text" oninput="compute()">Contactează-mă la ana@exemplu.ro sau la 0721-234-567. Al doilea email: victor.pop@test.com</textarea>
+  </div>
+
+  <div style="margin-bottom:var(--content-gap)">
+    <div class="area-label"><span class="area-name">Rezultat evidențiat</span></div>
+    <div class="result-preview" id="result-preview"></div>
+  </div>
+
+  <div class="matches-list" id="matches-list"></div>
+
+  <!-- Cheatsheet -->
+  <div class="card" style="margin-top:var(--content-gap)">
+    <div class="field-label" style="margin-bottom:10px">Cheatsheet rapid (click pentru a insera)</div>
+    <div class="cheatsheet" id="cheatsheet"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+const CHEATSHEET = [
+  { label: '\\d', pattern: '\\d', desc: 'cifră' },
+  { label: '\\w', pattern: '\\w', desc: 'cuvânt' },
+  { label: '\\s', pattern: '\\s', desc: 'spațiu' },
+  { label: '.', pattern: '.', desc: 'orice caracter' },
+  { label: '^', pattern: '^', desc: 'început' },
+  { label: '$', pattern: '$', desc: 'sfârșit' },
+  { label: '+', pattern: '+', desc: '1 sau mai multe' },
+  { label: '*', pattern: '*', desc: '0 sau mai multe' },
+  { label: '?', pattern: '?', desc: 'opțional' },
+  { label: '{n,m}', pattern: '{2,4}', desc: 'între n și m' },
+  { label: '[abc]', pattern: '[abc]', desc: 'set caractere' },
+  { label: '(grup)', pattern: '(grup)', desc: 'grup capturat' },
+  { label: 'a|b', pattern: 'a|b', desc: 'sau' },
+  { label: 'email', pattern: '[\\w.+-]+@[\\w-]+\\.[\\w.-]+', desc: 'email simplu' },
+  { label: 'telefon RO', pattern: '0\\d{2,3}[- ]?\\d{3}[- ]?\\d{3}', desc: 'telefon RO' },
+];
+
+function escapeHtml(str) {
+  return str.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function compute() {
+  const patternStr = document.getElementById('pattern-input').value;
+  const flagsStr = document.getElementById('flags-input').value;
+  const text = document.getElementById('test-text').value;
+  const patternInput = document.getElementById('pattern-input');
+  const statusBar = document.getElementById('status-bar');
+  const preview = document.getElementById('result-preview');
+  const matchesList = document.getElementById('matches-list');
+
+  patternInput.classList.remove('error');
+  document.querySelectorAll('.flag-chip').forEach(chip => {
+    chip.classList.toggle('active', flagsStr.includes(chip.dataset.flag));
+  });
+
+  if (!patternStr) {
+    statusBar.textContent = '';
+    statusBar.className = 'status-bar';
+    preview.innerHTML = escapeHtml(text);
+    matchesList.innerHTML = '';
+    return;
+  }
+
+  let regex;
+  try {
+    regex = new RegExp(patternStr, flagsStr);
+  } catch (err) {
+    patternInput.classList.add('error');
+    statusBar.textContent = '✕ Regex invalid — ' + err.message;
+    statusBar.className = 'status-bar error';
+    preview.innerHTML = escapeHtml(text);
+    matchesList.innerHTML = '';
+    return;
+  }
+
+  const isGlobal = flagsStr.includes('g');
+  let matches = [];
+
+  if (isGlobal) {
+    matches = [...text.matchAll(regex)];
+  } else {
+    const m = text.match(regex);
+    if (m) matches = [m];
+  }
+
+  statusBar.className = 'status-bar';
+  statusBar.textContent = matches.length === 0
+    ? 'Nicio potrivire'
+    : `${matches.length} potrivir${matches.length===1?'e':'i'} găsit${matches.length===1?'ă':'e'}`;
+
+  // Highlight în preview
+  if (matches.length === 0) {
+    preview.innerHTML = escapeHtml(text);
+  } else {
+    let result = '';
+    let lastIndex = 0;
+    matches.forEach(m => {
+      const start = m.index;
+      const end = start + m[0].length;
+      result += escapeHtml(text.slice(lastIndex, start));
+      result += `<span class="match-highlight">${escapeHtml(m[0])}</span>`;
+      lastIndex = end;
+    });
+    result += escapeHtml(text.slice(lastIndex));
+    preview.innerHTML = result || '<span style="color:var(--text3)">(potrivire goală)</span>';
+  }
+
+  // Lista de potriviri cu grupuri
+  matchesList.innerHTML = matches.map((m, i) => {
+    const groups = m.length > 1 ? m.slice(1).map((g,gi) => `grup ${gi+1}: "${g ?? '—'}"`).join(' · ') : '';
+    return `
+      <div class="match-row">
+        <span class="match-idx">#${i+1}</span>
+        <span class="match-text">"${escapeHtml(m[0])}"</span>
+        ${groups ? `<div class="match-groups">${groups}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function buildCheatsheet() {
+  const wrap = document.getElementById('cheatsheet');
+  CHEATSHEET.forEach(c => {
+    const chip = document.createElement('div');
+    chip.className = 'cheat-chip';
+    chip.innerHTML = `<strong>${c.label}</strong> — ${c.desc}`;
+    chip.onclick = () => {
+      document.getElementById('pattern-input').value = c.pattern;
+      compute();
+    };
+    wrap.appendChild(chip);
+  });
+}
+
+buildCheatsheet();
+compute();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Regex tester</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

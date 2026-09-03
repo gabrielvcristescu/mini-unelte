@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generator Placeholder — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #f08060;
+  --accent-dim: rgba(240,128,96,0.10);
+  --accent-border: rgba(240,128,96,0.28);
+}
+
+.fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--content-gap); margin-bottom: var(--content-gap); }
+@media (max-width: 500px) { .fields-grid { grid-template-columns: 1fr; } }
+.field-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+.field-name { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text2); font-weight: 500; margin-bottom: 8px; display: block; }
+
+.preset-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: var(--content-gap); }
+.preset-btn {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 5px 12px;
+  border-radius: 99px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text2);
+  cursor: pointer;
+}
+.preset-btn:hover { border-color: var(--accent-border); color: var(--accent); }
+
+.color-row { display: flex; gap: 16px; margin-bottom: var(--content-gap); align-items: center; flex-wrap: wrap; }
+.color-input { width: 40px; height: 32px; border: 1px solid var(--border2); border-radius: 6px; cursor: pointer; background: none; padding: 2px; }
+.color-item { display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 0.72rem; color: var(--text2); }
+
+.preview-wrap {
+  background: var(--bg3);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: var(--content-gap);
+  overflow: auto;
+  max-height: 400px;
+}
+#preview-svg { max-width: 100%; }
+
+.options-row { display: flex; gap: 16px; margin-bottom: var(--content-gap); align-items: center; flex-wrap: wrap; }
+.option-item { display: flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 0.72rem; color: var(--text2); }
+
+.action-row { display: flex; gap: 8px; margin-bottom: var(--content-gap); }
+.action-btn {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.action-btn:hover { filter: brightness(1.15); }
+
+.code-box {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text2);
+  word-break: break-all;
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Generator placeholder</h1>
+    <p>Dimensiune + culoare → imagine SVG pentru mockup-uri și prototipuri</p>
+  </div>
+
+  <div class="fields-grid">
+    <div class="field-card">
+      <span class="field-name">Lățime (px)</span>
+      <input class="input-calc" id="in-width" type="number" min="1" value="800" style="--input-color:var(--accent);font-size:1rem" oninput="render()">
+    </div>
+    <div class="field-card">
+      <span class="field-name">Înălțime (px)</span>
+      <input class="input-calc" id="in-height" type="number" min="1" value="600" style="--input-color:var(--accent);font-size:1rem" oninput="render()">
+    </div>
+  </div>
+
+  <div class="preset-row" id="preset-row"></div>
+
+  <div class="color-row">
+    <div class="color-item">
+      <input type="color" class="color-input" id="in-bgcolor" value="#3a3f4a" oninput="render()">
+      <span>Fundal</span>
+    </div>
+    <div class="color-item">
+      <input type="color" class="color-input" id="in-textcolor" value="#ffffff" oninput="render()">
+      <span>Text</span>
+    </div>
+  </div>
+
+  <div class="options-row">
+    <label class="option-item">
+      <input type="checkbox" id="opt-showsize" checked onchange="render()">
+      Afișează dimensiunea ca text
+    </label>
+    <label class="option-item">
+      <input type="checkbox" id="opt-showdiagonal" onchange="render()">
+      Diagonale (X)
+    </label>
+  </div>
+
+  <div class="preview-wrap">
+    <div id="preview-svg"></div>
+  </div>
+
+  <div class="action-row">
+    <button class="action-btn" onclick="downloadSvg()">⬇ Descarcă SVG</button>
+    <button class="action-btn" onclick="downloadPng()">⬇ Descarcă PNG</button>
+    <button class="action-btn" onclick="copyDataUri()">Copiază data URI</button>
+  </div>
+
+  <div class="code-box" id="code-output">—</div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+const PRESETS = [
+  { name: '16:9 (1920×1080)', w:1920, h:1080 },
+  { name: '4:3 (800×600)', w:800, h:600 },
+  { name: '1:1 (500×500)', w:500, h:500 },
+  { name: 'Avatar (200×200)', w:200, h:200 },
+  { name: 'Banner (1200×300)', w:1200, h:300 },
+  { name: 'Story (1080×1920)', w:1080, h:1920 },
+  { name: 'Card (400×250)', w:400, h:250 },
+];
+
+function buildPresets() {
+  const wrap = document.getElementById('preset-row');
+  PRESETS.forEach(p => {
+    const btn = document.createElement('div');
+    btn.className = 'preset-btn';
+    btn.textContent = p.name;
+    btn.onclick = () => {
+      document.getElementById('in-width').value = p.w;
+      document.getElementById('in-height').value = p.h;
+      render();
+    };
+    wrap.appendChild(btn);
+  });
+}
+
+function buildSvgString() {
+  const w = parseInt(document.getElementById('in-width').value) || 1;
+  const h = parseInt(document.getElementById('in-height').value) || 1;
+  const bg = document.getElementById('in-bgcolor').value;
+  const textColor = document.getElementById('in-textcolor').value;
+  const showSize = document.getElementById('opt-showsize').checked;
+  const showDiagonal = document.getElementById('opt-showdiagonal').checked;
+
+  const fontSize = Math.max(12, Math.min(w, h) * 0.1);
+
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`;
+  svg += `<rect width="${w}" height="${h}" fill="${bg}"/>`;
+
+  if (showDiagonal) {
+    svg += `<line x1="0" y1="0" x2="${w}" y2="${h}" stroke="${textColor}" stroke-width="1" opacity="0.3"/>`;
+    svg += `<line x1="${w}" y1="0" x2="0" y2="${h}" stroke="${textColor}" stroke-width="1" opacity="0.3"/>`;
+  }
+
+  if (showSize) {
+    svg += `<text x="${w/2}" y="${h/2}" font-family="monospace" font-size="${fontSize}" fill="${textColor}" text-anchor="middle" dominant-baseline="middle">${w} × ${h}</text>`;
+  }
+
+  svg += `</svg>`;
+  return svg;
+}
+
+function render() {
+  const svg = buildSvgString();
+  document.getElementById('preview-svg').innerHTML = svg;
+  document.getElementById('code-output').textContent = svg;
+}
+
+function downloadSvg() {
+  const svg = buildSvgString();
+  const blob = new Blob([svg], { type: 'image/svg+xml' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const w = document.getElementById('in-width').value;
+  const h = document.getElementById('in-height').value;
+  a.download = `placeholder-${w}x${h}.svg`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('SVG descărcat!');
+}
+
+function downloadPng() {
+  const svg = buildSvgString();
+  const w = parseInt(document.getElementById('in-width').value);
+  const h = parseInt(document.getElementById('in-height').value);
+
+  const img = new Image();
+  const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(svgBlob);
+
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, w, h);
+    URL.revokeObjectURL(url);
+
+    canvas.toBlob(blob => {
+      const pngUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = pngUrl;
+      a.download = `placeholder-${w}x${h}.png`;
+      a.click();
+      URL.revokeObjectURL(pngUrl);
+      showToast('PNG descărcat!');
+    });
+  };
+  img.src = url;
+}
+
+function copyDataUri() {
+  const svg = buildSvgString();
+  const encoded = encodeURIComponent(svg).replace(/'/g,'%27').replace(/"/g,'%22');
+  const dataUri = `data:image/svg+xml,${encoded}`;
+  navigator.clipboard.writeText(dataUri).then(() => showToast('Data URI copiat!'));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+buildPresets();
+render();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Generator placeholder</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

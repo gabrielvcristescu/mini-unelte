@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tuner Instrument — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #d070f0;
+  --accent-dim: rgba(208,112,240,0.10);
+  --accent-border: rgba(208,112,240,0.28);
+}
+
+.mode-row { display: flex; gap: 8px; margin-bottom: var(--content-gap); }
+.mode-btn {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.mode-btn.active { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+
+.status-msg {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text2);
+  margin-bottom: var(--content-gap);
+  min-height: 1.5em;
+}
+.status-msg.error { color: #f06060; }
+.status-msg.active { color: #4af0b0; }
+
+.start-btn {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.12s;
+  margin-bottom: var(--content-gap);
+}
+.start-btn.active { background: rgba(240,96,96,0.15); border-color: rgba(240,96,96,0.4); color: #f06060; }
+
+.result-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 30px;
+  text-align: center;
+  margin-bottom: var(--content-gap);
+  transition: border-color 0.2s;
+}
+.result-card.in-tune { border-color: #4af0b0; }
+.result-note { font-family: var(--font-mono); font-size: 3.5rem; font-weight: 700; color: var(--accent); line-height: 1; }
+.result-hz { font-family: var(--font-mono); font-size: 1rem; color: var(--text3); margin-top: 8px; }
+
+.gauge-wrap { display: flex; justify-content: center; padding: 1rem 0; }
+.tune-status { font-family: var(--font-mono); font-size: 0.85rem; font-weight: 700; margin-top: 8px; }
+.tune-status.flat { color: #f0a040; }
+.tune-status.sharp { color: #f0a040; }
+.tune-status.perfect { color: #4af0b0; }
+
+.strings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(70px,1fr));
+  gap: 6px;
+}
+.string-btn {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 6px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.string-btn:hover { border-color: var(--accent-border); }
+.string-name { font-family: var(--font-mono); font-size: 0.8rem; font-weight: 700; color: var(--text); }
+.string-hz { font-family: var(--font-mono); font-size: 0.6rem; color: var(--text3); margin-top: 2px; }
+
+.privacy-note {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text3);
+  text-align: center;
+  line-height: 1.6;
+  margin-top: var(--content-gap);
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Tuner instrument</h1>
+    <p>Chitară, voce, orice instrument — detectare notă + deviere în cenți</p>
+  </div>
+
+  <div class="mode-row" id="instrument-tabs"></div>
+
+  <div class="status-msg" id="status-msg">Apasă START pentru a activa microfonul</div>
+
+  <button class="start-btn" id="start-btn" onclick="toggleMic()">🎤 Pornește microfonul</button>
+
+  <div class="result-card" id="result-card">
+    <div class="result-note" id="result-note">—</div>
+    <div class="result-hz" id="result-hz"></div>
+
+    <div class="gauge-wrap">
+      <svg width="220" height="120" viewBox="0 0 220 120" id="gauge-svg"></svg>
+    </div>
+    <div class="tune-status" id="tune-status"></div>
+  </div>
+
+  <div class="card">
+    <div class="field-label" style="margin-bottom:8px">Corzi de referință (click pentru a asculta)</div>
+    <div class="strings-grid" id="strings-grid"></div>
+  </div>
+
+  <p class="privacy-note">Microfonul e procesat 100% local, în browser.</p>
+</div>
+
+<script>
+const NOTE_NAMES_EN = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+
+const INSTRUMENTS = {
+  guitar: { name: 'Chitară', strings: [
+    { name: 'E2', hz: 82.41 }, { name: 'A2', hz: 110.00 }, { name: 'D3', hz: 146.83 },
+    { name: 'G3', hz: 196.00 }, { name: 'B3', hz: 246.94 }, { name: 'E4', hz: 329.63 },
+  ]},
+  bass: { name: 'Bas', strings: [
+    { name: 'E1', hz: 41.20 }, { name: 'A1', hz: 55.00 }, { name: 'D2', hz: 73.42 }, { name: 'G2', hz: 98.00 },
+  ]},
+  ukulele: { name: 'Ukulele', strings: [
+    { name: 'G4', hz: 392.00 }, { name: 'C4', hz: 261.63 }, { name: 'E4', hz: 329.63 }, { name: 'A4', hz: 440.00 },
+  ]},
+  violin: { name: 'Vioară', strings: [
+    { name: 'G3', hz: 196.00 }, { name: 'D4', hz: 293.66 }, { name: 'A4', hz: 440.00 }, { name: 'E5', hz: 659.25 },
+  ]},
+  chromatic: { name: 'Cromatic (orice)', strings: [] },
+};
+
+let currentInstrument = 'guitar';
+let audioCtx = null;
+let analyser = null;
+let stream = null;
+let animationId = null;
+let isActive = false;
+let smoothedHz = null;
+
+function buildInstrumentTabs() {
+  const wrap = document.getElementById('instrument-tabs');
+  Object.entries(INSTRUMENTS).forEach(([key, inst]) => {
+    const btn = document.createElement('div');
+    btn.className = 'mode-btn' + (key===currentInstrument?' active':'');
+    btn.textContent = inst.name;
+    btn.onclick = () => {
+      currentInstrument = key;
+      document.querySelectorAll('.mode-btn').forEach((b,i) => b.classList.toggle('active', Object.keys(INSTRUMENTS)[i]===key));
+      buildStringsGrid();
+    };
+    wrap.appendChild(btn);
+  });
+}
+
+function buildStringsGrid() {
+  const grid = document.getElementById('strings-grid');
+  const inst = INSTRUMENTS[currentInstrument];
+  if (inst.strings.length === 0) {
+    grid.innerHTML = '<div style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text3);grid-column:1/-1">Modul cromatic detectează orice notă, fără corzi fixe de referință.</div>';
+    return;
+  }
+  grid.innerHTML = inst.strings.map(s => `
+    <div class="string-btn" onclick="playReference(${s.hz})">
+      <div class="string-name">${s.name}</div>
+      <div class="string-hz">${s.hz.toFixed(1)}Hz</div>
+    </div>
+  `).join('');
+}
+
+function playReference(hz) {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'sine';
+  osc.frequency.value = hz;
+  gain.gain.setValueAtTime(0, audioCtx.currentTime);
+  gain.gain.linearRampToValueAtTime(0.25, audioCtx.currentTime+0.02);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+1.2);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime+1.2);
+}
+
+async function toggleMic() {
+  if (isActive) stopMic(); else await startMic();
+}
+
+async function startMic() {
+  const statusEl = document.getElementById('status-msg');
+  try {
+    statusEl.textContent = 'Se solicită acces la microfon...';
+    statusEl.className = 'status-msg';
+
+    stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation:false, noiseSuppression:false, autoGainControl:false } });
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const source = audioCtx.createMediaStreamSource(stream);
+    const boost = audioCtx.createGain();
+    boost.gain.value = 6;
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 2048;
+    source.connect(boost);
+    boost.connect(analyser);
+
+    isActive = true;
+    smoothedHz = null;
+    document.getElementById('start-btn').textContent = '■ Oprește microfonul';
+    document.getElementById('start-btn').classList.add('active');
+    statusEl.textContent = '🎤 Ascult...';
+    statusEl.className = 'status-msg active';
+
+    detectPitch();
+  } catch (err) {
+    statusEl.textContent = 'Acces refuzat sau microfon indisponibil: ' + err.message;
+    statusEl.className = 'status-msg error';
+  }
+}
+
+function stopMic() {
+  if (animationId) cancelAnimationFrame(animationId);
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  if (audioCtx) audioCtx.close();
+
+  isActive = false;
+  smoothedHz = null;
+  document.getElementById('start-btn').textContent = '🎤 Pornește microfonul';
+  document.getElementById('start-btn').classList.remove('active');
+  document.getElementById('status-msg').textContent = 'Microfon oprit';
+  document.getElementById('status-msg').className = 'status-msg';
+  document.getElementById('result-note').textContent = '—';
+  document.getElementById('result-hz').textContent = '';
+  document.getElementById('tune-status').textContent = '';
+  drawGauge(0);
+}
+
+function autoCorrelate(buffer, sampleRate) {
+  const SIZE = buffer.length;
+  let rms = 0;
+  for (let i = 0; i < SIZE; i++) rms += buffer[i]*buffer[i];
+  rms = Math.sqrt(rms/SIZE);
+  if (rms < 0.003) return { hz: -1, rms };
+
+  let r1 = 0, r2 = SIZE-1;
+  const threshold = 0.2;
+  for (let i = 0; i < SIZE/2; i++) { if (Math.abs(buffer[i]) < threshold) { r1 = i; break; } }
+  for (let i = 1; i < SIZE/2; i++) { if (Math.abs(buffer[SIZE-i]) < threshold) { r2 = SIZE-i; break; } }
+
+  const trimmedBuffer = buffer.slice(r1, r2);
+  const newSize = trimmedBuffer.length;
+
+  const c = new Array(newSize).fill(0);
+  for (let lag = 0; lag < newSize; lag++) {
+    for (let i = 0; i < newSize-lag; i++) c[lag] += trimmedBuffer[i]*trimmedBuffer[i+lag];
+  }
+
+  let d = 0;
+  while (d < newSize-1 && c[d] > c[d+1]) d++;
+
+  let maxVal = -1, maxPos = -1;
+  for (let i = d; i < newSize; i++) { if (c[i] > maxVal) { maxVal = c[i]; maxPos = i; } }
+
+  let T0 = maxPos;
+  if (maxPos > 0 && maxPos < newSize-1) {
+    const x1 = c[maxPos-1], x2 = c[maxPos], x3 = c[maxPos+1];
+    const a = (x1+x3-2*x2)/2, b = (x3-x1)/2;
+    if (a) T0 = maxPos - b/(2*a);
+  }
+
+  return { hz: T0 > 0 ? sampleRate/T0 : -1, rms };
+}
+
+function findClosestReference(hz) {
+  const inst = INSTRUMENTS[currentInstrument];
+  if (inst.strings.length === 0) return null;
+
+  let closest = inst.strings[0];
+  let minDiff = Math.abs(Math.log2(hz/closest.hz));
+  inst.strings.forEach(s => {
+    const diff = Math.abs(Math.log2(hz/s.hz));
+    if (diff < minDiff) { minDiff = diff; closest = s; }
+  });
+  return closest;
+}
+
+function hzToNoteInfo(hz) {
+  const semitone = 12 * Math.log2(hz/440);
+  const roundedSemitone = Math.round(semitone);
+  const cents = Math.round((semitone - roundedSemitone) * 100);
+  const aIndex = NOTE_NAMES_EN.indexOf('A');
+  let noteIdx = (aIndex + roundedSemitone) % 12;
+  if (noteIdx < 0) noteIdx += 12;
+  const octave = 4 + Math.floor((roundedSemitone + aIndex) / 12);
+  return { en: NOTE_NAMES_EN[noteIdx], octave, cents };
+}
+
+function detectPitch() {
+  animationId = requestAnimationFrame(detectPitch);
+
+  const bufferLength = analyser.fftSize;
+  const buffer = new Float32Array(bufferLength);
+  analyser.getFloatTimeDomainData(buffer);
+
+  const { hz, rms } = autoCorrelate(buffer, audioCtx.sampleRate);
+
+  if (hz === -1 || hz < 30 || hz > 1500) return;
+
+  if (smoothedHz === null) smoothedHz = hz;
+  else {
+    const ratio = hz/smoothedHz;
+    if (ratio > 1.15 || ratio < 1/1.15) smoothedHz = hz;
+    else smoothedHz = smoothedHz*0.7 + hz*0.3;
+  }
+
+  let cents, noteLabel;
+
+  const inst = INSTRUMENTS[currentInstrument];
+  if (inst.strings.length > 0) {
+    // Mod instrument specific — comparăm cu cea mai apropiată coardă de referință
+    const ref = findClosestReference(smoothedHz);
+    cents = Math.round(1200 * Math.log2(smoothedHz/ref.hz));
+    noteLabel = ref.name;
+  } else {
+    // Mod cromatic — orice notă
+    const info = hzToNoteInfo(smoothedHz);
+    cents = info.cents;
+    noteLabel = info.en + info.octave;
+  }
+
+  document.getElementById('result-note').textContent = noteLabel;
+  document.getElementById('result-hz').textContent = smoothedHz.toFixed(1) + ' Hz';
+
+  const clampedCents = Math.max(-50, Math.min(50, cents));
+  drawGauge(clampedCents);
+
+  const statusEl = document.getElementById('tune-status');
+  const cardEl = document.getElementById('result-card');
+  if (Math.abs(cents) < 5) {
+    statusEl.textContent = '✓ ACORDAT';
+    statusEl.className = 'tune-status perfect';
+    cardEl.classList.add('in-tune');
+  } else {
+    statusEl.textContent = cents < 0 ? `▼ prea jos (${cents}¢)` : `▲ prea sus (+${cents}¢)`;
+    statusEl.className = 'tune-status ' + (cents < 0 ? 'flat' : 'sharp');
+    cardEl.classList.remove('in-tune');
+  }
+}
+
+function drawGauge(cents) {
+  const svg = document.getElementById('gauge-svg');
+  const cx = 110, cy = 110, r = 90;
+  const angle = (cents/50) * 60 * (Math.PI/180); // ±60° pentru ±50 cenți
+  const needleAngle = -90 * (Math.PI/180) + angle; // -90° = vertical în sus
+
+  const x2 = cx + r*0.85 * Math.cos(needleAngle);
+  const y2 = cy + r*0.85 * Math.sin(needleAngle);
+
+  let html = '';
+  // Arc de fundal
+  html += `<path d="M ${cx-r*0.85} ${cy} A ${r*0.85} ${r*0.85} 0 0 1 ${cx+r*0.85} ${cy}" fill="none" stroke="var(--border2)" stroke-width="3"/>`;
+  // Zonă centrală (acordat)
+  const greenStart = -90-6, greenEnd = -90+6;
+  const gx1 = cx + r*0.85*Math.cos(greenStart*Math.PI/180), gy1 = cy + r*0.85*Math.sin(greenStart*Math.PI/180);
+  const gx2 = cx + r*0.85*Math.cos(greenEnd*Math.PI/180), gy2 = cy + r*0.85*Math.sin(greenEnd*Math.PI/180);
+  html += `<path d="M ${gx1} ${gy1} A ${r*0.85} ${r*0.85} 0 0 1 ${gx2} ${gy2}" fill="none" stroke="#4af0b0" stroke-width="4"/>`;
+  // Ac indicator
+  html += `<line x1="${cx}" y1="${cy}" x2="${x2}" y2="${y2}" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>`;
+  html += `<circle cx="${cx}" cy="${cy}" r="5" fill="var(--accent)"/>`;
+
+  svg.innerHTML = html;
+}
+
+buildInstrumentTabs();
+buildStringsGrid();
+drawGauge(0);
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Tuner instrument</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

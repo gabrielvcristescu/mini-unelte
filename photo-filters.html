@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Filtre Foto Simple — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #f08060;
+  --accent-dim: rgba(240,128,96,0.10);
+  --accent-border: rgba(240,128,96,0.28);
+}
+
+.file-drop {
+  border: 2px dashed var(--border2);
+  border-radius: var(--radius);
+  padding: 40px 20px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text3);
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: var(--content-gap);
+}
+.file-drop:hover, .file-drop.dragover { border-color: var(--accent-border); color: var(--accent); background: var(--accent-dim); }
+
+.preview-wrap {
+  display: none;
+  justify-content: center;
+  background: var(--bg3);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-bottom: var(--content-gap);
+}
+.preview-wrap.show { display: flex; }
+#preview-canvas {
+  max-width: 100%;
+  max-height: min(52vh, 520px);
+  height: auto;
+  border-radius: 6px;
+}
+
+.preset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 6px;
+  margin-bottom: var(--content-gap);
+}
+.preset-btn {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 6px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.preset-btn:hover { border-color: var(--accent-border); }
+.preset-btn.active { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+.preset-name { font-family: var(--font-mono); font-size: 0.68rem; }
+
+.sliders-grid { display: flex; flex-direction: column; gap: 12px; margin-bottom: var(--content-gap); }
+.slider-item { display: flex; align-items: center; gap: 12px; }
+.slider-item label { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text2); width: 100px; flex-shrink: 0; }
+.slider-item input[type=range] { flex: 1; min-width: 0; accent-color: var(--accent); }
+.slider-item .val { font-family: var(--font-mono); font-size: 0.72rem; color: var(--accent); width: 50px; text-align: right; }
+
+.download-btn {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.download-btn:hover { filter: brightness(1.15); }
+.download-btn:disabled { opacity: 0.4; cursor: default; }
+
+@media (max-width: 620px) {
+  .file-drop { padding: 28px 14px; }
+  .preview-wrap { padding: 8px; }
+  .preset-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  .slider-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 7px 10px;
+  }
+  .slider-item label {
+    width: auto;
+    grid-column: 1;
+  }
+  .slider-item .val {
+    width: auto;
+    min-width: 52px;
+    grid-column: 2;
+  }
+  .slider-item input[type=range] {
+    width: 100%;
+    grid-column: 1 / -1;
+    min-height: 34px;
+  }
+}
+
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Filtre foto simple</h1>
+    <p>Sepia, alb-negru, blur, contrast, luminozitate — CSS filter + Canvas export</p>
+  </div>
+
+  <div class="file-drop" id="file-drop" onclick="document.getElementById('file-input').click()">
+    Trage o imagine aici sau click pentru a o încărca
+    <input type="file" id="file-input" accept="image/*" style="display:none">
+  </div>
+
+  <div class="preview-wrap" id="preview-wrap">
+    <canvas id="preview-canvas"></canvas>
+  </div>
+
+  <div class="card" style="margin-bottom:var(--content-gap)">
+    <div class="field-label" style="margin-bottom:8px">Presetări rapide</div>
+    <div class="preset-grid" id="preset-grid"></div>
+  </div>
+
+  <div class="sliders-grid">
+    <div class="slider-item">
+      <label>Alb-negru</label>
+      <input type="range" id="s-grayscale" min="0" max="100" value="0" oninput="onSliderChange()">
+      <span class="val" id="v-grayscale">0%</span>
+    </div>
+    <div class="slider-item">
+      <label>Sepia</label>
+      <input type="range" id="s-sepia" min="0" max="100" value="0" oninput="onSliderChange()">
+      <span class="val" id="v-sepia">0%</span>
+    </div>
+    <div class="slider-item">
+      <label>Luminozitate</label>
+      <input type="range" id="s-brightness" min="0" max="200" value="100" oninput="onSliderChange()">
+      <span class="val" id="v-brightness">100%</span>
+    </div>
+    <div class="slider-item">
+      <label>Contrast</label>
+      <input type="range" id="s-contrast" min="0" max="200" value="100" oninput="onSliderChange()">
+      <span class="val" id="v-contrast">100%</span>
+    </div>
+    <div class="slider-item">
+      <label>Saturație</label>
+      <input type="range" id="s-saturate" min="0" max="200" value="100" oninput="onSliderChange()">
+      <span class="val" id="v-saturate">100%</span>
+    </div>
+    <div class="slider-item">
+      <label>Blur</label>
+      <input type="range" id="s-blur" min="0" max="20" value="0" oninput="onSliderChange()">
+      <span class="val" id="v-blur">0px</span>
+    </div>
+    <div class="slider-item">
+      <label>Inversare culori</label>
+      <input type="range" id="s-invert" min="0" max="100" value="0" oninput="onSliderChange()">
+      <span class="val" id="v-invert">0%</span>
+    </div>
+  </div>
+
+  <button class="download-btn" id="download-btn" onclick="downloadFiltered()" disabled>⬇ Descarcă imaginea filtrată</button>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+const PRESETS = {
+  none: { name: 'Original', v: {grayscale:0, sepia:0, brightness:100, contrast:100, saturate:100, blur:0, invert:0} },
+  bw: { name: 'Alb-negru', v: {grayscale:100, sepia:0, brightness:100, contrast:110, saturate:100, blur:0, invert:0} },
+  vintage: { name: 'Vintage', v: {grayscale:0, sepia:60, brightness:105, contrast:90, saturate:85, blur:0, invert:0} },
+  cold: { name: 'Rece', v: {grayscale:0, sepia:0, brightness:100, contrast:110, saturate:70, blur:0, invert:0} },
+  vivid: { name: 'Vibrant', v: {grayscale:0, sepia:0, brightness:105, contrast:120, saturate:150, blur:0, invert:0} },
+  fade: { name: 'Estompat', v: {grayscale:20, sepia:10, brightness:110, contrast:80, saturate:70, blur:0, invert:0} },
+  dramatic: { name: 'Dramatic', v: {grayscale:0, sepia:0, brightness:90, contrast:140, saturate:110, blur:0, invert:0} },
+  soft: { name: 'Fin', v: {grayscale:0, sepia:0, brightness:105, contrast:95, saturate:105, blur:1.5, invert:0} },
+};
+
+let originalImg = null;
+
+function buildPresetGrid() {
+  const grid = document.getElementById('preset-grid');
+  Object.entries(PRESETS).forEach(([key, p]) => {
+    const btn = document.createElement('div');
+    btn.className = 'preset-btn' + (key==='none'?' active':'');
+    btn.innerHTML = `<div class="preset-name">${p.name}</div>`;
+    btn.onclick = () => applyPreset(key);
+    grid.appendChild(btn);
+  });
+}
+
+function applyPreset(key) {
+  document.querySelectorAll('.preset-btn').forEach((b,i) => {
+    b.classList.toggle('active', Object.keys(PRESETS)[i] === key);
+  });
+  const v = PRESETS[key].v;
+  Object.entries(v).forEach(([prop, val]) => {
+    document.getElementById('s-'+prop).value = val;
+  });
+  onSliderChange();
+}
+
+function buildFilterString() {
+  const grayscale = document.getElementById('s-grayscale').value;
+  const sepia = document.getElementById('s-sepia').value;
+  const brightness = document.getElementById('s-brightness').value;
+  const contrast = document.getElementById('s-contrast').value;
+  const saturate = document.getElementById('s-saturate').value;
+  const blur = document.getElementById('s-blur').value;
+  const invert = document.getElementById('s-invert').value;
+
+  document.getElementById('v-grayscale').textContent = grayscale+'%';
+  document.getElementById('v-sepia').textContent = sepia+'%';
+  document.getElementById('v-brightness').textContent = brightness+'%';
+  document.getElementById('v-contrast').textContent = contrast+'%';
+  document.getElementById('v-saturate').textContent = saturate+'%';
+  document.getElementById('v-blur').textContent = blur+'px';
+  document.getElementById('v-invert').textContent = invert+'%';
+
+  return `grayscale(${grayscale}%) sepia(${sepia}%) brightness(${brightness}%) contrast(${contrast}%) saturate(${saturate}%) blur(${blur}px) invert(${invert}%)`;
+}
+
+function onSliderChange() {
+  render();
+}
+
+function handleFile(file) {
+  if (!file || !file.type.startsWith('image/')) {
+    showToast('Te rog selectează un fișier imagine valid');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      originalImg = img;
+      document.getElementById('preview-wrap').classList.add('show');
+      document.getElementById('download-btn').disabled = false;
+      render();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function render() {
+  if (!originalImg) return;
+  const canvas = document.getElementById('preview-canvas');
+  canvas.width = originalImg.width;
+  canvas.height = originalImg.height;
+  const ctx = canvas.getContext('2d');
+  ctx.filter = buildFilterString();
+  ctx.drawImage(originalImg, 0, 0);
+}
+
+function downloadFiltered() {
+  const canvas = document.getElementById('preview-canvas');
+  canvas.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'filtered.png';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Descărcat!');
+  }, 'image/png');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+const fileInput = document.getElementById('file-input');
+const fileDrop = document.getElementById('file-drop');
+fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+fileDrop.addEventListener('dragover', e => { e.preventDefault(); fileDrop.classList.add('dragover'); });
+fileDrop.addEventListener('dragleave', () => fileDrop.classList.remove('dragover'));
+fileDrop.addEventListener('drop', e => {
+  e.preventDefault();
+  fileDrop.classList.remove('dragover');
+  handleFile(e.dataTransfer.files[0]);
+});
+
+buildPresetGrid();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Filtre foto simple</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

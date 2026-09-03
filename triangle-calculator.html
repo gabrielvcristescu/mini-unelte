@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculator Triunghi — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #4af0b0;
+  --accent-dim: rgba(74,240,176,0.10);
+  --accent-border: rgba(74,240,176,0.28);
+}
+
+.mode-row { display: flex; gap: 8px; margin-bottom: var(--content-gap); flex-wrap: wrap; }
+.mode-btn {
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.mode-btn.active { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+
+.fields-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--content-gap); margin-bottom: var(--content-gap); }
+@media (max-width: 500px) { .fields-grid { grid-template-columns: 1fr; } }
+
+.field-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.field-card.locked { opacity: 0.4; }
+.field-name { font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent); font-weight: 700; margin-bottom: 8px; display: block; }
+.field-unit { font-family: var(--font-mono); font-size: 0.6rem; color: var(--text3); }
+
+.triangle-wrap { display: flex; justify-content: center; padding: 1.25rem 0; }
+.triangle-svg text { font-family: var(--font-mono); font-size: 11px; fill: var(--text2); }
+.triangle-side { stroke: var(--accent); stroke-width: 2; fill: none; }
+.triangle-angle-arc { stroke: #f0c040; stroke-width: 1.5; fill: none; }
+
+.result-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: var(--content-gap); }
+@media (max-width: 500px) { .result-row { grid-template-columns: 1fr; } }
+.result-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  text-align: center;
+}
+.result-val { font-family: var(--font-mono); font-size: 0.95rem; font-weight: 600; color: var(--text); }
+.result-key { font-family: var(--font-mono); font-size: 0.58rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+
+.error-msg {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: #f06060;
+  padding: 10px 12px;
+  background: rgba(240,96,96,0.06);
+  border: 1px solid rgba(240,96,96,0.2);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--content-gap);
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Calculator triunghi</h1>
+    <p>Pitagora, arii, unghiuri, teorema sinusurilor/cosinusurilor</p>
+  </div>
+
+  <!-- Mod -->
+  <div class="mode-row">
+    <button class="mode-btn active" id="btn-right" onclick="setMode('right')">Triunghi dreptunghic</button>
+    <button class="mode-btn" id="btn-general" onclick="setMode('general')">Triunghi general (3 laturi)</button>
+  </div>
+
+  <!-- Mod dreptunghic -->
+  <div id="panel-right">
+    <div class="fields-grid">
+      <div class="field-card">
+        <span class="field-name">Cateta a</span>
+        <input class="input-calc" id="in-catA" type="number" min="0" step="any" value="3"
+               style="--input-color:var(--accent);font-size:1rem" oninput="computeRight()">
+      </div>
+      <div class="field-card">
+        <span class="field-name">Cateta b</span>
+        <input class="input-calc" id="in-catB" type="number" min="0" step="any" value="4"
+               style="--input-color:var(--accent);font-size:1rem" oninput="computeRight()">
+      </div>
+      <div class="field-card">
+        <span class="field-name">Ipotenuza c</span>
+        <input class="input-calc" id="in-hyp" type="number" min="0" step="any" placeholder="calculat"
+               style="--input-color:var(--accent);font-size:1rem" oninput="computeRight('hyp')">
+      </div>
+    </div>
+  </div>
+
+  <!-- Mod general -->
+  <div id="panel-general" style="display:none">
+    <div class="fields-grid">
+      <div class="field-card">
+        <span class="field-name">Latura a</span>
+        <input class="input-calc" id="in-a" type="number" min="0" step="any" value="5"
+               style="--input-color:var(--accent);font-size:1rem" oninput="computeGeneral()">
+      </div>
+      <div class="field-card">
+        <span class="field-name">Latura b</span>
+        <input class="input-calc" id="in-b" type="number" min="0" step="any" value="6"
+               style="--input-color:var(--accent);font-size:1rem" oninput="computeGeneral()">
+      </div>
+      <div class="field-card">
+        <span class="field-name">Latura c</span>
+        <input class="input-calc" id="in-c" type="number" min="0" step="any" value="7"
+               style="--input-color:var(--accent);font-size:1rem" oninput="computeGeneral()">
+      </div>
+    </div>
+  </div>
+
+  <div class="error-msg" id="error-msg" style="display:none"></div>
+
+  <!-- Vizual -->
+  <div class="card" style="margin-bottom:var(--content-gap)">
+    <div class="triangle-wrap" id="triangle-wrap"></div>
+  </div>
+
+  <!-- Rezultate -->
+  <div class="result-row" id="result-row-1"></div>
+  <div class="result-row" id="result-row-2"></div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+let mode = 'right';
+
+function trim(n) {
+  if (!isFinite(n)) return '—';
+  return parseFloat(n.toPrecision(6)).toString();
+}
+function toDeg(r) { return r * 180 / Math.PI; }
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('btn-right').classList.toggle('active', m === 'right');
+  document.getElementById('btn-general').classList.toggle('active', m === 'general');
+  document.getElementById('panel-right').style.display = m === 'right' ? 'block' : 'none';
+  document.getElementById('panel-general').style.display = m === 'general' ? 'block' : 'none';
+  document.getElementById('error-msg').style.display = 'none';
+  if (m === 'right') computeRight(); else computeGeneral();
+}
+
+function computeRight(source) {
+  const a = parseFloat(document.getElementById('in-catA').value);
+  const b = parseFloat(document.getElementById('in-catB').value);
+  let c = parseFloat(document.getElementById('in-hyp').value);
+
+  const errorEl = document.getElementById('error-msg');
+  errorEl.style.display = 'none';
+
+  if (!isNaN(a) && !isNaN(b) && a > 0 && b > 0) {
+    c = Math.sqrt(a*a + b*b);
+    document.getElementById('in-hyp').value = trim(c);
+  } else if (source === 'hyp' && !isNaN(c) && !isNaN(a) && a > 0 && c > a) {
+    const bCalc = Math.sqrt(c*c - a*a);
+    document.getElementById('in-catB').value = trim(bCalc);
+    computeRight(); // recalculăm normal cu b completat
+    return;
+  } else {
+    renderRightResults(null);
+    renderRightTriangle(null);
+    return;
+  }
+
+  const angleA = toDeg(Math.atan(a/b));
+  const angleB = toDeg(Math.atan(b/a));
+  const area = (a*b)/2;
+  const perimeter = a+b+c;
+
+  document.getElementById('result-row-1').innerHTML = `
+    <div class="result-card"><div class="result-val">${trim(area)}</div><div class="result-key">arie</div></div>
+    <div class="result-card"><div class="result-val">${trim(perimeter)}</div><div class="result-key">perimetru</div></div>
+    <div class="result-card"><div class="result-val">${trim(c)}</div><div class="result-key">ipotenuza</div></div>
+  `;
+  document.getElementById('result-row-2').innerHTML = `
+    <div class="result-card"><div class="result-val">${trim(angleA)}°</div><div class="result-key">unghi opus a</div></div>
+    <div class="result-card"><div class="result-val">${trim(angleB)}°</div><div class="result-key">unghi opus b</div></div>
+    <div class="result-card"><div class="result-val">90°</div><div class="result-key">unghi drept</div></div>
+  `;
+
+  renderRightTriangle({ a, b, c, angleA, angleB });
+}
+
+function computeGeneral() {
+  const a = parseFloat(document.getElementById('in-a').value);
+  const b = parseFloat(document.getElementById('in-b').value);
+  const c = parseFloat(document.getElementById('in-c').value);
+
+  const errorEl = document.getElementById('error-msg');
+
+  if (isNaN(a) || isNaN(b) || isNaN(c) || a<=0 || b<=0 || c<=0) {
+    errorEl.style.display = 'none';
+    document.getElementById('result-row-1').innerHTML = '';
+    document.getElementById('result-row-2').innerHTML = '';
+    renderGeneralTriangle(null);
+    return;
+  }
+
+  // Inegalitatea triunghiului
+  if (a+b <= c || a+c <= b || b+c <= a) {
+    errorEl.textContent = '⚠ Aceste laturi nu formează un triunghi valid (inegalitatea triunghiului: suma oricăror două laturi trebuie să depășească a treia)';
+    errorEl.style.display = 'block';
+    document.getElementById('result-row-1').innerHTML = '';
+    document.getElementById('result-row-2').innerHTML = '';
+    renderGeneralTriangle(null);
+    return;
+  }
+  errorEl.style.display = 'none';
+
+  // Formula Heron pentru arie
+  const s = (a+b+c)/2;
+  const area = Math.sqrt(s*(s-a)*(s-b)*(s-c));
+  const perimeter = a+b+c;
+
+  // Teorema cosinusurilor pentru unghiuri
+  const angleA = toDeg(Math.acos((b*b+c*c-a*a)/(2*b*c))); // opus lui a
+  const angleB = toDeg(Math.acos((a*a+c*c-b*b)/(2*a*c))); // opus lui b
+  const angleC = 180 - angleA - angleB;
+
+  // Clasificare triunghi
+  const maxAngle = Math.max(angleA, angleB, angleC);
+  let typeAngle;
+  if (Math.abs(maxAngle - 90) < 0.01) typeAngle = 'dreptunghic';
+  else if (maxAngle > 90) typeAngle = 'obtuzunghic';
+  else typeAngle = 'ascuțitunghic';
+
+  let typeSides;
+  if (Math.abs(a-b)<1e-9 && Math.abs(b-c)<1e-9) typeSides = 'echilateral';
+  else if (Math.abs(a-b)<1e-9 || Math.abs(b-c)<1e-9 || Math.abs(a-c)<1e-9) typeSides = 'isoscel';
+  else typeSides = 'scalen';
+
+  document.getElementById('result-row-1').innerHTML = `
+    <div class="result-card"><div class="result-val">${trim(area)}</div><div class="result-key">arie (Heron)</div></div>
+    <div class="result-card"><div class="result-val">${trim(perimeter)}</div><div class="result-key">perimetru</div></div>
+    <div class="result-card"><div class="result-val">${typeSides}</div><div class="result-key">tip (laturi)</div></div>
+  `;
+  document.getElementById('result-row-2').innerHTML = `
+    <div class="result-card"><div class="result-val">${trim(angleA)}°</div><div class="result-key">unghi A (opus a)</div></div>
+    <div class="result-card"><div class="result-val">${trim(angleB)}°</div><div class="result-key">unghi B (opus b)</div></div>
+    <div class="result-card"><div class="result-val">${trim(angleC)}°</div><div class="result-key">unghi C (opus c)</div></div>
+  `;
+
+  renderGeneralTriangle({ a, b, c, angleA, angleB, angleC, typeAngle });
+}
+
+function renderRightTriangle(data) {
+  const wrap = document.getElementById('triangle-wrap');
+  const w = 260, h = 200;
+  let svg = `<svg class="triangle-svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`;
+
+  if (!data) {
+    svg += `<text x="${w/2}" y="${h/2}" text-anchor="middle">Introdu cel puțin cele 2 catete</text></svg>`;
+    wrap.innerHTML = svg;
+    return;
+  }
+
+  const x0 = 40, y0 = 160;
+  const maxSide = 120;
+  const scale = maxSide / Math.max(data.a, data.b);
+  const bx = x0 + data.b * scale;
+  const ay = y0 - data.a * scale;
+
+  svg += `<path class="triangle-side" d="M ${x0} ${y0} L ${bx} ${y0} L ${x0} ${ay} Z"/>`;
+  svg += `<rect x="${x0}" y="${y0-10}" width="10" height="10" fill="none" stroke="var(--text3)" stroke-width="1"/>`; // unghi drept
+  svg += `<text x="${(x0+bx)/2}" y="${y0+18}" text-anchor="middle">b=${trim(data.b)}</text>`;
+  svg += `<text x="${x0-8}" y="${(y0+ay)/2}" text-anchor="end">a=${trim(data.a)}</text>`;
+  svg += `<text x="${(x0+bx)/2+10}" y="${(y0+ay)/2-10}" text-anchor="middle" style="fill:var(--accent)">c=${trim(data.c)}</text>`;
+
+  svg += `</svg>`;
+  wrap.innerHTML = svg;
+}
+
+function renderGeneralTriangle(data) {
+  const wrap = document.getElementById('triangle-wrap');
+  const w = 280, h = 200;
+  let svg = `<svg class="triangle-svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`;
+
+  if (!data) {
+    svg += `<text x="${w/2}" y="${h/2}" text-anchor="middle">Introdu 3 laturi valide</text></svg>`;
+    wrap.innerHTML = svg;
+    return;
+  }
+
+  // Poziționăm triunghiul: A la origine, B pe axa X la distanța c, C calculat din unghiuri
+  const scale = 130 / Math.max(data.a, data.b, data.c);
+  const cSide = data.c * scale;
+  const bSide = data.b * scale;
+  const angleARad = data.angleA * Math.PI/180;
+
+  const Ax = 40, Ay = 160;
+  const Bx = Ax + cSide, By = Ay;
+  const Cx = Ax + bSide * Math.cos(angleARad);
+  const Cy = Ay - bSide * Math.sin(angleARad);
+
+  svg += `<path class="triangle-side" d="M ${Ax} ${Ay} L ${Bx} ${By} L ${Cx} ${Cy} Z"/>`;
+  svg += `<text x="${(Ax+Bx)/2}" y="${Ay+18}" text-anchor="middle">c=${trim(data.c)}</text>`;
+  svg += `<text x="${(Ax+Cx)/2-14}" y="${(Ay+Cy)/2}" text-anchor="end">b=${trim(data.b)}</text>`;
+  svg += `<text x="${(Bx+Cx)/2+14}" y="${(By+Cy)/2}" text-anchor="start">a=${trim(data.a)}</text>`;
+  svg += `<text x="${Ax-6}" y="${Ay+4}" text-anchor="end" style="fill:#f0c040">A</text>`;
+  svg += `<text x="${Bx+6}" y="${By+4}" text-anchor="start" style="fill:#f0c040">B</text>`;
+  svg += `<text x="${Cx}" y="${Cy-8}" text-anchor="middle" style="fill:#f0c040">C</text>`;
+
+  svg += `</svg>`;
+  wrap.innerHTML = svg;
+}
+
+function renderRightResults(data) {
+  if (!data) {
+    document.getElementById('result-row-1').innerHTML = '';
+    document.getElementById('result-row-2').innerHTML = '';
+  }
+}
+
+computeRight();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Calculator triunghi</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

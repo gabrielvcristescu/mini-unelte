@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cercul Trigonometric — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #4af0b0;
+  --accent-dim: rgba(74,240,176,0.10);
+  --accent-border: rgba(74,240,176,0.28);
+}
+
+.unit-row { display: flex; gap: 8px; margin-bottom: var(--content-gap); }
+.unit-btn {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.unit-btn.active { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+
+.circle-wrap { display: flex; justify-content: center; padding: 1rem 0; }
+.circle-svg text { font-family: var(--font-mono); font-size: 11px; fill: var(--text2); }
+.circle-outline { stroke: var(--border2); stroke-width: 1.5; fill: none; }
+.circle-axis { stroke: var(--text3); stroke-width: 1; }
+.circle-radius { stroke: var(--accent); stroke-width: 2; }
+.circle-cos-line { stroke: #f06060; stroke-width: 2; stroke-dasharray: 3,2; }
+.circle-sin-line { stroke: #60a0f0; stroke-width: 2; stroke-dasharray: 3,2; }
+.circle-point { fill: var(--accent); }
+.circle-arc { stroke: #f0c040; stroke-width: 1.5; fill: none; }
+.quadrant-label { fill: var(--text3); font-size: 9px; }
+
+.angle-slider-wrap { margin-bottom: var(--content-gap); }
+.angle-slider { width: 100%; accent-color: var(--accent); }
+.angle-val-display { text-align: center; font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700; color: var(--accent); margin-bottom: 8px; }
+
+.input-row { display: flex; gap: 8px; margin-bottom: var(--content-gap); align-items: center; }
+.input-row input { flex: 1; }
+
+.result-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: var(--content-gap); }
+@media (max-width: 500px) { .result-row { grid-template-columns: 1fr; } }
+.result-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  text-align: center;
+}
+.result-val { font-family: var(--font-mono); font-size: 1rem; font-weight: 600; }
+.result-val.cos { color: #f06060; }
+.result-val.sin { color: #60a0f0; }
+.result-val.tan { color: #f0c040; }
+.result-key { font-family: var(--font-mono); font-size: 0.58rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+
+.special-angles { display: flex; gap: 6px; flex-wrap: wrap; }
+.special-btn {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  padding: 4px 9px;
+  border-radius: 99px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.special-btn:hover { border-color: var(--accent-border); color: var(--accent); }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Cercul trigonometric</h1>
+    <p>sin/cos/tan interactiv — grade și radiani</p>
+  </div>
+
+  <div class="unit-row">
+    <button class="unit-btn active" id="btn-deg" onclick="setUnit('deg')">Grade</button>
+    <button class="unit-btn" id="btn-rad" onclick="setUnit('rad')">Radiani</button>
+  </div>
+
+  <div class="card" style="margin-bottom:var(--content-gap)">
+    <div class="circle-wrap" id="circle-wrap"></div>
+  </div>
+
+  <div class="angle-val-display" id="angle-display"></div>
+  <div class="angle-slider-wrap">
+    <input type="range" class="angle-slider" id="angle-slider" min="0" max="360" value="45" step="1" oninput="onSliderChange()">
+  </div>
+
+  <div class="input-row">
+    <input class="input-calc" id="angle-input" type="number" step="any" value="45"
+           style="--input-color:var(--accent)" oninput="onInputChange()">
+  </div>
+
+  <div class="result-row">
+    <div class="result-card"><div class="result-val cos" id="val-cos">—</div><div class="result-key">cos θ</div></div>
+    <div class="result-card"><div class="result-val sin" id="val-sin">—</div><div class="result-key">sin θ</div></div>
+    <div class="result-card"><div class="result-val tan" id="val-tan">—</div><div class="result-key">tan θ</div></div>
+  </div>
+
+  <div class="card">
+    <div class="field-label" style="margin-bottom:10px">Unghiuri speciale</div>
+    <div class="special-angles" id="special-angles"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+let unit = 'deg'; // 'deg' sau 'rad'
+let angleDeg = 45;
+
+const SPECIAL_ANGLES = [0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330];
+
+function trim(n) {
+  if (!isFinite(n)) return '∞';
+  if (Math.abs(n) < 1e-10) return '0';
+  return parseFloat(n.toPrecision(6)).toString();
+}
+
+function setUnit(u) {
+  unit = u;
+  document.getElementById('btn-deg').classList.toggle('active', u === 'deg');
+  document.getElementById('btn-rad').classList.toggle('active', u === 'rad');
+  updateInputFromAngle();
+  render();
+}
+
+function onSliderChange() {
+  angleDeg = parseFloat(document.getElementById('angle-slider').value);
+  updateInputFromAngle();
+  render();
+}
+
+function onInputChange() {
+  const val = parseFloat(document.getElementById('angle-input').value);
+  if (isNaN(val)) return;
+  angleDeg = unit === 'deg' ? val : val * 180 / Math.PI;
+  document.getElementById('angle-slider').value = ((angleDeg % 360) + 360) % 360;
+  render();
+}
+
+function updateInputFromAngle() {
+  const displayVal = unit === 'deg' ? angleDeg : (angleDeg * Math.PI / 180);
+  document.getElementById('angle-input').value = unit === 'deg' ? trim(displayVal) : trim(displayVal);
+}
+
+function render() {
+  const rad = angleDeg * Math.PI / 180;
+  const cosV = Math.cos(rad);
+  const sinV = Math.sin(rad);
+  const tanV = Math.abs(Math.cos(rad)) < 1e-10 ? Infinity : Math.tan(rad);
+
+  document.getElementById('val-cos').textContent = trim(cosV);
+  document.getElementById('val-sin').textContent = trim(sinV);
+  document.getElementById('val-tan').textContent = tanV === Infinity ? '∞ (nedefinit)' : trim(tanV);
+
+  const angleDisplay = unit === 'deg'
+    ? `θ = ${trim(angleDeg)}°`
+    : `θ = ${trim(angleDeg * Math.PI/180)} rad (${trim(angleDeg)}°)`;
+  document.getElementById('angle-display').textContent = angleDisplay;
+
+  renderCircle(rad, cosV, sinV);
+}
+
+function renderCircle(rad, cosV, sinV) {
+  const wrap = document.getElementById('circle-wrap');
+  const size = 280;
+  const cx = size/2, cy = size/2, r = 100;
+
+  const px = cx + r*cosV;
+  const py = cy - r*sinV; // SVG Y e inversat
+
+  let svg = `<svg class="circle-svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">`;
+
+  // Cerc unitate
+  svg += `<circle class="circle-outline" cx="${cx}" cy="${cy}" r="${r}"/>`;
+  // Axe
+  svg += `<line class="circle-axis" x1="${cx-r-15}" y1="${cy}" x2="${cx+r+15}" y2="${cy}"/>`;
+  svg += `<line class="circle-axis" x1="${cx}" y1="${cy-r-15}" x2="${cx}" y2="${cy+r+15}"/>`;
+
+  // Etichete cadrane
+  svg += `<text class="quadrant-label" x="${cx+r+8}" y="${cy-6}">0°</text>`;
+  svg += `<text class="quadrant-label" x="${cx+6}" y="${cy-r-8}">90°</text>`;
+  svg += `<text class="quadrant-label" x="${cx-r-24}" y="${cy-6}">180°</text>`;
+  svg += `<text class="quadrant-label" x="${cx+6}" y="${cy+r+16}">270°</text>`;
+
+  // Arc unghi
+  const arcR = 24;
+  const largeArc = Math.abs(rad) > Math.PI ? 1 : 0;
+  const sweepFlag = rad >= 0 ? 0 : 1;
+  const arcEndX = cx + arcR*cosV;
+  const arcEndY = cy - arcR*sinV;
+  svg += `<path class="circle-arc" d="M ${cx+arcR} ${cy} A ${arcR} ${arcR} 0 ${largeArc} ${sweepFlag} ${arcEndX} ${arcEndY}"/>`;
+
+  // Linie cos (orizontală, de la centru la proiecția pe axa X)
+  svg += `<line class="circle-cos-line" x1="${cx}" y1="${cy}" x2="${px}" y2="${cy}"/>`;
+  // Linie sin (verticală, de la proiecție la punct)
+  svg += `<line class="circle-sin-line" x1="${px}" y1="${cy}" x2="${px}" y2="${py}"/>`;
+  // Raza
+  svg += `<line class="circle-radius" x1="${cx}" y1="${cy}" x2="${px}" y2="${py}"/>`;
+  // Punct pe cerc
+  svg += `<circle class="circle-point" cx="${px}" cy="${py}" r="5"/>`;
+
+  // Etichete cos/sin
+  svg += `<text x="${(cx+px)/2}" y="${cy+16}" text-anchor="middle" style="fill:#f06060">cos</text>`;
+  svg += `<text x="${px+10}" y="${(cy+py)/2}" text-anchor="start" style="fill:#60a0f0">sin</text>`;
+
+  svg += `</svg>`;
+  wrap.innerHTML = svg;
+}
+
+function buildSpecialAngles() {
+  const wrap = document.getElementById('special-angles');
+  SPECIAL_ANGLES.forEach(deg => {
+    const btn = document.createElement('div');
+    btn.className = 'special-btn';
+    btn.textContent = deg + '°';
+    btn.onclick = () => {
+      angleDeg = deg;
+      document.getElementById('angle-slider').value = deg;
+      updateInputFromAngle();
+      render();
+    };
+    wrap.appendChild(btn);
+  });
+}
+
+buildSpecialAngles();
+render();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Cercul trigonometric</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

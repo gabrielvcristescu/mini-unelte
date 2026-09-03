@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rezistoare Serie/Paralel — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #70d0f0;
+  --accent-dim: rgba(112,208,240,0.10);
+  --accent-border: rgba(112,208,240,0.28);
+}
+
+/* ── Mod toggle ── */
+.mode-row { display: flex; gap: 8px; margin-bottom: var(--content-gap); }
+.mode-btn {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.mode-btn.active {
+  background: var(--accent-dim);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+/* ── Circuit visual ── */
+.circuit-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1.5rem 1rem;
+  overflow-x: auto;
+}
+.circuit-svg text {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  fill: var(--text2);
+}
+.circuit-svg .wire { stroke: var(--text3); stroke-width: 2; fill: none; }
+.circuit-svg .r-box { fill: var(--bg3); stroke: var(--accent); stroke-width: 1.5; }
+.circuit-svg .r-label { fill: var(--accent); font-weight: 700; }
+
+/* ── Resistor list ── */
+.r-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.r-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+.r-row-label {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent);
+  width: 28px;
+  flex-shrink: 0;
+}
+.r-row input {
+  flex: 1;
+  min-width: 0;
+}
+.r-row-unit {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text3);
+  width: 24px;
+  flex-shrink: 0;
+}
+.r-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text3);
+  padding: 4px 8px;
+  border-radius: 5px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  transition: color 0.12s, background 0.12s;
+  flex-shrink: 0;
+}
+.r-remove:hover { color: #f06060; background: var(--bg3); }
+.r-remove:disabled { opacity: 0.25; cursor: default; }
+.r-remove:disabled:hover { color: var(--text3); background: none; }
+
+.add-row-btn {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--border2);
+  background: none;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+  text-align: center;
+}
+.add-row-btn:hover { border-color: var(--accent-border); color: var(--accent); background: var(--accent-dim); }
+
+/* ── Result ── */
+.result-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+}
+.result-main {
+  font-family: var(--font-mono);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1.2;
+  margin-bottom: 2px;
+  word-break: break-all;
+}
+.result-formula {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text3);
+}
+
+/* ── Info grid ── */
+.info-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+@media (max-width: 500px) { .info-row { grid-template-columns: 1fr; } }
+.info-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  text-align: center;
+}
+.info-val { font-family: var(--font-mono); font-size: 1rem; font-weight: 500; color: var(--text); margin-bottom: 2px; }
+.info-key { font-family: var(--font-mono); font-size: 0.58rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Rezistoare serie/paralel</h1>
+    <p>Adaugă valori — calculează rezistența echivalentă</p>
+  </div>
+
+  <!-- Mod + unitate -->
+  <div class="mode-row">
+    <button class="mode-btn active" id="btn-series" onclick="setMode('series')">Serie</button>
+    <button class="mode-btn" id="btn-parallel" onclick="setMode('parallel')">Paralel</button>
+    <div style="width:1px;height:20px;background:var(--border);margin:0 4px"></div>
+    <select class="unit-select" id="unit-select" onchange="render()">
+      <option value="1" selected>Ω</option>
+      <option value="1e3">kΩ</option>
+      <option value="1e6">MΩ</option>
+      <option value="1e9">GΩ</option>
+    </select>
+  </div>
+
+  <style>
+    .unit-select {
+      width: auto;
+      flex: none;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      padding: 6px 10px;
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      outline: none;
+      cursor: pointer;
+    }
+  </style>
+
+  <!-- Circuit vizual -->
+  <div class="card" style="margin-bottom:var(--content-gap)">
+    <div class="circuit-wrap" id="circuit-wrap"></div>
+  </div>
+
+  <!-- Rezultat -->
+  <div class="result-card" style="margin-bottom:var(--content-gap)">
+    <div class="result-main" id="result-main">—</div>
+    <div class="result-formula" id="result-formula"></div>
+  </div>
+
+  <!-- Info -->
+  <div class="info-row" style="margin-bottom:var(--content-gap)">
+    <div class="info-card"><div class="info-val" id="info-count">0</div><div class="info-key">rezistoare</div></div>
+    <div class="info-card"><div class="info-val" id="info-min">—</div><div class="info-key">cel mai mic</div></div>
+    <div class="info-card"><div class="info-val" id="info-max">—</div><div class="info-key">cel mai mare</div></div>
+  </div>
+
+  <!-- Listă rezistoare -->
+  <div class="card">
+    <div class="field-label" style="margin-bottom:10px">Valori rezistoare (Ω)</div>
+    <div class="r-list" id="r-list"></div>
+    <button class="add-row-btn" style="margin-top:8px" onclick="addResistor()">+ adaugă rezistor</button>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+let mode = 'series';
+let resistors = [100, 220, 330];
+
+function fmtOhm(v) {
+  if (!isFinite(v) || v <= 0) return '—';
+  if (v >= 1e9) return trim(v/1e9) + ' GΩ';
+  if (v >= 1e6) return trim(v/1e6) + ' MΩ';
+  if (v >= 1e3) return trim(v/1e3) + ' kΩ';
+  return trim(v) + ' Ω';
+}
+function trim(n) {
+  return parseFloat(n.toPrecision(6)).toString();
+}
+
+function currentUnitFactor() {
+  return parseFloat(document.getElementById('unit-select').value);
+}
+function currentUnitName() {
+  const sel = document.getElementById('unit-select');
+  return sel.options[sel.selectedIndex].text;
+}
+
+function compute() {
+  const factor = currentUnitFactor();
+  const vals = resistors.filter(v => v !== null && v > 0 && isFinite(v)).map(v => v * factor);
+  if (vals.length === 0) return null;
+
+  let result;
+  if (mode === 'series') {
+    result = vals.reduce((a,b) => a+b, 0);
+  } else {
+    const sumInv = vals.reduce((a,b) => a + 1/b, 0);
+    result = sumInv > 0 ? 1/sumInv : 0;
+  }
+  return { result, vals };
+}
+
+function renderResult() {
+  const res = compute();
+  const main = document.getElementById('result-main');
+  const formula = document.getElementById('result-formula');
+
+  if (!res || res.vals.length === 0) {
+    main.textContent = '—';
+    formula.textContent = 'Adaugă cel puțin un rezistor';
+    document.getElementById('info-count').textContent = '0';
+    document.getElementById('info-min').textContent = '—';
+    document.getElementById('info-max').textContent = '—';
+    return;
+  }
+
+  main.textContent = fmtOhm(res.result);
+
+  if (mode === 'series') {
+    formula.textContent = 'R = ' + res.vals.map(v => fmtOhm(v)).join(' + ');
+  } else {
+    if (res.vals.length === 2) {
+      formula.textContent = `R = (${fmtOhm(res.vals[0])} × ${fmtOhm(res.vals[1])}) / (${fmtOhm(res.vals[0])} + ${fmtOhm(res.vals[1])})`;
+    } else {
+      formula.textContent = '1/R = ' + res.vals.map(v => '1/'+fmtOhm(v)).join(' + ');
+    }
+  }
+
+  document.getElementById('info-count').textContent = res.vals.length;
+  document.getElementById('info-min').textContent = fmtOhm(Math.min(...res.vals));
+  document.getElementById('info-max').textContent = fmtOhm(Math.max(...res.vals));
+}
+
+function renderList() {
+  const list = document.getElementById('r-list');
+  const unitName = currentUnitName();
+  list.innerHTML = '';
+  resistors.forEach((val, i) => {
+    const row = document.createElement('div');
+    row.className = 'r-row';
+    row.innerHTML = `
+      <span class="r-row-label">R${i+1}</span>
+      <input class="input-calc" type="number" min="0" step="any" placeholder="—"
+             style="--input-color:var(--accent);font-size:0.95rem;padding:6px 10px"
+             value="${val !== null ? val : ''}"
+             data-idx="${i}">
+      <span class="r-row-unit">${unitName}</span>
+      <button class="r-remove" ${resistors.length <= 1 ? 'disabled' : ''} title="Șterge">✕</button>
+    `;
+    const input = row.querySelector('input');
+    input.addEventListener('input', () => {
+      const v = parseFloat(input.value);
+      resistors[i] = (input.value.trim() === '' || isNaN(v) || v < 0) ? null : v;
+      renderResult();
+      renderCircuit();
+    });
+    const removeBtn = row.querySelector('.r-remove');
+    removeBtn.addEventListener('click', () => {
+      if (resistors.length <= 1) return;
+      resistors.splice(i, 1);
+      render();
+    });
+    list.appendChild(row);
+  });
+}
+
+function addResistor() {
+  resistors.push(null);
+  render();
+}
+
+function renderCircuit() {
+  const wrap = document.getElementById('circuit-wrap');
+  const unitName = currentUnitName();
+  const vals = resistors.map((v,i) => ({ val: v, label: 'R'+(i+1) }));
+  const n = vals.length;
+
+  if (n === 0) { wrap.innerHTML = ''; return; }
+
+  const boxW = 56, boxH = 28, gap = 24, padX = 30, padY = 20;
+
+  if (mode === 'series') {
+    const totalW = padX*2 + n*boxW + (n-1)*gap;
+    const cy = padY + boxH/2;
+    let svg = `<svg class="circuit-svg" width="${Math.max(totalW, 200)}" height="${boxH+padY*2}" viewBox="0 0 ${Math.max(totalW,200)} ${boxH+padY*2}">`;
+    let x = padX;
+    // wire from left edge
+    svg += `<line class="wire" x1="0" y1="${cy}" x2="${x}" y2="${cy}"/>`;
+    vals.forEach((r, i) => {
+      svg += `<rect class="r-box" x="${x}" y="${padY}" width="${boxW}" height="${boxH}" rx="4"/>`;
+      svg += `<text class="r-label" x="${x+boxW/2}" y="${cy+4}" text-anchor="middle">${r.label}</text>`;
+      svg += `<text x="${x+boxW/2}" y="${padY+boxH+14}" text-anchor="middle">${r.val!==null?r.val+unitName:'—'}</text>`;
+      x += boxW;
+      if (i < n-1) {
+        svg += `<line class="wire" x1="${x}" y1="${cy}" x2="${x+gap}" y2="${cy}"/>`;
+        x += gap;
+      }
+    });
+    svg += `<line class="wire" x1="${x}" y1="${cy}" x2="${x+padX}" y2="${cy}"/>`;
+    svg += `</svg>`;
+    wrap.innerHTML = svg;
+    wrap.scrollLeft = 0;
+  } else {
+    // Paralel: bare verticale, fiecare rezistor pe o ramură orizontală
+    const branchH = boxH + 46;
+    const totalH = n * branchH + padY;
+    const busX1 = padX, busX2 = padX + 40 + boxW + 40;
+    const totalW = busX2 + padX;
+    let svg = `<svg class="circuit-svg" width="${totalW}" height="${totalH}" viewBox="0 0 ${totalW} ${totalH}">`;
+    // bara stânga și dreapta verticale
+    const topY = padY/2 + branchH/2;
+    const botY = padY/2 + (n-1)*branchH + branchH/2;
+    svg += `<line class="wire" x1="${busX1}" y1="${topY}" x2="${busX1}" y2="${botY}"/>`;
+    svg += `<line class="wire" x1="${busX2}" y1="${topY}" x2="${busX2}" y2="${botY}"/>`;
+    // linii de intrare/ieșire
+    svg += `<line class="wire" x1="0" y1="${(topY+botY)/2}" x2="${busX1}" y2="${(topY+botY)/2}"/>`;
+    svg += `<line class="wire" x1="${busX2}" y1="${(topY+botY)/2}" x2="${totalW}" y2="${(topY+botY)/2}"/>`;
+
+    vals.forEach((r, i) => {
+      const cy = padY/2 + i*branchH + branchH/2;
+      const rx = busX1 + 40;
+      svg += `<line class="wire" x1="${busX1}" y1="${cy}" x2="${rx}" y2="${cy}"/>`;
+      svg += `<rect class="r-box" x="${rx}" y="${cy-boxH/2}" width="${boxW}" height="${boxH}" rx="4"/>`;
+      svg += `<text class="r-label" x="${rx+boxW/2}" y="${cy+4}" text-anchor="middle">${r.label}</text>`;
+      svg += `<line class="wire" x1="${rx+boxW}" y1="${cy}" x2="${busX2}" y2="${cy}"/>`;
+      svg += `<text x="${rx+boxW/2}" y="${cy-boxH/2-6}" text-anchor="middle">${r.val!==null?r.val+unitName:'—'}</text>`;
+    });
+    svg += `</svg>`;
+    wrap.innerHTML = svg;
+    wrap.scrollLeft = 0;
+  }
+}
+
+function render() {
+  renderList();
+  renderResult();
+  renderCircuit();
+}
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('btn-series').classList.toggle('active', m === 'series');
+  document.getElementById('btn-parallel').classList.toggle('active', m === 'parallel');
+  render();
+}
+
+render();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Rezistoare serie/paralel</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

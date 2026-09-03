@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sortare Liste — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #60a0f0;
+  --accent-dim: rgba(96,160,240,0.10);
+  --accent-border: rgba(96,160,240,0.28);
+}
+
+.big-textarea {
+  width: 100%;
+  min-height: 200px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text);
+  outline: none;
+  resize: vertical;
+  line-height: 1.6;
+}
+.big-textarea:focus { border-color: var(--accent-border); box-shadow: 0 0 0 3px var(--accent-dim); }
+.big-textarea.output { color: var(--accent); }
+
+.area-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.area-name { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; }
+.mini-btn {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.mini-btn:hover { border-color: var(--accent-border); color: var(--accent); }
+
+.actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+  margin: var(--content-gap) 0;
+}
+.action-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all 0.12s;
+  text-align: center;
+}
+.action-card:hover { border-color: var(--accent-border); background: var(--accent-dim); }
+.action-name { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text2); font-weight: 500; }
+.action-card:hover .action-name { color: var(--accent); }
+
+.options-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: var(--content-gap); }
+.option-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text2);
+  cursor: pointer;
+}
+
+.stats-bar { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text3); margin-top: 8px; }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Sortare liste</h1>
+    <p>Alfabetic, numeric, eliminare duplicate, inversare — o linie per element</p>
+  </div>
+
+  <div class="area-label">
+    <span class="area-name">Listă (o linie = un element)</span>
+    <div style="display:flex;gap:6px">
+      <button class="mini-btn" onclick="pasteInto()">Lipește</button>
+      <button class="mini-btn" onclick="copyOutput()">Copiază</button>
+      <button class="mini-btn" onclick="clearInput()">Șterge</button>
+    </div>
+  </div>
+  <textarea class="big-textarea" id="input-area" placeholder="banană
+măr
+10
+2
+Ardei
+kiwi" oninput="updateStats()">banană
+măr
+10
+2
+Ardei
+kiwi
+Măr</textarea>
+
+  <div class="options-row">
+    <label class="option-item">
+      <input type="checkbox" id="case-sensitive" onchange="void 0">
+      case-sensitive la sortare/dedup
+    </label>
+    <label class="option-item">
+      <input type="checkbox" id="trim-lines" checked onchange="void 0">
+      elimină spații de la capete
+    </label>
+    <label class="option-item">
+      <input type="checkbox" id="remove-empty" checked onchange="void 0">
+      elimină linii goale
+    </label>
+  </div>
+
+  <div class="actions-grid">
+    <div class="action-card" onclick="applySort('alpha-asc')"><div class="action-name">A → Z</div></div>
+    <div class="action-card" onclick="applySort('alpha-desc')"><div class="action-name">Z → A</div></div>
+    <div class="action-card" onclick="applySort('numeric-asc')"><div class="action-name">0 → 9</div></div>
+    <div class="action-card" onclick="applySort('numeric-desc')"><div class="action-name">9 → 0</div></div>
+    <div class="action-card" onclick="applySort('length-asc')"><div class="action-name">Lungime ↑</div></div>
+    <div class="action-card" onclick="applySort('length-desc')"><div class="action-name">Lungime ↓</div></div>
+    <div class="action-card" onclick="applySort('shuffle')"><div class="action-name">🎲 Amestecă</div></div>
+    <div class="action-card" onclick="applySort('reverse')"><div class="action-name">↕ Inversează ordinea</div></div>
+    <div class="action-card" onclick="applySort('dedupe')"><div class="action-name">Elimină duplicate</div></div>
+    <div class="action-card" onclick="applySort('clean')"><div class="action-name">Doar curăță</div></div>
+  </div>
+
+  <div class="stats-bar" id="stats-bar"></div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+function getLines() {
+  const trimLines = document.getElementById('trim-lines').checked;
+  const removeEmpty = document.getElementById('remove-empty').checked;
+  let lines = document.getElementById('input-area').value.split('\n');
+  if (trimLines) lines = lines.map(l => l.trim());
+  if (removeEmpty) lines = lines.filter(l => l !== '');
+  return lines;
+}
+
+function applySort(type) {
+  let lines = getLines();
+  const caseSensitive = document.getElementById('case-sensitive').checked;
+
+  const collator = new Intl.Collator('ro', { sensitivity: caseSensitive ? 'variant' : 'base' });
+
+  switch (type) {
+    case 'alpha-asc':
+      lines.sort((a,b) => collator.compare(a,b));
+      break;
+    case 'alpha-desc':
+      lines.sort((a,b) => collator.compare(b,a));
+      break;
+    case 'numeric-asc':
+      lines.sort((a,b) => parseFloat(a) - parseFloat(b) || collator.compare(a,b));
+      break;
+    case 'numeric-desc':
+      lines.sort((a,b) => parseFloat(b) - parseFloat(a) || collator.compare(b,a));
+      break;
+    case 'length-asc':
+      lines.sort((a,b) => a.length - b.length);
+      break;
+    case 'length-desc':
+      lines.sort((a,b) => b.length - a.length);
+      break;
+    case 'shuffle':
+      for (let i = lines.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i+1));
+        [lines[i], lines[j]] = [lines[j], lines[i]];
+      }
+      break;
+    case 'reverse':
+      lines.reverse();
+      break;
+    case 'dedupe': {
+      const seen = new Set();
+      lines = lines.filter(l => {
+        const key = caseSensitive ? l : l.toLocaleLowerCase('ro');
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      break;
+    }
+    case 'clean':
+      // doar aplicăm trim/remove-empty, fără alte modificări
+      break;
+  }
+
+  document.getElementById('input-area').value = lines.join('\n');
+  updateStats();
+  showToast('Aplicat: ' + labelFor(type));
+}
+
+function labelFor(type) {
+  const labels = {
+    'alpha-asc':'A→Z', 'alpha-desc':'Z→A', 'numeric-asc':'0→9', 'numeric-desc':'9→0',
+    'length-asc':'Lungime crescătoare', 'length-desc':'Lungime descrescătoare',
+    'shuffle':'Amestecare', 'reverse':'Inversare ordine', 'dedupe':'Eliminare duplicate', 'clean':'Curățare'
+  };
+  return labels[type] || type;
+}
+
+function updateStats() {
+  const lines = getLines();
+  const unique = new Set(lines.map(l => document.getElementById('case-sensitive').checked ? l : l.toLocaleLowerCase('ro'))).size;
+  const duplicates = lines.length - unique;
+  document.getElementById('stats-bar').textContent =
+    `${lines.length} elemente · ${unique} unice` + (duplicates > 0 ? ` · ${duplicates} duplicate` : '');
+}
+
+function clearInput() {
+  document.getElementById('input-area').value = '';
+  updateStats();
+}
+
+function pasteInto() {
+  navigator.clipboard.readText().then(text => {
+    document.getElementById('input-area').value = text;
+    updateStats();
+  }).catch(() => showToast('Nu s-a putut accesa clipboard-ul'));
+}
+
+function copyOutput() {
+  const text = document.getElementById('input-area').value;
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => showToast('Copiat!'));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+document.getElementById('input-area').addEventListener('input', updateStats);
+updateStats();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Sortare liste</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

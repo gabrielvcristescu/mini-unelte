@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>URL Encode/Decode — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #60a0f0;
+  --accent-dim: rgba(96,160,240,0.10);
+  --accent-border: rgba(96,160,240,0.28);
+}
+
+.mode-row { display: flex; gap: 8px; margin-bottom: var(--content-gap); align-items: center; flex-wrap: wrap; }
+.mode-btn {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.mode-btn.active { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+
+.swap-btn {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: var(--text2);
+  transition: all 0.15s;
+  margin-left: auto;
+}
+.swap-btn:hover { border-color: var(--accent-border); color: var(--accent); background: var(--accent-dim); }
+
+.component-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text2);
+  cursor: pointer;
+}
+.component-toggle input { cursor: pointer; }
+
+.big-textarea {
+  width: 100%;
+  min-height: 140px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text);
+  outline: none;
+  resize: vertical;
+  line-height: 1.5;
+  word-break: break-all;
+}
+.big-textarea:focus { border-color: var(--accent-border); box-shadow: 0 0 0 3px var(--accent-dim); }
+.big-textarea.output { color: var(--accent); }
+.big-textarea.error { border-color: #f06060; }
+
+.area-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.area-name { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; }
+.area-actions { display: flex; gap: 6px; }
+.mini-btn {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.mini-btn:hover { border-color: var(--accent-border); color: var(--accent); }
+
+/* ── Diff highlight for encoded chars ── */
+.char-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: var(--content-gap);
+}
+.legend-chip {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.legend-chip .orig { color: var(--text2); }
+.legend-chip .enc { color: var(--accent); }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>URL encode/decode</h1>
+    <p>Caractere speciale ↔ format procentual (%XX)</p>
+  </div>
+
+  <div class="mode-row">
+    <button class="mode-btn active" id="btn-encode" onclick="setMode('encode')">Encode</button>
+    <button class="mode-btn" id="btn-decode" onclick="setMode('decode')">Decode</button>
+    <label class="component-toggle">
+      <input type="checkbox" id="component-mode" onchange="compute()">
+      Encode componentă (encodează și &, =, ?, /)
+    </label>
+    <div class="swap-btn" onclick="swapDirection()" title="Inversează">⇄</div>
+  </div>
+
+  <div style="margin-bottom:var(--content-gap)">
+    <div class="area-label">
+      <span class="area-name" id="input-label">Text / URL original</span>
+      <div class="area-actions">
+        <button class="mini-btn" onclick="pasteInto()">Lipește</button>
+        <button class="mini-btn" onclick="clearInput()">Șterge</button>
+      </div>
+    </div>
+    <textarea class="big-textarea" id="input-area" placeholder="Scrie sau lipește text/URL aici..." oninput="compute()"></textarea>
+  </div>
+
+  <div style="margin-bottom:var(--content-gap)">
+    <div class="area-label">
+      <span class="area-name" id="output-label">Rezultat encodat</span>
+      <div class="area-actions">
+        <button class="mini-btn" onclick="copyOutput()">Copiază</button>
+      </div>
+    </div>
+    <textarea class="big-textarea output" id="output-area" readonly placeholder="Rezultatul apare aici..."></textarea>
+  </div>
+
+  <!-- Legendă caractere frecvente -->
+  <div class="card">
+    <div class="field-label" style="margin-bottom:10px">Caractere frecvent encodate</div>
+    <div class="char-legend" id="char-legend"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+let mode = 'encode';
+
+const COMMON_CHARS = [' ', '&', '=', '?', '#', '%', '+', '/', ':', '@', 'ă', 'î', 'â', 'ș', 'ț'];
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('btn-encode').classList.toggle('active', m === 'encode');
+  document.getElementById('btn-decode').classList.toggle('active', m === 'decode');
+  document.getElementById('input-label').textContent = m === 'encode' ? 'Text / URL original' : 'Text encodat';
+  document.getElementById('output-label').textContent = m === 'encode' ? 'Rezultat encodat' : 'Text decodat';
+  compute();
+}
+
+function swapDirection() {
+  const inp = document.getElementById('input-area');
+  const out = document.getElementById('output-area');
+  const outVal = out.value;
+  setMode(mode === 'encode' ? 'decode' : 'encode');
+  inp.value = outVal;
+  compute();
+}
+
+function compute() {
+  const input = document.getElementById('input-area');
+  const output = document.getElementById('output-area');
+  const componentMode = document.getElementById('component-mode').checked;
+  const text = input.value;
+
+  input.classList.remove('error');
+
+  if (!text) { output.value = ''; return; }
+
+  try {
+    if (mode === 'encode') {
+      output.value = componentMode ? encodeURIComponent(text) : encodeURI(text);
+    } else {
+      output.value = componentMode ? decodeURIComponent(text) : decodeURI(text);
+    }
+  } catch (err) {
+    input.classList.add('error');
+    output.value = '⚠ Secvență invalidă — verifică textul introdus';
+  }
+}
+
+function clearInput() {
+  document.getElementById('input-area').value = '';
+  compute();
+}
+
+function pasteInto() {
+  navigator.clipboard.readText().then(text => {
+    document.getElementById('input-area').value = text;
+    compute();
+  }).catch(() => showToast('Nu s-a putut accesa clipboard-ul'));
+}
+
+function copyOutput() {
+  const text = document.getElementById('output-area').value;
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => showToast('Copiat!'));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+function buildLegend() {
+  const wrap = document.getElementById('char-legend');
+  COMMON_CHARS.forEach(ch => {
+    const encoded = encodeURIComponent(ch);
+    const chip = document.createElement('div');
+    chip.className = 'legend-chip';
+    chip.innerHTML = `<span class="orig">'${ch === ' ' ? 'spațiu' : ch}'</span><span>→</span><span class="enc">${encoded}</span>`;
+    chip.style.cursor = 'pointer';
+    chip.onclick = () => {
+      const inp = document.getElementById('input-area');
+      inp.value += ch;
+      compute();
+    };
+    wrap.appendChild(chip);
+  });
+}
+
+buildLegend();
+compute();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>URL encode/decode</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Divizor de Tensiune — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #70d0f0;
+  --accent-dim: rgba(112,208,240,0.10);
+  --accent-border: rgba(112,208,240,0.28);
+}
+
+.mode-row { display: flex; gap: 8px; margin-bottom: var(--content-gap); }
+.mode-btn {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.mode-btn.active {
+  background: var(--accent-dim);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+.fields-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--content-gap);
+}
+@media (max-width: 600px) { .fields-grid { grid-template-columns: 1fr; } }
+
+.field-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.field-card.locked { opacity: 0.45; }
+.field-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.field-name {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text2);
+  font-weight: 500;
+}
+.field-unit {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--text3);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
+.circuit-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1.5rem 1rem;
+}
+.circuit-svg text { font-family: var(--font-mono); font-size: 11px; fill: var(--text2); }
+.circuit-svg .wire { stroke: var(--text3); stroke-width: 2; fill: none; }
+.circuit-svg .r-box { fill: var(--bg3); stroke: var(--accent); stroke-width: 1.5; }
+.circuit-svg .r-label { fill: var(--accent); font-weight: 700; }
+.circuit-svg .vout-dot { fill: var(--accent); }
+.circuit-svg .vout-line { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 3,3; }
+
+.result-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+}
+.result-main {
+  font-family: var(--font-mono);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+.result-formula { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text3); }
+
+.info-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+@media (max-width: 500px) { .info-row { grid-template-columns: 1fr; } }
+.info-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  text-align: center;
+}
+.info-val { font-family: var(--font-mono); font-size: 0.95rem; font-weight: 500; color: var(--text); margin-bottom: 2px; }
+.info-key { font-family: var(--font-mono); font-size: 0.58rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Divizor de tensiune</h1>
+    <p>R1, R2, Vin → Vout — sau alege ce vrei să calculezi</p>
+  </div>
+
+  <!-- Mod calcul -->
+  <div class="mode-row">
+    <button class="mode-btn active" id="btn-vout" onclick="setMode('vout')">Calculează Vout</button>
+    <button class="mode-btn" id="btn-r2" onclick="setMode('r2')">Calculează R2</button>
+  </div>
+
+  <!-- Circuit vizual -->
+  <div class="card" style="margin-bottom:var(--content-gap)">
+    <div class="circuit-wrap" id="circuit-wrap"></div>
+  </div>
+
+  <!-- Câmpuri -->
+  <div class="fields-grid" style="margin-bottom:var(--content-gap)">
+    <div class="field-card" id="card-vin">
+      <div class="field-top"><span class="field-name">Vin</span><span class="field-unit">V</span></div>
+      <input class="input-calc" id="in-vin" type="number" min="0" step="any" value="12"
+             style="--input-color:var(--accent);font-size:1.05rem" oninput="compute()">
+    </div>
+    <div class="field-card" id="card-r1">
+      <div class="field-top"><span class="field-name">R1</span><span class="field-unit">Ω</span></div>
+      <input class="input-calc" id="in-r1" type="number" min="0" step="any" value="1000"
+             style="--input-color:var(--accent);font-size:1.05rem" oninput="compute()">
+    </div>
+    <div class="field-card" id="card-r2">
+      <div class="field-top"><span class="field-name">R2</span><span class="field-unit">Ω</span></div>
+      <input class="input-calc" id="in-r2" type="number" min="0" step="any" value="1000"
+             style="--input-color:var(--accent);font-size:1.05rem" oninput="compute()">
+    </div>
+  </div>
+
+  <!-- Rezultat -->
+  <div class="result-card" style="margin-bottom:var(--content-gap)">
+    <div class="result-main" id="result-main">—</div>
+    <div class="result-formula" id="result-formula"></div>
+  </div>
+
+  <!-- Info -->
+  <div class="info-row">
+    <div class="info-card"><div class="info-val" id="info-ratio">—</div><div class="info-key">raport R2/(R1+R2)</div></div>
+    <div class="info-card"><div class="info-val" id="info-current">—</div><div class="info-key">curent prin divizor</div></div>
+    <div class="info-card"><div class="info-val" id="info-power">—</div><div class="info-key">putere totală</div></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+let mode = 'vout'; // 'vout' sau 'r2'
+
+function fmtOhm(v) {
+  if (!isFinite(v) || v <= 0) return '—';
+  if (v >= 1e6) return trim(v/1e6) + ' MΩ';
+  if (v >= 1e3) return trim(v/1e3) + ' kΩ';
+  return trim(v) + ' Ω';
+}
+function trim(n) { return parseFloat(n.toPrecision(5)).toString(); }
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('btn-vout').classList.toggle('active', m === 'vout');
+  document.getElementById('btn-r2').classList.toggle('active', m === 'r2');
+
+  const cardR2 = document.getElementById('card-r2');
+  const inR2 = document.getElementById('in-r2');
+
+  if (m === 'r2') {
+    cardR2.classList.add('locked');
+    inR2.disabled = true;
+    // Adaugă câmp Vout dacă nu există — valoare implicită = Vout curent calculat din R1/R2/Vin
+    if (!document.getElementById('card-vout')) {
+      const vin = parseFloat(document.getElementById('in-vin').value) || 0;
+      const r1 = parseFloat(document.getElementById('in-r1').value) || 0;
+      const r2 = parseFloat(document.getElementById('in-r2').value) || 0;
+      const currentVout = (r1 + r2) > 0 ? vin * r2 / (r1 + r2) : 0;
+
+      const grid = document.querySelector('.fields-grid');
+      const div = document.createElement('div');
+      div.className = 'field-card';
+      div.id = 'card-vout';
+      div.innerHTML = `
+        <div class="field-top"><span class="field-name">Vout dorit</span><span class="field-unit">V</span></div>
+        <input class="input-calc" id="in-vout-target" type="number" min="0" step="any" value="${trim(currentVout)}"
+               style="--input-color:var(--accent);font-size:1.05rem" oninput="compute()">
+      `;
+      grid.appendChild(div);
+    }
+  } else {
+    cardR2.classList.remove('locked');
+    inR2.disabled = false;
+    document.getElementById('card-vout')?.remove();
+  }
+  compute();
+}
+
+function compute() {
+  const vin = parseFloat(document.getElementById('in-vin').value);
+  const r1 = parseFloat(document.getElementById('in-r1').value);
+  let r2 = parseFloat(document.getElementById('in-r2').value);
+
+  const main = document.getElementById('result-main');
+  const formula = document.getElementById('result-formula');
+
+  if (mode === 'vout') {
+    if (isNaN(vin) || isNaN(r1) || isNaN(r2) || r1 < 0 || r2 < 0 || vin < 0) {
+      main.textContent = '—'; formula.textContent = 'Completează toate câmpurile';
+      clearInfo(); renderCircuit(null); return;
+    }
+    if (r1 + r2 === 0) {
+      main.textContent = '—'; formula.textContent = 'R1 + R2 nu poate fi 0';
+      clearInfo(); renderCircuit(null); return;
+    }
+    const vout = vin * r2 / (r1 + r2);
+    main.textContent = trim(vout) + ' V';
+    formula.textContent = `Vout = Vin × R2/(R1+R2) = ${vin}V × ${fmtOhm(r2)}/(${fmtOhm(r1)}+${fmtOhm(r2)})`;
+    updateInfo(vin, r1, r2, vout);
+    renderCircuit({ vin, r1, r2, vout });
+  } else {
+    const voutTarget = parseFloat(document.getElementById('in-vout-target')?.value);
+    if (isNaN(vin) || isNaN(r1) || isNaN(voutTarget) || r1 <= 0 || vin <= 0) {
+      main.textContent = '—'; formula.textContent = 'Completează toate câmpurile';
+      clearInfo(); renderCircuit(null); return;
+    }
+    if (voutTarget >= vin) {
+      main.textContent = '—'; formula.textContent = 'Vout dorit trebuie să fie mai mic decât Vin';
+      clearInfo(); renderCircuit(null); return;
+    }
+    if (voutTarget <= 0) {
+      main.textContent = '—'; formula.textContent = 'Vout dorit trebuie să fie pozitiv';
+      clearInfo(); renderCircuit(null); return;
+    }
+    const r2calc = r1 * voutTarget / (vin - voutTarget);
+    document.getElementById('in-r2').value = trim(r2calc);
+    main.textContent = fmtOhm(r2calc);
+    formula.textContent = `R2 = R1 × Vout/(Vin−Vout) = ${fmtOhm(r1)} × ${voutTarget}V/(${vin}V−${voutTarget}V)`;
+    updateInfo(vin, r1, r2calc, voutTarget);
+    renderCircuit({ vin, r1, r2: r2calc, vout: voutTarget });
+  }
+}
+
+function updateInfo(vin, r1, r2, vout) {
+  const ratio = r2 / (r1 + r2);
+  const current = vin / (r1 + r2);
+  const power = vin * current;
+  document.getElementById('info-ratio').textContent = trim(ratio);
+  document.getElementById('info-current').textContent = trim(current*1000) + ' mA';
+  document.getElementById('info-power').textContent = trim(power*1000) + ' mW';
+}
+function clearInfo() {
+  document.getElementById('info-ratio').textContent = '—';
+  document.getElementById('info-current').textContent = '—';
+  document.getElementById('info-power').textContent = '—';
+}
+
+function renderCircuit(data) {
+  const wrap = document.getElementById('circuit-wrap');
+  const w = 280, h = 200;
+  let svg = `<svg class="circuit-svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`;
+
+  const topY = 20, botY = 180, x = 80;
+  const r1BoxY = 40, r2BoxY = 120, boxW = 60, boxH = 26;
+  const midY = (r1BoxY + boxH + r2BoxY) / 2; // Vout tap point
+
+  // Fir sus (Vin) → R1
+  svg += `<line class="wire" x1="${x}" y1="${topY}" x2="${x}" y2="${r1BoxY}"/>`;
+  svg += `<rect class="r-box" x="${x-boxW/2}" y="${r1BoxY}" width="${boxW}" height="${boxH}" rx="4"/>`;
+  svg += `<text class="r-label" x="${x}" y="${r1BoxY+boxH/2+4}" text-anchor="middle">R1</text>`;
+  // Fir R1 → punct Vout → R2
+  svg += `<line class="wire" x1="${x}" y1="${r1BoxY+boxH}" x2="${x}" y2="${r2BoxY}"/>`;
+  svg += `<rect class="r-box" x="${x-boxW/2}" y="${r2BoxY}" width="${boxW}" height="${boxH}" rx="4"/>`;
+  svg += `<text class="r-label" x="${x}" y="${r2BoxY+boxH/2+4}" text-anchor="middle">R2</text>`;
+  // Fir R2 → GND
+  svg += `<line class="wire" x1="${x}" y1="${r2BoxY+boxH}" x2="${x}" y2="${botY}"/>`;
+
+  // GND symbol
+  svg += `<line class="wire" x1="${x-14}" y1="${botY}" x2="${x+14}" y2="${botY}"/>`;
+  svg += `<line class="wire" x1="${x-9}" y1="${botY+6}" x2="${x+9}" y2="${botY+6}"/>`;
+  svg += `<line class="wire" x1="${x-4}" y1="${botY+12}" x2="${x+4}" y2="${botY+12}"/>`;
+
+  // Punct Vout tap (la joncțiunea R1-R2)
+  const tapY = r1BoxY + boxH + (r2BoxY - (r1BoxY+boxH))/2;
+  svg += `<circle class="vout-dot" cx="${x}" cy="${tapY}" r="3.5"/>`;
+  svg += `<line class="vout-line" x1="${x}" y1="${tapY}" x2="${x+70}" y2="${tapY}"/>`;
+  svg += `<text x="${x+76}" y="${tapY+4}" text-anchor="start" class="r-label" style="fill:var(--accent)">Vout</text>`;
+
+  // Etichete valori
+  svg += `<text x="${x-38}" y="${topY+10}" text-anchor="end">${data?data.vin+'V':'Vin'}</text>`;
+  svg += `<text x="${x+38}" y="${r1BoxY+boxH/2+4}" text-anchor="start">${data?fmtOhm(data.r1):'—'}</text>`;
+  svg += `<text x="${x+38}" y="${r2BoxY+boxH/2+4}" text-anchor="start">${data?fmtOhm(data.r2):'—'}</text>`;
+  svg += `<text x="${x+76}" y="${tapY+18}" text-anchor="start" style="fill:var(--text3);font-size:9px">${data?trim(data.vout)+'V':''}</text>`;
+
+  svg += `</svg>`;
+  wrap.innerHTML = svg;
+}
+
+compute();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Divizor de tensiune</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

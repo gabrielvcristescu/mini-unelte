@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Faza Lunii — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #90d060;
+  --accent-dim: rgba(144,160,240,0.10);
+  --accent-border: rgba(144,160,240,0.28);
+}
+
+.field-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.field-name { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text2); font-weight: 500; margin-bottom: 8px; display: block; }
+
+/* ── Moon visual ── */
+.moon-wrap { display: flex; justify-content: center; padding: 1.5rem 0; }
+.moon-disc-wrap { position: relative; width: 140px; height: 140px; }
+.moon-svg { width: 100%; height: 100%; }
+
+.result-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  text-align: center;
+}
+.result-main {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1.3;
+}
+.result-sub { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text3); margin-top: 4px; }
+
+.info-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+@media (max-width: 500px) { .info-row { grid-template-columns: 1fr; } }
+.info-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  text-align: center;
+}
+.info-val { font-family: var(--font-mono); font-size: 0.95rem; font-weight: 500; color: var(--text); margin-bottom: 2px; }
+.info-key { font-family: var(--font-mono); font-size: 0.58rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; }
+
+/* ── Phase strip (8 phases) ── */
+.phase-strip {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 6px;
+}
+.phase-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.phase-item:hover { background: var(--bg3); }
+.phase-item.current { background: var(--accent-dim); border: 1px solid var(--accent-border); }
+.phase-icon-mini { width: 28px; height: 28px; }
+.phase-label { font-family: var(--font-mono); font-size: 0.55rem; color: var(--text3); text-align: center; line-height: 1.3; }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Faza lunii</h1>
+    <p>Calcul local din dată — ciclul sinodic lunar (~29.53 zile)</p>
+  </div>
+
+  <!-- Dată -->
+  <div class="field-card" style="margin-bottom:var(--content-gap)">
+    <span class="field-name">Dată</span>
+    <input class="input-calc" id="in-date" type="date"
+           style="--input-color:var(--accent);font-size:1rem" oninput="compute()">
+  </div>
+
+  <!-- Vizual lună -->
+  <div class="card" style="margin-bottom:var(--content-gap)">
+    <div class="moon-wrap">
+      <div class="moon-disc-wrap" id="moon-disc-wrap"></div>
+    </div>
+  </div>
+
+  <!-- Rezultat -->
+  <div class="result-card" style="margin-bottom:var(--content-gap)">
+    <div class="result-main" id="result-main">—</div>
+    <div class="result-sub" id="result-sub"></div>
+  </div>
+
+  <!-- Info -->
+  <div class="info-row" style="margin-bottom:var(--content-gap)">
+    <div class="info-card"><div class="info-val" id="info-illum">—</div><div class="info-key">iluminare</div></div>
+    <div class="info-card"><div class="info-val" id="info-age">—</div><div class="info-key">vârsta (zile)</div></div>
+    <div class="info-card"><div class="info-val" id="info-nextfull">—</div><div class="info-key">până la lună plină</div></div>
+  </div>
+
+  <!-- Cele 8 faze -->
+  <div class="card">
+    <div class="field-name" style="margin-bottom:10px">Cele 8 faze principale</div>
+    <div class="phase-strip" id="phase-strip"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+const SYNODIC_MONTH = 29.530588861;
+const REF_NEW_MOON = Date.UTC(2000, 0, 6, 18, 14); // referință J2000, lună nouă cunoscută
+
+const PHASES = [
+  { name: 'Lună nouă', min: 0.00, max: 0.03 },
+  { name: 'Semilună crescătoare', min: 0.03, max: 0.22 },
+  { name: 'Primul pătrar', min: 0.22, max: 0.28 },
+  { name: 'Gibboasă crescătoare', min: 0.28, max: 0.47 },
+  { name: 'Lună plină', min: 0.47, max: 0.53 },
+  { name: 'Gibboasă descrescătoare', min: 0.53, max: 0.72 },
+  { name: 'Ultimul pătrar', min: 0.72, max: 0.78 },
+  { name: 'Semilună descrescătoare', min: 0.78, max: 0.97 },
+];
+
+function trim(n) { return parseFloat(n.toPrecision(4)).toString(); }
+
+function moonPhaseFraction(date) {
+  const daysSince = (date.getTime() - REF_NEW_MOON) / 86400000;
+  let phase = (daysSince % SYNODIC_MONTH) / SYNODIC_MONTH;
+  if (phase < 0) phase += 1;
+  return phase;
+}
+
+function phaseName(phase) {
+  if (phase < 0.03 || phase > 0.97) return 'Lună nouă';
+  for (const p of PHASES) {
+    if (phase >= p.min && phase < p.max) return p.name;
+  }
+  return 'Semilună descrescătoare';
+}
+
+function illumination(phase) {
+  // Iluminare aproximată: 0 la lună nouă, 100 la lună plină, simetric
+  return (1 - Math.cos(phase * 2 * Math.PI)) / 2 * 100;
+}
+
+function drawMoon(container, phase, size) {
+  const r = size / 2 - 4;
+  const cx = size/2, cy = size/2;
+
+  // Determinăm forma umbrei folosind un elipsă care se mișcă
+  // phase: 0=nouă (întuneric complet), 0.5=plină (luminos complet)
+  const illuminatedFraction = phase <= 0.5 ? phase * 2 : (1 - phase) * 2;
+  const waxing = phase <= 0.5;
+
+  let svg = `<svg class="moon-svg" viewBox="0 0 ${size} ${size}">`;
+
+  // Fundal întunecat (partea neluminată)
+  svg += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="var(--bg4)" stroke="var(--border2)" stroke-width="1"/>`;
+
+  // Calculăm partea luminată ca o formă combinată (semicerc + elipsă)
+  const rx = r * Math.abs(Math.cos(phase * 2 * Math.PI));
+  const lightOnRight = phase < 0.5;
+
+  // Path pentru zona luminată
+  let path;
+  if (phase < 0.25) {
+    // Creștere de la nou la primul pătrar: semilună subțire pe dreapta
+    path = `M ${cx} ${cy-r} A ${r} ${r} 0 0 1 ${cx} ${cy+r} A ${rx} ${r} 0 0 ${phase<0.125?0:1} ${cx} ${cy-r} Z`;
+  } else if (phase < 0.5) {
+    // Primul pătrar la plină: gibboasă pe dreapta
+    path = `M ${cx} ${cy-r} A ${r} ${r} 0 0 1 ${cx} ${cy+r} A ${rx} ${r} 0 0 1 ${cx} ${cy-r} Z`;
+  } else if (phase < 0.75) {
+    // Plină la ultimul pătrar: gibboasă pe stânga
+    path = `M ${cx} ${cy-r} A ${r} ${r} 0 0 0 ${cx} ${cy+r} A ${rx} ${r} 0 0 0 ${cx} ${cy-r} Z`;
+  } else {
+    // Ultimul pătrar la nouă: semilună subțire pe stânga
+    path = `M ${cx} ${cy-r} A ${r} ${r} 0 0 0 ${cx} ${cy+r} A ${rx} ${r} 0 0 ${phase>0.875?0:1} ${cx} ${cy-r} Z`;
+  }
+
+  svg += `<clipPath id="moonclip-${size}"><circle cx="${cx}" cy="${cy}" r="${r}"/></clipPath>`;
+  svg += `<g clip-path="url(#moonclip-${size})">`;
+  svg += `<path d="${path}" fill="#f0e8d0"/>`;
+  svg += `</g>`;
+
+  svg += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--border2)" stroke-width="1"/>`;
+  svg += `</svg>`;
+
+  container.innerHTML = svg;
+}
+
+function daysToNextFull(date) {
+  const phase = moonPhaseFraction(date);
+  let daysUntilFull;
+  if (phase <= 0.5) {
+    daysUntilFull = (0.5 - phase) * SYNODIC_MONTH;
+  } else {
+    daysUntilFull = (1.5 - phase) * SYNODIC_MONTH;
+  }
+  return daysUntilFull;
+}
+
+function compute() {
+  const dateStr = document.getElementById('in-date').value;
+  if (!dateStr) return;
+
+  const date = new Date(dateStr + 'T12:00:00Z');
+  const phase = moonPhaseFraction(date);
+  const age = phase * SYNODIC_MONTH;
+  const illum = illumination(phase);
+  const name = phaseName(phase);
+
+  document.getElementById('result-main').textContent = name;
+  document.getElementById('result-sub').textContent = `${trim(illum)}% iluminare · ziua ${trim(age)} din ciclu`;
+
+  document.getElementById('info-illum').textContent = trim(illum) + '%';
+  document.getElementById('info-age').textContent = trim(age) + ' zile';
+  document.getElementById('info-nextfull').textContent = trim(daysToNextFull(date)) + ' zile';
+
+  drawMoon(document.getElementById('moon-disc-wrap'), phase, 140);
+
+  updatePhaseStrip(name);
+}
+
+function buildPhaseStrip() {
+  const strip = document.getElementById('phase-strip');
+  const midpoints = [0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875];
+  PHASES.forEach((p, i) => {
+    const item = document.createElement('div');
+    item.className = 'phase-item';
+    item.dataset.name = p.name;
+    const iconWrap = document.createElement('div');
+    iconWrap.className = 'phase-icon-mini';
+    drawMoon(iconWrap, midpoints[i], 28);
+    const label = document.createElement('div');
+    label.className = 'phase-label';
+    label.textContent = p.name;
+    item.appendChild(iconWrap);
+    item.appendChild(label);
+    strip.appendChild(item);
+  });
+}
+
+function updatePhaseStrip(currentName) {
+  document.querySelectorAll('.phase-item').forEach(item => {
+    item.classList.toggle('current', item.dataset.name === currentName);
+  });
+}
+
+const today = new Date();
+document.getElementById('in-date').value = today.toISOString().slice(0,10);
+
+buildPhaseStrip();
+compute();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Faza lunii</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

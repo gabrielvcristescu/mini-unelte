@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Morse Audio Trainer — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #e070a0;
+  --accent-dim: rgba(224,112,160,0.10);
+  --accent-border: rgba(224,112,160,0.28);
+}
+
+.level-row { display: flex; gap: 8px; align-items: center; margin-bottom: var(--content-gap); flex-wrap: wrap; }
+.level-btn {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 5px 12px;
+  border-radius: 99px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text2);
+  cursor: pointer;
+}
+.level-btn.active { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+.level-btn:disabled { opacity: 0.3; cursor: default; }
+
+.letters-active {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text3);
+  margin-bottom: var(--content-gap);
+  text-align: center;
+}
+.letters-active b { color: var(--accent); }
+
+.play-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 30px;
+  text-align: center;
+  margin-bottom: var(--content-gap);
+}
+.play-btn-big {
+  width: 90px; height: 90px;
+  border-radius: 50%;
+  border: 2px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-size: 2rem;
+  cursor: pointer;
+  transition: all 0.12s;
+  margin-bottom: 16px;
+}
+.play-btn-big:hover { filter: brightness(1.15); }
+
+.answer-input {
+  width: 100%;
+  text-align: center;
+  font-size: 1.8rem !important;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.feedback-msg { font-family: var(--font-mono); font-size: 0.9rem; font-weight: 700; margin-top: 12px; min-height: 1.4em; }
+.feedback-msg.correct { color: #4af0b0; }
+.feedback-msg.wrong { color: #f06060; }
+
+.stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: var(--content-gap); }
+.stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; text-align: center; }
+.stat-val { font-family: var(--font-mono); font-size: 0.95rem; font-weight: 600; color: var(--text); }
+.stat-key { font-family: var(--font-mono); font-size: 0.58rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+
+.speed-row { display: flex; align-items: center; gap: 10px; margin-bottom: var(--content-gap); }
+.speed-row input[type=range] { flex: 1; accent-color: var(--accent); }
+.speed-val { font-family: var(--font-mono); font-size: 0.78rem; color: var(--accent); width: 60px; text-align: right; }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Morse audio trainer</h1>
+    <p>Metoda Koch — înveți câteva caractere, adaugi altele pe măsură ce progresezi</p>
+  </div>
+
+  <div class="level-row" id="level-row"></div>
+  <div class="letters-active" id="letters-active"></div>
+
+  <div class="speed-row">
+    <span style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text3)">Viteză</span>
+    <input type="range" id="s-speed" min="10" max="30" value="18" oninput="onSpeedChange()">
+    <span class="speed-val" id="v-speed">18 WPM</span>
+  </div>
+
+  <div class="play-card">
+    <button class="play-btn-big" onclick="playCurrent()">🔊</button>
+    <input class="input-calc answer-input" id="in-answer" type="text" maxlength="1" placeholder="?"
+           oninput="checkAnswer()" autocomplete="off">
+    <div class="feedback-msg" id="feedback-msg"></div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-val" id="stat-correct">0</div><div class="stat-key">corecte</div></div>
+    <div class="stat-card"><div class="stat-val" id="stat-total">0</div><div class="stat-key">total</div></div>
+    <div class="stat-card"><div class="stat-val" id="stat-accuracy">—</div><div class="stat-key">acuratețe</div></div>
+  </div>
+</div>
+
+<script>
+// Metoda Koch: ordinea standard de introducere a caracterelor (nu alfabetică — optimizată pt. învățare)
+const KOCH_ORDER = ['K','M','R','S','U','A','P','T','L','O','W','I','.','N','J','E','F','0','Y','V',
+                     'G','5','Q','9','Z','H','3','8','B','?','4','2','7','C','1','D','6','X'];
+
+const MORSE_MAP = {
+  A:'.-', B:'-...', C:'-.-.', D:'-..', E:'.', F:'..-.', G:'--.', H:'....',
+  I:'..', J:'.---', K:'-.-', L:'.-..', M:'--', N:'-.', O:'---', P:'.--.',
+  Q:'--.-', R:'.-.', S:'...', T:'-', U:'..-', V:'...-', W:'.--', X:'-..-',
+  Y:'-.--', Z:'--..',
+  '0':'-----','1':'.----','2':'..---','3':'...--','4':'....-',
+  '5':'.....','6':'-....','7':'--...','8':'---..','9':'----.',
+  '.':'.-.-.-', '?':'..--..',
+};
+
+let currentLevel = 5; // pornim cu primele 5 caractere (K M R S U)
+let currentLetter = '';
+let correct = 0, total = 0;
+let audioCtx = null;
+
+function buildLevelRow() {
+  const wrap = document.getElementById('level-row');
+  wrap.innerHTML = '';
+  for (let lvl = 2; lvl <= KOCH_ORDER.length; lvl += 1) {
+    if (lvl !== 2 && lvl % 3 !== 0 && lvl !== KOCH_ORDER.length) continue; // afișăm doar câteva praguri, nu toate
+    const btn = document.createElement('div');
+    btn.className = 'level-btn' + (lvl===currentLevel?' active':'');
+    btn.textContent = lvl + ' caractere';
+    btn.onclick = () => {
+      currentLevel = lvl;
+      buildLevelRow();
+      updateActiveLetters();
+      nextLetter();
+    };
+    wrap.appendChild(btn);
+  }
+}
+
+function updateActiveLetters() {
+  const active = KOCH_ORDER.slice(0, currentLevel);
+  document.getElementById('letters-active').innerHTML =
+    `Caractere active: <b>${active.join(' ')}</b>`;
+}
+
+function onSpeedChange() {
+  document.getElementById('v-speed').textContent = document.getElementById('s-speed').value + ' WPM';
+}
+
+function nextLetter(autoPlay = true) {
+  const pool = KOCH_ORDER.slice(0, currentLevel);
+  currentLetter = pool[Math.floor(Math.random()*pool.length)];
+  document.getElementById('in-answer').value = '';
+  document.getElementById('feedback-msg').textContent = '';
+  document.getElementById('feedback-msg').className = 'feedback-msg';
+  if (autoPlay) playCurrent();
+}
+
+function playCurrent() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const code = MORSE_MAP[currentLetter];
+  const wpm = parseInt(document.getElementById('s-speed').value);
+  const unit = (1200/wpm)/1000;
+
+  let t = audioCtx.currentTime + 0.1;
+  [...code].forEach(sym => {
+    const dur = sym === '.' ? unit : unit*3;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.frequency.value = 600;
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.3, t+0.005);
+    gain.gain.setValueAtTime(0.3, t+dur-0.005);
+    gain.gain.linearRampToValueAtTime(0, t+dur);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(t);
+    osc.stop(t+dur);
+    t += dur + unit;
+  });
+}
+
+function checkAnswer() {
+  const val = document.getElementById('in-answer').value.toUpperCase();
+  if (!val) return;
+
+  total++;
+  const isCorrect = val === currentLetter;
+  if (isCorrect) correct++;
+
+  document.getElementById('stat-correct').textContent = correct;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-accuracy').textContent = Math.round((correct/total)*100) + '%';
+
+  const feedbackEl = document.getElementById('feedback-msg');
+  if (isCorrect) {
+    feedbackEl.textContent = '✓ Corect!';
+    feedbackEl.className = 'feedback-msg correct';
+  } else {
+    feedbackEl.textContent = `✕ Era "${currentLetter}"`;
+    feedbackEl.className = 'feedback-msg wrong';
+  }
+
+  setTimeout(nextLetter, 1000);
+}
+
+buildLevelRow();
+updateActiveLetters();
+nextLetter(false);
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Morse audio trainer</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

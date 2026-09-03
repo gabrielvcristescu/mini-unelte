@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cod Culori Rezistoare — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #70d0f0;
+  --accent-dim: rgba(240,160,64,0.10);
+  --accent-border: rgba(240,160,64,0.28);
+}
+
+/* ── Mod toggle ── */
+.mode-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: var(--content-gap);
+}
+.mode-btn {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.mode-btn.active {
+  background: var(--accent-dim);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+/* ── Rezistor SVG ── */
+.resistor-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1.5rem 1rem;
+}
+.resistor-body {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  position: relative;
+}
+.r-wire {
+  height: 3px;
+  background: var(--text3);
+  flex-shrink: 0;
+}
+.r-wire-l { width: 48px; border-radius: 2px 0 0 2px; }
+.r-wire-r { width: 48px; border-radius: 0 2px 2px 0; }
+.r-case {
+  display: flex;
+  align-items: stretch;
+  border-radius: 6px;
+  overflow: hidden;
+  height: 36px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.15);
+  position: relative;
+}
+.r-band {
+  width: 18px;
+  flex-shrink: 0;
+  transition: background 0.2s;
+  position: relative;
+}
+.r-band-gap { width: 10px; background: #c8a870; flex-shrink: 0; }
+.r-band-gap-wide { width: 16px; background: #c8a870; flex-shrink: 0; }
+[data-theme="light"] .r-band-gap,
+[data-theme="light"] .r-band-gap-wide { background: #d4b882; }
+
+/* ── Band selectors ── */
+.bands-grid {
+  display: grid;
+  gap: var(--content-gap);
+}
+.bands-4 { grid-template-columns: repeat(4, 1fr); }
+.bands-5 { grid-template-columns: repeat(5, 1fr); }
+@media (max-width: 600px) {
+  .bands-4, .bands-5 { grid-template-columns: 1fr 1fr; }
+}
+
+.band-select {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+.band-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 8px;
+}
+.color-options {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.color-opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.1s;
+  border: 1px solid transparent;
+}
+.color-opt:hover { background: var(--bg3); }
+.color-opt.selected {
+  background: var(--bg3);
+  border-color: var(--border2);
+}
+.color-swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+.color-name {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text2);
+  flex: 1;
+}
+.color-value {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text3);
+  text-align: right;
+}
+
+/* ── Rezultat ── */
+.result-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+}
+.result-main {
+  font-family: var(--font-mono);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1.2;
+  margin-bottom: 4px;
+  word-break: break-all;
+}
+.result-sub {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.result-item { font-family: var(--font-mono); font-size: 0.72rem; }
+.result-item .ri-label { color: var(--text3); margin-bottom: 2px; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.08em; }
+.result-item .ri-val { color: var(--text2); }
+
+/* ── Tabel referință ── */
+.ref-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+.ref-table th {
+  text-align: left;
+  color: var(--text3);
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.ref-table td {
+  padding: 4px 10px;
+  border-bottom: 1px solid rgba(128,128,128,0.05);
+  color: var(--text2);
+}
+.ref-table tr:last-child td { border-bottom: none; }
+.ref-table tr:hover td { background: var(--bg3); }
+.swatch-cell { display: flex; align-items: center; gap: 8px; }
+.mini-swatch {
+  width: 14px; height: 14px;
+  border-radius: 2px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  flex-shrink: 0;
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Cod culori rezistoare</h1>
+    <p>Culori → valoare · Valoare → culori</p>
+  </div>
+
+  <!-- Direcție + benzi -->
+  <div class="mode-row" style="flex-wrap:wrap;gap:8px;align-items:center">
+    <button class="mode-btn active" id="btn-fwd" onclick="setDir('fwd')">Culori → Valoare</button>
+    <button class="mode-btn" id="btn-rev" onclick="setDir('rev')">Valoare → Culori</button>
+    <div style="width:1px;height:20px;background:var(--border);margin:0 4px"></div>
+    <button class="mode-btn active" id="btn-4" onclick="setMode(4)">4 benzi</button>
+    <button class="mode-btn" id="btn-5" onclick="setMode(5)">5 benzi</button>
+  </div>
+
+  <!-- Input invers (valoare → culori) -->
+  <div id="rev-section" style="display:none;margin-bottom:var(--content-gap)">
+    <div class="card" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <div style="flex:1;min-width:180px">
+        <div class="band-label" style="margin-bottom:6px">Valoare (Ω)</div>
+        <input class="input-calc" id="rev-input" type="number" placeholder="ex: 4700" min="0" step="any"
+               style="--input-color:var(--accent)" oninput="computeReverse()">
+      </div>
+      <div style="flex:1;min-width:160px">
+        <div class="band-label" style="margin-bottom:6px">Toleranță</div>
+        <select id="rev-tol" onchange="computeReverse()"
+                style="font-family:var(--font-mono);font-size:0.85rem;padding:6px 10px;width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);outline:none">
+          <option value="5">±5% (Auriu)</option>
+          <option value="10">±10% (Argintiu)</option>
+          <option value="1">±1% (Maro)</option>
+          <option value="2">±2% (Roșu)</option>
+          <option value="0.5">±0.5% (Verde)</option>
+          <option value="20">±20% (Niciunul)</option>
+        </select>
+      </div>
+    </div>
+    <div id="rev-result" style="margin-top:var(--content-gap)"></div>
+  </div>
+
+  <!-- Rezistor vizual -->
+  <div class="card" style="margin-bottom:var(--content-gap)">
+    <div class="resistor-wrap">
+      <div class="resistor-body">
+        <div class="r-wire r-wire-l"></div>
+        <div class="r-case" id="r-case"></div>
+        <div class="r-wire r-wire-r"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rezultat -->
+  <div class="result-card" style="margin-bottom:var(--content-gap)" id="result-card">
+    <div class="result-main" id="result-main">—</div>
+    <div class="result-sub" id="result-sub"></div>
+  </div>
+
+  <!-- Selectoare benzi -->
+  <div class="bands-grid bands-4" id="bands-grid" style="margin-bottom:var(--content-gap)"></div>
+
+  <!-- Tabel referință -->
+  <div class="card">
+    <div class="band-label" style="margin-bottom:10px">Tabel de referință</div>
+    <table class="ref-table" id="ref-table"></table>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+const COLORS = [
+  { name:'Negru',   hex:'#1a1a1a', digit:0,  mult:1,         tol:null,   ppm:250 },
+  { name:'Maro',    hex:'#8B4513', digit:1,  mult:10,        tol:1,      ppm:100 },
+  { name:'Roșu',    hex:'#cc2222', digit:2,  mult:100,       tol:2,      ppm:50  },
+  { name:'Portocaliu', hex:'#e87020', digit:3, mult:1000,    tol:null,   ppm:15  },
+  { name:'Galben',  hex:'#d4c020', digit:4,  mult:10000,     tol:null,   ppm:25  },
+  { name:'Verde',   hex:'#228822', digit:5,  mult:100000,    tol:0.5,    ppm:20  },
+  { name:'Albastru',hex:'#2255cc', digit:6,  mult:1000000,   tol:0.25,   ppm:10  },
+  { name:'Violet',  hex:'#882288', digit:7,  mult:10000000,  tol:0.1,    ppm:5   },
+  { name:'Gri',     hex:'#888888', digit:8,  mult:100000000, tol:0.05,   ppm:1   },
+  { name:'Alb',     hex:'#eeeeee', digit:9,  mult:1000000000,tol:null,   ppm:null},
+  { name:'Auriu',   hex:'#c8a020', digit:null,mult:0.1,      tol:5,      ppm:null},
+  { name:'Argintiu',hex:'#aaaaaa', digit:null,mult:0.01,     tol:10,     ppm:null},
+  { name:'Niciunul',hex:'transparent', digit:null, mult:null, tol:20,    ppm:null},
+];
+
+// Indexuri implicite
+// 4 benzi: D1=maro(1), D2=negru(0), Mult=roșu(2)→×100=100Ω, Tol=auriu(10)→5%
+// 5 benzi: D1=maro(1), D2=negru(0), D3=negru(0), Mult=maro(1)→×10=100Ω, Tol=maro(1)→1%
+let mode = 4;
+let sel = [1, 0, 2, 10];   // 4 benzi default
+let sel5 = [1, 0, 0, 1, 1]; // 5 benzi default
+
+function getSelected() { return mode === 4 ? sel : sel5; }
+
+// Benzi disponibile per poziție
+function availableFor(pos) {
+  const s = getSelected();
+  const last = (mode === 4 ? 3 : 4);
+  if (pos === last) {
+    // Toleranță: maro, roșu, verde, albastru, violet, gri, auriu, argintiu, niciunul
+    return [1,2,5,6,7,8,10,11,12];
+  }
+  if (pos === last - 1) {
+    // Multiplicator: toate cu mult valid
+    return COLORS.map((c,i) => c.mult !== null ? i : -1).filter(i => i >= 0);
+  }
+  // Cifre: 0-9
+  return COLORS.map((c,i) => c.digit !== null ? i : -1).filter(i => i >= 0);
+}
+
+function compute() {
+  const s = getSelected();
+  let value, tol, ppm;
+
+  if (mode === 4) {
+    const d1 = COLORS[s[0]].digit;
+    const d2 = COLORS[s[1]].digit;
+    const mult = COLORS[s[2]].mult;
+    tol = COLORS[s[3]].tol;
+    ppm = COLORS[s[3]].ppm;
+    if (d1 === null || d2 === null || mult === null) return null;
+    value = (d1 * 10 + d2) * mult;
+  } else {
+    const d1 = COLORS[s[0]].digit;
+    const d2 = COLORS[s[1]].digit;
+    const d3 = COLORS[s[2]].digit;
+    const mult = COLORS[s[3]].mult;
+    tol = COLORS[s[4]].tol;
+    ppm = COLORS[s[4]].ppm;
+    if (d1 === null || d2 === null || d3 === null || mult === null) return null;
+    value = (d1 * 100 + d2 * 10 + d3) * mult;
+  }
+  return { value, tol, ppm };
+}
+
+function fmtOhm(v) {
+  if (v >= 1e9)  return (v/1e9).toPrecision(4).replace(/\.?0+$/,'') + ' GΩ';
+  if (v >= 1e6)  return (v/1e6).toPrecision(4).replace(/\.?0+$/,'') + ' MΩ';
+  if (v >= 1e3)  return (v/1e3).toPrecision(4).replace(/\.?0+$/,'') + ' kΩ';
+  return v.toPrecision(4).replace(/\.?0+$/,'') + ' Ω';
+}
+
+function renderResistor() {
+  const s = getSelected();
+  const rcase = document.getElementById('r-case');
+  rcase.innerHTML = '';
+
+  const colors = mode === 4
+    ? [s[0], s[1], s[2], null, s[3]]   // D1 D2 Mult gap Tol
+    : [s[0], s[1], s[2], s[3], null, s[4]]; // D1 D2 D3 Mult gap Tol
+
+  // Construim benzile cu gap-uri
+  const layout = mode === 4
+    ? ['b','b','b','gap-wide','b']
+    : ['b','b','b','b','gap-wide','b'];
+
+  let bi = 0;
+  layout.forEach(type => {
+    const div = document.createElement('div');
+    if (type === 'gap-wide') {
+      div.className = 'r-band-gap-wide';
+    } else {
+      div.className = 'r-band';
+      const cidx = s[bi];
+      const c = COLORS[cidx];
+      div.style.background = c.hex === 'transparent'
+        ? '#c8a870'
+        : c.hex;
+      bi++;
+    }
+    rcase.appendChild(div);
+  });
+
+  // Body background (beige)
+  rcase.style.background = '#c8a870';
+}
+
+function renderResult() {
+  const res = compute();
+  const main = document.getElementById('result-main');
+  const sub = document.getElementById('result-sub');
+
+  if (!res) { main.textContent = '—'; sub.innerHTML = ''; return; }
+
+  main.textContent = fmtOhm(res.value);
+
+  const tolStr = res.tol !== null ? '±' + res.tol + '%' : '±20%';
+  const ppmStr = res.ppm !== null ? res.ppm + ' ppm/°C' : '—';
+  const minV = res.value * (1 - (res.tol ?? 20)/100);
+  const maxV = res.value * (1 + (res.tol ?? 20)/100);
+
+  sub.innerHTML = `
+    <div class="result-item">
+      <div class="ri-label">Toleranță</div>
+      <div class="ri-val">${tolStr}</div>
+    </div>
+    <div class="result-item">
+      <div class="ri-label">Interval</div>
+      <div class="ri-val">${fmtOhm(minV)} – ${fmtOhm(maxV)}</div>
+    </div>
+    <div class="result-item">
+      <div class="ri-label">Coef. temp.</div>
+      <div class="ri-val">${ppmStr}</div>
+    </div>
+    <div class="result-item">
+      <div class="ri-label">Valoare exactă</div>
+      <div class="ri-val">${res.value.toLocaleString('ro-RO')} Ω</div>
+    </div>
+  `;
+}
+
+function renderBands() {
+  const grid = document.getElementById('bands-grid');
+  grid.className = 'bands-grid ' + (mode === 4 ? 'bands-4' : 'bands-5');
+  grid.innerHTML = '';
+
+  const s = getSelected();
+  const count = mode === 4 ? 4 : 5;
+  const labels4 = ['Cifra 1', 'Cifra 2', 'Multiplicator', 'Toleranță'];
+  const labels5 = ['Cifra 1', 'Cifra 2', 'Cifra 3', 'Multiplicator', 'Toleranță'];
+  const labels = mode === 4 ? labels4 : labels5;
+
+  for (let pos = 0; pos < count; pos++) {
+    const avail = availableFor(pos);
+    const card = document.createElement('div');
+    card.className = 'band-select';
+
+    const lbl = document.createElement('div');
+    lbl.className = 'band-label';
+    lbl.textContent = labels[pos];
+    card.appendChild(lbl);
+
+    const opts = document.createElement('div');
+    opts.className = 'color-options';
+
+    avail.forEach(ci => {
+      const c = COLORS[ci];
+      const opt = document.createElement('div');
+      opt.className = 'color-opt' + (s[pos] === ci ? ' selected' : '');
+      opt.innerHTML = `
+        <div class="color-swatch" style="background:${c.hex === 'transparent' ? 'var(--bg3)' : c.hex};${c.hex === '#eeeeee' || c.hex === '#aaaaaa' || c.hex === '#888888' ? 'border:1px solid var(--border2)' : ''}"></div>
+        <span class="color-name">${c.name}</span>
+        <span class="color-value">${fmtOptVal(ci, pos)}</span>
+      `;
+      opt.onclick = () => {
+        if (mode === 4) sel[pos] = ci;
+        else sel5[pos] = ci;
+        render();
+      };
+      opts.appendChild(opt);
+    });
+
+    card.appendChild(opts);
+    grid.appendChild(card);
+  }
+}
+
+function fmtOptVal(ci, pos) {
+  const c = COLORS[ci];
+  const last = mode === 4 ? 3 : 4;
+  if (pos === last) return c.tol !== null ? '±' + c.tol + '%' : '±20%';
+  if (pos === last - 1) {
+    if (c.mult === null) return '';
+    if (c.mult >= 1e9) return '×' + (c.mult/1e9) + 'G';
+    if (c.mult >= 1e6) return '×' + (c.mult/1e6) + 'M';
+    if (c.mult >= 1e3) return '×' + (c.mult/1e3) + 'k';
+    return '×' + c.mult;
+  }
+  return c.digit !== null ? String(c.digit) : '';
+}
+
+function renderRefTable() {
+  const table = document.getElementById('ref-table');
+  table.innerHTML = `
+    <thead>
+      <tr>
+        <th>Culoare</th>
+        <th>Cifră</th>
+        <th>Multiplicator</th>
+        <th>Toleranță</th>
+        <th>ppm/°C</th>
+      </tr>
+    </thead>
+  `;
+  const tbody = document.createElement('tbody');
+  COLORS.filter(c => c.name !== 'Niciunul').forEach(c => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><div class="swatch-cell">
+        <div class="mini-swatch" style="background:${c.hex === 'transparent' ? 'var(--bg3)' : c.hex};${['#eeeeee','#aaaaaa','#888888'].includes(c.hex) ? 'border:1px solid var(--border2)' : ''}"></div>
+        ${c.name}
+      </div></td>
+      <td>${c.digit !== null ? c.digit : '—'}</td>
+      <td>${c.mult !== null ? (c.mult >= 1e9 ? (c.mult/1e9)+'G' : c.mult >= 1e6 ? (c.mult/1e6)+'M' : c.mult >= 1e3 ? (c.mult/1e3)+'k' : c.mult) : '—'}</td>
+      <td>${c.tol !== null ? '±'+c.tol+'%' : c.name === 'Niciunul' ? '±20%' : '—'}</td>
+      <td>${c.ppm !== null ? c.ppm : '—'}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+}
+
+function render() {
+  renderResistor();
+  renderResult();
+  renderBands();
+}
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('btn-4').classList.toggle('active', m === 4);
+  document.getElementById('btn-5').classList.toggle('active', m === 5);
+  render();
+}
+
+renderRefTable();
+render();
+
+// ── Direcție ──
+let direction = 'fwd';
+
+function setDir(d) {
+  direction = d;
+  document.getElementById('btn-fwd').classList.toggle('active', d === 'fwd');
+  document.getElementById('btn-rev').classList.toggle('active', d === 'rev');
+  document.getElementById('rev-section').style.display = d === 'rev' ? 'block' : 'none';
+  // Ascunde/arată secțiunile de forward
+  const fwdEls = ['bands-grid', 'result-card'];
+  fwdEls.forEach(id => {
+    document.getElementById(id).style.display = d === 'fwd' ? '' : 'none';
+  });
+  if (d === 'rev') computeReverse();
+}
+
+// Seriile E — valori verificate IEC 60063, stocate ca 1.0–9.76
+const SERIES = {
+  E6:  [1.0, 1.5, 2.2, 3.3, 4.7, 6.8],
+  E12: [1.0, 1.2, 1.5, 1.8, 2.2, 2.7, 3.3, 3.9, 4.7, 5.6, 6.8, 8.2],
+  E24: [1.0, 1.1, 1.2, 1.3, 1.5, 1.6, 1.8, 2.0, 2.2, 2.4, 2.7, 3.0,
+        3.3, 3.6, 3.9, 4.3, 4.7, 5.1, 5.6, 6.2, 6.8, 7.5, 8.2, 9.1],
+  E96: [1.00,1.02,1.05,1.07,1.10,1.13,1.15,1.18,1.21,1.24,1.27,1.30,
+        1.33,1.37,1.40,1.43,1.47,1.50,1.54,1.58,1.62,1.65,1.69,1.74,
+        1.78,1.82,1.87,1.91,1.96,2.00,2.05,2.10,2.15,2.21,2.26,2.32,
+        2.37,2.43,2.49,2.55,2.61,2.67,2.74,2.80,2.87,2.94,3.01,3.09,
+        3.16,3.24,3.32,3.40,3.48,3.57,3.65,3.74,3.83,3.92,4.02,4.12,
+        4.22,4.32,4.42,4.53,4.64,4.75,4.87,4.99,5.11,5.23,5.36,5.49,
+        5.62,5.76,5.90,6.04,6.19,6.34,6.49,6.65,6.81,6.98,7.15,7.32,
+        7.50,7.68,7.87,8.06,8.25,8.45,8.66,8.87,9.09,9.31,9.53,9.76],
+};
+
+// Toleranță → seria E corectă (IEC 60063)
+// 4 benzi (2 cifre): E6=±20%, E12=±10%, E24=±5% și mai strict
+// 5 benzi (3 cifre): E24=±2%+, E96=±1% și mai strict
+function seriesForTol(tolVal, mode4) {
+  if (mode4) {
+    if (tolVal >= 20) return { name:'E6',  data:SERIES.E6  };
+    if (tolVal >= 10) return { name:'E12', data:SERIES.E12 };
+    return              { name:'E24', data:SERIES.E24 };
+  } else {
+    if (tolVal >= 2)  return { name:'E24', data:SERIES.E24 };
+    return              { name:'E96', data:SERIES.E96 };
+  }
+}
+
+// Găsește cea mai apropiată valoare din seria E
+function nearestE(value, tolVal, mode4) {
+  if (value <= 0) return null;
+  const { data } = seriesForTol(tolVal, mode4);
+  const exp = Math.floor(Math.log10(value));
+  const baseVal = value / Math.pow(10, exp); // normalizat la 1.0–9.99
+  const nearest = data.reduce((best, s) =>
+    Math.abs(s - baseVal) < Math.abs(best - baseVal) ? s : best
+  );
+  return nearest * Math.pow(10, exp);
+}
+
+
+function valueToBands(value, tolIdx) {
+  const mults = COLORS
+    .map((col, idx) => ({ mult: col.mult, idx }))
+    .filter(m => m.mult !== null);
+
+  if (mode === 4) {
+    for (const m of mults) {
+      const base = value / m.mult;
+      const rounded = Math.round(base);
+      if (rounded < 10 || rounded > 99) continue;
+      if (Math.abs(base - rounded) > 0.5) continue;
+      const d1 = Math.floor(rounded / 10);
+      const d2 = rounded % 10;
+      const c1 = COLORS.findIndex(c => c.digit === d1);
+      const c2 = COLORS.findIndex(c => c.digit === d2);
+      if (c1 >= 0 && c2 >= 0) return [c1, c2, m.idx, tolIdx];
+    }
+  } else {
+    for (const m of mults) {
+      const base = value / m.mult;
+      const rounded = Math.round(base);
+      if (rounded < 100 || rounded > 999) continue;
+      if (Math.abs(base - rounded) > 0.5) continue;
+      const d1 = Math.floor(rounded / 100);
+      const d2 = Math.floor((rounded % 100) / 10);
+      const d3 = rounded % 10;
+      const c1 = COLORS.findIndex(c => c.digit === d1);
+      const c2 = COLORS.findIndex(c => c.digit === d2);
+      const c3 = COLORS.findIndex(c => c.digit === d3);
+      if (c1 >= 0 && c2 >= 0 && c3 >= 0) return [c1, c2, c3, m.idx, tolIdx];
+    }
+  }
+  return null;
+}
+
+function computeReverse() {
+  const raw = parseFloat(document.getElementById('rev-input').value);
+  const tolVal = parseFloat(document.getElementById('rev-tol').value);
+  const container = document.getElementById('rev-result');
+
+  if (isNaN(raw) || raw <= 0) { container.innerHTML = ''; return; }
+
+  const tolColorMap = { 1:1, 2:2, 0.5:5, 0.25:6, 0.1:7, 0.05:8, 5:10, 10:11, 20:12 };
+  const tolIdx = tolColorMap[tolVal] ?? 10;
+
+  // Găsim cea mai apropiată valoare din seria E
+  const snapped = nearestE(raw, tolVal, mode === 4);
+  const wasRounded = snapped !== null && Math.abs(snapped - raw) / raw > 0.001;
+
+  const valueToUse = snapped ?? raw;
+  const bands = valueToBands(valueToUse, tolIdx);
+
+  if (!bands) {
+    container.innerHTML = `<div class="card" style="color:var(--text3);font-family:var(--font-mono);font-size:0.8rem">
+      Nu s-a putut reprezenta valoarea. Intervalul suportat: 1Ω – 9.9GΩ.
+    </div>`;
+    return;
+  }
+
+  // Actualizăm rezistorul vizual
+  if (mode === 4) sel = bands; else sel5 = bands;
+  renderResistor();
+
+  const names = bands.map(i => COLORS[i].name);
+  const hexes = bands.map(i => COLORS[i].hex);
+  const labelsN = mode === 4
+    ? ['Cifra 1','Cifra 2','Multiplicator','Toleranță']
+    : ['Cifra 1','Cifra 2','Cifra 3','Multiplicator','Toleranță'];
+
+  const roundedNote = wasRounded
+    ? `<div style="font-family:var(--font-mono);font-size:0.68rem;color:#f0a040;margin-bottom:10px;padding:6px 8px;background:rgba(240,160,64,0.08);border:1px solid rgba(240,160,64,0.2);border-radius:5px">
+        ⚠ ${fmtOhm(raw)} nu există în seria ${seriesForTol(tolVal, mode === 4).name} — rotunjit la <strong>${fmtOhm(valueToUse)}</strong>
+      </div>`
+    : '';
+
+  container.innerHTML = `
+    <div class="card">
+      ${roundedNote}
+      <div style="font-family:var(--font-mono);font-size:0.62rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px">
+        Benzi pentru ${fmtOhm(valueToUse)}
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        ${bands.map((ci,i) => `
+          <div style="display:flex;flex-direction:column;align-items:center;gap:5px;min-width:64px">
+            <div style="width:30px;height:30px;border-radius:5px;background:${hexes[i]==='transparent'?'var(--bg3)':hexes[i]};box-shadow:0 1px 4px rgba(0,0,0,0.3);${['#eeeeee','#aaaaaa','#888888'].includes(hexes[i])?'border:1px solid var(--border2)':''}"></div>
+            <div style="font-family:var(--font-mono);font-size:0.68rem;color:var(--text);text-align:center;font-weight:500">${names[i]}</div>
+            <div style="font-family:var(--font-mono);font-size:0.58rem;color:var(--text3);text-align:center">${labelsN[i]}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Cod culori rezistoare</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

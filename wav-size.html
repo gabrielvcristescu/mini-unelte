@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculator Dimensiune WAV — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #70d0f0;
+  --accent-dim: rgba(208,112,240,0.10);
+  --accent-border: rgba(208,112,240,0.28);
+}
+
+.fields-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--content-gap);
+}
+@media (max-width: 700px) { .fields-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 420px) { .fields-grid { grid-template-columns: 1fr; } }
+
+.field-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.field-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.field-name { font-family: var(--font-mono); font-size: 0.66rem; color: var(--text2); font-weight: 500; }
+.field-unit {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--text3);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
+.chip-row { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px; }
+.chip {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  padding: 3px 9px;
+  border-radius: 99px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.chip:hover { border-color: var(--accent-border); }
+.chip.active { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+
+.result-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  text-align: center;
+}
+.result-main {
+  font-family: var(--font-mono);
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1.2;
+}
+.result-formula { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text3); margin-top: 4px; }
+
+.info-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+@media (max-width: 500px) { .info-row { grid-template-columns: 1fr; } }
+.info-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  text-align: center;
+}
+.info-val { font-family: var(--font-mono); font-size: 0.95rem; font-weight: 500; color: var(--text); margin-bottom: 2px; }
+.info-key { font-family: var(--font-mono); font-size: 0.58rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; }
+
+.ref-table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.72rem; }
+.ref-table th { text-align: left; color: var(--text3); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.08em; padding: 5px 10px; border-bottom: 1px solid var(--border); }
+.ref-table th:not(:first-child) { text-align: center; }
+.ref-table td { padding: 4px 10px; border-bottom: 1px solid rgba(128,128,128,0.05); color: var(--text2); }
+.ref-table td:not(:first-child) { text-align: center; }
+.ref-table tr:hover td { background: var(--bg3); }
+.ref-table tr.highlight td { background: rgba(208,112,240,0.06); }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Calculator dimensiune WAV</h1>
+    <p>Sample rate, bit depth, canale, durată → dimensiune fișier necomprimat</p>
+  </div>
+
+  <!-- Câmpuri -->
+  <div class="fields-grid" style="margin-bottom:var(--content-gap)">
+    <div class="field-card">
+      <div class="field-top"><span class="field-name">Sample rate</span><span class="field-unit">Hz</span></div>
+      <input class="input-calc" id="in-rate" type="number" min="1" step="1" value="48000"
+             style="--input-color:var(--accent);font-size:0.95rem" oninput="compute()">
+      <div class="chip-row" id="rate-chips"></div>
+    </div>
+    <div class="field-card">
+      <div class="field-top"><span class="field-name">Bit depth</span><span class="field-unit">bit</span></div>
+      <input class="input-calc" id="in-bits" type="number" min="1" step="1" value="16"
+             style="--input-color:var(--accent);font-size:0.95rem" oninput="compute()">
+      <div class="chip-row" id="bits-chips"></div>
+    </div>
+    <div class="field-card">
+      <div class="field-top"><span class="field-name">Canale</span></div>
+      <input class="input-calc" id="in-channels" type="number" min="1" step="1" value="2"
+             style="--input-color:var(--accent);font-size:0.95rem" oninput="compute()">
+      <div class="chip-row" id="channels-chips"></div>
+    </div>
+    <div class="field-card">
+      <div class="field-top">
+        <span class="field-name">Durată</span>
+        <select class="unit-select" id="duration-unit" onchange="compute()">
+          <option value="1" selected>secunde</option>
+          <option value="60">minute</option>
+        </select>
+      </div>
+      <input class="input-calc" id="in-duration" type="number" min="0" step="any" value="60"
+             style="--input-color:var(--accent);font-size:0.95rem" oninput="compute()">
+    </div>
+  </div>
+
+  <!-- Rezultat -->
+  <div class="result-card" style="margin-bottom:var(--content-gap)">
+    <div class="result-main" id="result-main">—</div>
+    <div class="result-formula" id="result-formula"></div>
+  </div>
+
+  <!-- Info -->
+  <div class="info-row" style="margin-bottom:var(--content-gap)">
+    <div class="info-card"><div class="info-val" id="info-bitrate">—</div><div class="info-key">bitrate necomprimat</div></div>
+    <div class="info-card"><div class="info-val" id="info-persec">—</div><div class="info-key">MB / secundă</div></div>
+    <div class="info-card"><div class="info-val" id="info-permin">—</div><div class="info-key">MB / minut</div></div>
+  </div>
+
+  <!-- Tabel comparativ -->
+  <div class="card">
+    <div class="field-name" style="margin-bottom:10px">Comparație rapidă (per minut, la durata curentă de canale/bits)</div>
+    <table class="ref-table" id="ref-table"></table>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+const RATES = [8000, 16000, 22050, 44100, 48000, 96000, 192000];
+const BITS = [8, 16, 24, 32];
+const CHANNELS = [1, 2];
+
+function trim(n) { return parseFloat(n.toPrecision(5)).toString(); }
+
+function fmtLabel(r) {
+  return r % 1000 === 0 ? (r/1000) + 'k' : trim(r/1000) + 'k';
+}
+
+function buildChips() {
+  const rateWrap = document.getElementById('rate-chips');
+  RATES.forEach(r => {
+    const c = document.createElement('div');
+    c.className = 'chip';
+    c.textContent = fmtLabel(r);
+    c.dataset.val = r;
+    c.onclick = () => { document.getElementById('in-rate').value = r; compute(); };
+    rateWrap.appendChild(c);
+  });
+
+  const bitsWrap = document.getElementById('bits-chips');
+  BITS.forEach(b => {
+    const c = document.createElement('div');
+    c.className = 'chip';
+    c.textContent = b;
+    c.dataset.val = b;
+    c.onclick = () => { document.getElementById('in-bits').value = b; compute(); };
+    bitsWrap.appendChild(c);
+  });
+
+  const chWrap = document.getElementById('channels-chips');
+  const chLabels = { 1: 'Mono', 2: 'Stereo' };
+  CHANNELS.forEach(ch => {
+    const c = document.createElement('div');
+    c.className = 'chip';
+    c.textContent = chLabels[ch];
+    c.dataset.val = ch;
+    c.onclick = () => { document.getElementById('in-channels').value = ch; compute(); };
+    chWrap.appendChild(c);
+  });
+}
+
+function updateChipActive() {
+  const rate = parseFloat(document.getElementById('in-rate').value);
+  const bits = parseFloat(document.getElementById('in-bits').value);
+  const ch = parseFloat(document.getElementById('in-channels').value);
+  document.querySelectorAll('#rate-chips .chip').forEach(c => c.classList.toggle('active', parseFloat(c.dataset.val)===rate));
+  document.querySelectorAll('#bits-chips .chip').forEach(c => c.classList.toggle('active', parseFloat(c.dataset.val)===bits));
+  document.querySelectorAll('#channels-chips .chip').forEach(c => c.classList.toggle('active', parseFloat(c.dataset.val)===ch));
+}
+
+function fmtSize(mb) {
+  if (mb >= 1024) return trim(mb/1024) + ' GB';
+  if (mb < 1) return trim(mb*1024) + ' KB';
+  return trim(mb) + ' MB';
+}
+
+function computeBytesPerSecond(rate, bits, channels) {
+  return rate * (bits/8) * channels;
+}
+
+function compute() {
+  const rate = parseFloat(document.getElementById('in-rate').value);
+  const bits = parseFloat(document.getElementById('in-bits').value);
+  const channels = parseFloat(document.getElementById('in-channels').value);
+  const durationRaw = parseFloat(document.getElementById('in-duration').value);
+  const durationUnitFactor = parseFloat(document.getElementById('duration-unit').value);
+  const duration = durationRaw * durationUnitFactor; // convertit la secunde
+
+  const main = document.getElementById('result-main');
+  const formula = document.getElementById('result-formula');
+
+  updateChipActive();
+
+  if ([rate,bits,channels,durationRaw].some(v => isNaN(v)) || rate<=0 || bits<=0 || channels<=0 || durationRaw<0) {
+    main.textContent = '—'; formula.textContent = 'Completează toate câmpurile';
+    document.getElementById('info-bitrate').textContent = '—';
+    document.getElementById('info-persec').textContent = '—';
+    document.getElementById('info-permin').textContent = '—';
+    return;
+  }
+
+  const bytesPerSec = computeBytesPerSecond(rate, bits, channels);
+  const totalBytes = bytesPerSec * duration;
+  const totalMB = totalBytes / (1024*1024);
+
+  const unitLabel = durationUnitFactor === 1 ? 's' : 'min';
+  main.textContent = fmtSize(totalMB);
+  formula.textContent = `Dimensiune = rate × (biți/8) × canale × durată = ${rate}Hz × ${bits/8}B × ${channels}ch × ${durationRaw}${unitLabel}`;
+
+  const bitratekbps = (bytesPerSec * 8) / 1000;
+  document.getElementById('info-bitrate').textContent = trim(bitratekbps) + ' kbps';
+  document.getElementById('info-persec').textContent = trim(bytesPerSec/(1024*1024)) + ' MB/s';
+  document.getElementById('info-permin').textContent = trim(bytesPerSec*60/(1024*1024)) + ' MB/min';
+
+  buildRefTable(bits, channels, rate);
+}
+
+function buildRefTable(bits, channels, currentRate) {
+  const table = document.getElementById('ref-table');
+  table.innerHTML = `<thead><tr><th>Sample rate</th><th>MB / minut</th><th>MB / oră</th></tr></thead>`;
+  const tbody = document.createElement('tbody');
+  RATES.forEach(r => {
+    const bps = computeBytesPerSecond(r, bits, channels);
+    const perMin = bps*60/(1024*1024);
+    const perHour = perMin*60;
+    const tr = document.createElement('tr');
+    if (r === currentRate) tr.classList.add('highlight');
+    tr.innerHTML = `<td>${fmtLabel(r)}Hz</td><td>${trim(perMin)} MB</td><td>${trim(perHour)} MB</td>`;
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+}
+
+buildChips();
+compute();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Calculator eșantionare</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

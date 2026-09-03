@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rezolvator Ecuație Gradul II — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #4af0b0;
+  --accent-dim: rgba(74,240,176,0.10);
+  --accent-border: rgba(74,240,176,0.28);
+}
+
+.equation-display {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--text);
+  padding: 1rem 0;
+  margin-bottom: var(--content-gap);
+}
+.equation-display .coef { color: var(--accent); }
+
+.fields-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--content-gap); margin-bottom: var(--content-gap); }
+@media (max-width: 500px) { .fields-grid { grid-template-columns: 1fr; } }
+
+.field-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.field-name { font-family: var(--font-mono); font-size: 0.9rem; color: var(--accent); font-weight: 700; margin-bottom: 8px; display: block; }
+
+.result-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  margin-bottom: var(--content-gap);
+}
+.discriminant-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.discriminant-label { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text3); }
+.discriminant-val { font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+
+.roots-display { text-align: center; }
+.root-item {
+  font-family: var(--font-mono);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 6px 0;
+}
+.root-case-label {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text3);
+  margin-bottom: 10px;
+}
+
+/* ── Graph ── */
+.graph-wrap { display: flex; justify-content: center; padding: 1rem 0; }
+.graph-svg text { font-family: var(--font-mono); font-size: 10px; fill: var(--text3); }
+.graph-axis { stroke: var(--text3); stroke-width: 1; }
+.graph-curve { stroke: var(--accent); stroke-width: 2; fill: none; }
+.graph-root { fill: var(--accent); }
+.graph-vertex { fill: #f0c040; }
+
+.info-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+@media (max-width: 600px) { .info-row { grid-template-columns: 1fr; } }
+.info-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.info-card-title { font-family: var(--font-mono); font-size: 0.6rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+.info-card-val { font-family: var(--font-mono); font-size: 0.95rem; font-weight: 600; color: var(--text); }
+.info-card-val.vertex { color: #f0c040; }
+.info-card-val.viete { color: var(--accent); }
+.info-card-sub { font-family: var(--font-mono); font-size: 0.62rem; color: var(--text3); margin-top: 3px; }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Rezolvator ecuație gradul II</h1>
+    <p>ax² + bx + c = 0 — discriminant, rădăcini, grafic parabolă</p>
+  </div>
+
+  <div class="equation-display" id="equation-display"></div>
+
+  <div class="fields-grid">
+    <div class="field-card">
+      <span class="field-name">a</span>
+      <input class="input-calc" id="in-a" type="number" step="any" value="1"
+             style="--input-color:var(--accent);font-size:1.1rem" oninput="compute()">
+    </div>
+    <div class="field-card">
+      <span class="field-name">b</span>
+      <input class="input-calc" id="in-b" type="number" step="any" value="-5"
+             style="--input-color:var(--accent);font-size:1.1rem" oninput="compute()">
+    </div>
+    <div class="field-card">
+      <span class="field-name">c</span>
+      <input class="input-calc" id="in-c" type="number" step="any" value="6"
+             style="--input-color:var(--accent);font-size:1.1rem" oninput="compute()">
+    </div>
+  </div>
+
+  <div class="result-card">
+    <div class="discriminant-row">
+      <span class="discriminant-label">Δ = b² − 4ac</span>
+      <span class="discriminant-val" id="discriminant-val">—</span>
+    </div>
+    <div class="roots-display">
+      <div class="root-case-label" id="root-case-label"></div>
+      <div id="roots-content"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="graph-wrap" id="graph-wrap"></div>
+  </div>
+
+  <div class="info-row" id="extra-info" style="margin-top:var(--content-gap)"></div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+function trim(n) {
+  if (!isFinite(n)) return '—';
+  return parseFloat(n.toPrecision(6)).toString();
+}
+
+function fmtCoef(n, isFirst) {
+  if (n === 0) return '';
+  const abs = Math.abs(n);
+  const sign = n < 0 ? '−' : (isFirst ? '' : '+');
+  return ` ${sign} <span class="coef">${abs}</span>`;
+}
+
+function updateEquationDisplay(a, b, c) {
+  const el = document.getElementById('equation-display');
+  if (isNaN(a) || isNaN(b) || isNaN(c)) { el.textContent = ''; return; }
+  const signA = a < 0 ? '−' : '';
+  const absA = Math.abs(a);
+  el.innerHTML = `${signA}<span class="coef">${absA}</span>x²${fmtCoef(b,false)}x${fmtCoef(c,false)} = 0`;
+}
+
+function compute() {
+  const a = parseFloat(document.getElementById('in-a').value);
+  const b = parseFloat(document.getElementById('in-b').value);
+  const c = parseFloat(document.getElementById('in-c').value);
+
+  updateEquationDisplay(a, b, c);
+
+  const discEl = document.getElementById('discriminant-val');
+  const caseLabel = document.getElementById('root-case-label');
+  const rootsContent = document.getElementById('roots-content');
+
+  if (isNaN(a) || isNaN(b) || isNaN(c)) {
+    discEl.textContent = '—';
+    caseLabel.textContent = '';
+    rootsContent.innerHTML = '';
+    document.getElementById('extra-info').innerHTML = '';
+    renderGraph(null);
+    return;
+  }
+
+  if (a === 0) {
+    // Ecuație liniară bx + c = 0
+    discEl.textContent = 'N/A (a=0)';
+    document.getElementById('extra-info').innerHTML = '';
+    if (b === 0) {
+      caseLabel.textContent = c === 0 ? 'Identitate — infinite soluții' : 'Ecuație imposibilă — nicio soluție';
+      rootsContent.innerHTML = '';
+    } else {
+      const x = -c / b;
+      caseLabel.textContent = 'Ecuație liniară (a=0): bx + c = 0';
+      rootsContent.innerHTML = `<div class="root-item">x = ${trim(x)}</div>`;
+    }
+    renderGraph(null);
+    return;
+  }
+
+  const delta = b*b - 4*a*c;
+  discEl.textContent = trim(delta);
+
+  if (delta > 0) {
+    const sqrtD = Math.sqrt(delta);
+    const x1 = (-b + sqrtD) / (2*a);
+    const x2 = (-b - sqrtD) / (2*a);
+    caseLabel.textContent = 'Δ > 0 — două rădăcini reale distincte';
+    rootsContent.innerHTML = `
+      <div class="root-item">x₁ = ${trim(x1)}</div>
+      <div class="root-item">x₂ = ${trim(x2)}</div>
+    `;
+    renderGraph({ a, b, c, roots: [x1, x2] });
+    renderExtraInfo(a, b, c, x1, x2);
+  } else if (delta === 0) {
+    const x = -b / (2*a);
+    caseLabel.textContent = 'Δ = 0 — rădăcină dublă (parabola atinge axa Ox)';
+    rootsContent.innerHTML = `<div class="root-item">x₁ = x₂ = ${trim(x)}</div>`;
+    renderGraph({ a, b, c, roots: [x] });
+    renderExtraInfo(a, b, c, x, x);
+  } else {
+    const realPart = -b / (2*a);
+    const imagPart = Math.sqrt(-delta) / (2*a);
+    caseLabel.textContent = 'Δ < 0 — rădăcini complexe conjugate (fără intersecție cu Ox)';
+    rootsContent.innerHTML = `
+      <div class="root-item">x₁ = ${trim(realPart)} + ${trim(Math.abs(imagPart))}i</div>
+      <div class="root-item">x₂ = ${trim(realPart)} − ${trim(Math.abs(imagPart))}i</div>
+    `;
+    renderGraph({ a, b, c, roots: [] });
+    renderExtraInfo(a, b, c, null, null); // Viète rămân valabile chiar și cu rădăcini complexe (S și P reale)
+  }
+}
+
+function renderExtraInfo(a, b, c, x1, x2) {
+  const vertexX = -b / (2*a);
+  const vertexY = a*vertexX*vertexX + b*vertexX + c;
+
+  const sumViete = -b/a;   // x1+x2, valabil întotdeauna (chiar cu rădăcini complexe, suma e reală)
+  const prodViete = c/a;   // x1*x2, valabil întotdeauna
+
+  const wrap = document.getElementById('extra-info');
+  wrap.innerHTML = `
+    <div class="info-card">
+      <div class="info-card-title">Vârful parabolei</div>
+      <div class="info-card-val vertex">(${trim(vertexX)}, ${trim(vertexY)})</div>
+      <div class="info-card-sub">x = −b/2a, y = f(x)</div>
+    </div>
+    <div class="info-card">
+      <div class="info-card-title">Relații Viète — sumă</div>
+      <div class="info-card-val viete">S = x₁+x₂ = ${trim(sumViete)}</div>
+      <div class="info-card-sub">S = −b/a</div>
+    </div>
+    <div class="info-card">
+      <div class="info-card-title">Relații Viète — produs</div>
+      <div class="info-card-val viete">P = x₁·x₂ = ${trim(prodViete)}</div>
+      <div class="info-card-sub">P = c/a</div>
+    </div>
+  `;
+}
+
+function renderGraph(data) {
+  const wrap = document.getElementById('graph-wrap');
+  const w = 320, h = 240;
+  const padX = 30, padY = 20;
+  const plotW = w - padX*2, plotH = h - padY*2;
+
+  let svg = `<svg class="graph-svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`;
+
+  if (!data) {
+    svg += `<text x="${w/2}" y="${h/2}" text-anchor="middle">Introdu coeficienți valizi (a≠0)</text>`;
+    svg += `</svg>`;
+    wrap.innerHTML = svg;
+    return;
+  }
+
+  const { a, b, c, roots } = data;
+  const vertex_x = -b / (2*a);
+  const vertex_y = a*vertex_x*vertex_x + b*vertex_x + c;
+
+  // Determinăm intervalul X vizibil: centrat pe vârf, suficient pentru a arăta rădăcinile
+  const spread = Math.max(4, ...(roots.map(r => Math.abs(r - vertex_x) * 1.6)), Math.abs(vertex_x)*0.3 + 2);
+  const xMin = vertex_x - spread, xMax = vertex_x + spread;
+
+  // Calculăm Y pentru capetele intervalului X, ca să stabilim scala Y
+  const yAtXMin = a*xMin*xMin + b*xMin + c;
+  const yAtXMax = a*xMax*xMax + b*xMax + c;
+  const yValues = [vertex_y, yAtXMin, yAtXMax, 0];
+  let yMin = Math.min(...yValues), yMax = Math.max(...yValues);
+  const yPad = (yMax - yMin) * 0.15 || 1;
+  yMin -= yPad; yMax += yPad;
+
+  function toSvgX(x) { return padX + (x - xMin) / (xMax - xMin) * plotW; }
+  function toSvgY(y) { return padY + (1 - (y - yMin) / (yMax - yMin)) * plotH; }
+
+  // Axe
+  if (yMin <= 0 && yMax >= 0) {
+    const y0 = toSvgY(0);
+    svg += `<line class="graph-axis" x1="${padX}" y1="${y0}" x2="${w-padX}" y2="${y0}"/>`;
+  }
+  if (xMin <= 0 && xMax >= 0) {
+    const x0 = toSvgX(0);
+    svg += `<line class="graph-axis" x1="${x0}" y1="${padY}" x2="${x0}" y2="${h-padY}"/>`;
+  }
+
+  // Curba parabolei
+  const steps = 60;
+  let pathD = '';
+  for (let i = 0; i <= steps; i++) {
+    const x = xMin + (xMax-xMin) * i/steps;
+    const y = a*x*x + b*x + c;
+    const svgX = toSvgX(x), svgY = toSvgY(Math.max(yMin, Math.min(yMax, y)));
+    pathD += (i===0 ? 'M' : 'L') + svgX + ' ' + svgY + ' ';
+  }
+  svg += `<path class="graph-curve" d="${pathD}"/>`;
+
+  // Vârf
+  svg += `<circle class="graph-vertex" cx="${toSvgX(vertex_x)}" cy="${toSvgY(vertex_y)}" r="4"/>`;
+
+  // Rădăcini
+  roots.forEach(r => {
+    svg += `<circle class="graph-root" cx="${toSvgX(r)}" cy="${toSvgY(0)}" r="4"/>`;
+  });
+
+  svg += `</svg>`;
+  wrap.innerHTML = svg;
+}
+
+compute();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Rezolvator ecuație gr. II</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

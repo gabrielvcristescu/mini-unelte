@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz Braille — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #f0a040;
+  --accent-dim: rgba(240,160,64,0.10);
+  --accent-border: rgba(240,160,64,0.28);
+}
+
+.score-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--content-gap);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+.score-item { display: flex; gap: 6px; align-items: center; }
+.score-label { color: var(--text3); }
+.score-val { color: var(--accent); font-weight: 700; }
+
+.question-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 34px 24px;
+  text-align: center;
+  margin-bottom: var(--content-gap);
+}
+.question-label { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 18px; }
+
+.braille-cell {
+  display: inline-grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 8px;
+  padding: 16px;
+  background: var(--bg3);
+  border-radius: 12px;
+}
+.braille-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--border2);
+  transition: background 0.15s;
+}
+.braille-dot.on { background: var(--accent); }
+
+.options-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: var(--content-gap); }
+@media (max-width: 500px) { .options-grid { grid-template-columns: repeat(2, 1fr); } }
+.option-btn {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 8px;
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.option-btn:hover:not(:disabled) { border-color: var(--accent-border); background: var(--accent-dim); }
+.option-btn:disabled { cursor: default; }
+.option-btn.correct { border-color: #4af0b0; background: rgba(74,240,176,0.12); color: #4af0b0; }
+.option-btn.wrong { border-color: #f06060; background: rgba(240,96,96,0.12); color: #f06060; }
+
+.final-card {
+  background: var(--bg2);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius);
+  padding: 30px 24px;
+  text-align: center;
+  display: none;
+}
+.final-card.show { display: block; }
+.final-score { font-family: var(--font-mono); font-size: 2.2rem; font-weight: 700; color: var(--accent); }
+.final-label { font-family: var(--font-mono); font-size: 0.75rem; color: var(--text3); margin-top: 6px; }
+.restart-btn {
+  margin-top: 16px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Quiz Braille</h1>
+    <p>Celulă Braille → literă corespunzătoare</p>
+  </div>
+
+  <div class="score-bar">
+    <div class="score-item"><span class="score-label">Întrebare</span> <span class="score-val" id="q-num">1</span><span class="score-label">/10</span></div>
+    <div class="score-item"><span class="score-label">Scor</span> <span class="score-val" id="score-val">0</span></div>
+  </div>
+
+  <div id="quiz-area">
+    <div class="question-card">
+      <div class="question-label">Ce literă reprezintă această celulă?</div>
+      <div class="braille-cell" id="braille-cell"></div>
+    </div>
+
+    <div class="options-grid" id="options-grid"></div>
+  </div>
+
+  <div class="final-card" id="final-card">
+    <div class="final-score" id="final-score">—</div>
+    <div class="final-label">răspunsuri corecte din 10</div>
+    <button class="restart-btn" onclick="startQuiz()">Joacă din nou</button>
+  </div>
+</div>
+
+<script>
+// Puncte Braille per literă (standard englez de bază, grad 1) — pozițiile 1-6:
+// 1 4
+// 2 5
+// 3 6
+const BRAILLE = {
+  A:[1], B:[1,2], C:[1,4], D:[1,4,5], E:[1,5], F:[1,2,4], G:[1,2,4,5], H:[1,2,5],
+  I:[2,4], J:[2,4,5], K:[1,3], L:[1,2,3], M:[1,3,4], N:[1,3,4,5], O:[1,3,5],
+  P:[1,2,3,4], Q:[1,2,3,4,5], R:[1,2,3,5], S:[2,3,4], T:[2,3,4,5],
+  U:[1,3,6], V:[1,2,3,6], W:[2,4,5,6], X:[1,3,4,6], Y:[1,3,4,5,6], Z:[1,3,5,6],
+};
+const LETTERS = Object.keys(BRAILLE);
+
+let quizOrder = [];
+let currentQ = 0;
+let score = 0;
+let answered = false;
+let autoAdvanceTimer = null;
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+function startQuiz() {
+  clearTimeout(autoAdvanceTimer);
+  quizOrder = shuffle(LETTERS).slice(0, 10);
+  currentQ = 0;
+  score = 0;
+  document.getElementById('final-card').classList.remove('show');
+  document.getElementById('quiz-area').style.display = 'block';
+  renderQuestion();
+}
+
+function renderBrailleCell(dots) {
+  const cell = document.getElementById('braille-cell');
+  cell.innerHTML = '';
+  // Ordinea grid: 1,4 (rând1) / 2,5 (rând2) / 3,6 (rând3)
+  const order = [1,4,2,5,3,6];
+  order.forEach(pos => {
+    const dot = document.createElement('div');
+    dot.className = 'braille-dot' + (dots.includes(pos) ? ' on' : '');
+    cell.appendChild(dot);
+  });
+}
+
+function renderQuestion() {
+  answered = false;
+  const letter = quizOrder[currentQ];
+  document.getElementById('q-num').textContent = currentQ+1;
+  document.getElementById('score-val').textContent = score;
+
+  renderBrailleCell(BRAILLE[letter]);
+
+  const wrongPool = LETTERS.filter(l => l !== letter);
+  const wrongs = shuffle(wrongPool).slice(0,3);
+  const options = shuffle([letter, ...wrongs]);
+
+  const grid = document.getElementById('options-grid');
+  grid.innerHTML = '';
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.textContent = opt;
+    btn.onclick = () => selectAnswer(btn, opt, letter);
+    grid.appendChild(btn);
+  });
+}
+
+function selectAnswer(btn, selected, correct) {
+  if (answered) return;
+  answered = true;
+
+  document.querySelectorAll('.option-btn').forEach(b => {
+    b.disabled = true;
+    if (b.textContent === correct) b.classList.add('correct');
+    else if (b === btn) b.classList.add('wrong');
+  });
+
+  if (selected === correct) score++;
+  document.getElementById('score-val').textContent = score;
+
+  clearTimeout(autoAdvanceTimer);
+  autoAdvanceTimer = setTimeout(() => { if (answered) nextQuestion(); }, 1400);
+}
+
+function nextQuestion() {
+  clearTimeout(autoAdvanceTimer);
+  currentQ++;
+  if (currentQ >= 10) showFinal(); else renderQuestion();
+}
+
+function showFinal() {
+  document.getElementById('quiz-area').style.display = 'none';
+  document.getElementById('final-score').textContent = score + '/10';
+  document.getElementById('final-card').classList.add('show');
+}
+
+startQuiz();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Quiz Braille</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

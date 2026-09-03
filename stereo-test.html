@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test Stereo L/R — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #d070f0;
+  --accent-dim: rgba(208,112,240,0.10);
+  --accent-border: rgba(208,112,240,0.28);
+}
+
+.channels-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: var(--content-gap); }
+.channel-btn {
+  aspect-ratio: 1.4;
+  border-radius: var(--radius);
+  border: 2px solid var(--border);
+  background: var(--bg2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.channel-btn:hover { border-color: var(--accent-border); }
+.channel-btn.playing { background: var(--accent-dim); border-color: var(--accent); transform: scale(1.02); }
+.channel-icon { font-size: 2.5rem; }
+.channel-label { font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700; color: var(--text); }
+.channel-sub { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text3); }
+
+.action-row { display: flex; gap: 8px; margin-bottom: var(--content-gap); }
+.action-btn {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.action-btn:hover { filter: brightness(1.15); }
+.action-btn.stop { border-color: rgba(240,96,96,0.4); background: rgba(240,96,96,0.15); color: #f06060; }
+
+.status-msg {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text2);
+  margin-bottom: var(--content-gap);
+  min-height: 1.4em;
+}
+
+.info-note {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text3);
+  text-align: center;
+  line-height: 1.6;
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Test stereo L/R</h1>
+    <p>Verifică dacă difuzoarele/căștile sunt conectate corect stânga/dreapta</p>
+  </div>
+
+  <div class="status-msg" id="status-msg">Apasă pe un canal sau "Testează ambele"</div>
+
+  <div class="channels-grid">
+    <div class="channel-btn" id="btn-left" onclick="playChannel('left')">
+      <div class="channel-icon">◀🔊</div>
+      <div class="channel-label">STÂNGA</div>
+      <div class="channel-sub">Left / L</div>
+    </div>
+    <div class="channel-btn" id="btn-right" onclick="playChannel('right')">
+      <div class="channel-icon">🔊▶</div>
+      <div class="channel-label">DREAPTA</div>
+      <div class="channel-sub">Right / R</div>
+    </div>
+  </div>
+
+  <div class="action-row">
+    <button class="action-btn" onclick="testSequence()">▶ Testează ambele (stânga → dreapta)</button>
+  </div>
+  <div class="action-row">
+    <button class="action-btn stop" onclick="stopAll()">■ Oprește tot</button>
+  </div>
+
+  <p class="info-note">
+    Dacă auzi sunetul din difuzorul greșit când apeși "Stânga" sau "Dreapta", cablurile/setările audio sunt inversate. Funcționează doar dacă sistemul are ieșire stereo reală (nu mono).
+  </p>
+</div>
+
+<script>
+let audioCtx = null;
+let activeNodes = [];
+
+function stopAll() {
+  activeNodes.forEach(({osc, gain}) => {
+    try {
+      gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime+0.03);
+      osc.stop(audioCtx.currentTime+0.04);
+    } catch(e) {}
+  });
+  activeNodes = [];
+  document.querySelectorAll('.channel-btn').forEach(b => b.classList.remove('playing'));
+  document.getElementById('status-msg').textContent = 'Oprit';
+}
+
+function playTone(pan, duration, label) {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  const panner = audioCtx.createStereoPanner();
+
+  osc.type = 'sine';
+  osc.frequency.value = 440;
+  panner.pan.value = pan; // -1 = stânga completă, 1 = dreapta completă
+
+  const t = audioCtx.currentTime;
+  gain.gain.setValueAtTime(0, t);
+  gain.gain.linearRampToValueAtTime(0.25, t+0.02);
+  gain.gain.setValueAtTime(0.25, t+duration-0.03);
+  gain.gain.linearRampToValueAtTime(0, t+duration);
+
+  osc.connect(gain);
+  gain.connect(panner);
+  panner.connect(audioCtx.destination);
+  osc.start(t);
+  osc.stop(t+duration);
+
+  activeNodes.push({ osc, gain });
+  osc.onended = () => {
+    activeNodes = activeNodes.filter(n => n.osc !== osc);
+  };
+
+  return { osc, gain };
+}
+
+function playChannel(side) {
+  stopAll();
+  const pan = side === 'left' ? -1 : 1;
+  playTone(pan, 1.5);
+
+  document.getElementById('btn-'+side).classList.add('playing');
+  document.getElementById('status-msg').textContent =
+    side === 'left' ? '🔊 Redare din canalul STÂNGA' : '🔊 Redare din canalul DREAPTA';
+
+  setTimeout(() => {
+    document.getElementById('btn-'+side).classList.remove('playing');
+  }, 1500);
+}
+
+function testSequence() {
+  stopAll();
+  document.getElementById('status-msg').textContent = '🔊 Stânga...';
+  document.getElementById('btn-left').classList.add('playing');
+  playTone(-1, 1.2);
+
+  setTimeout(() => {
+    document.getElementById('btn-left').classList.remove('playing');
+    document.getElementById('btn-right').classList.add('playing');
+    document.getElementById('status-msg').textContent = '🔊 Dreapta...';
+    playTone(1, 1.2);
+
+    setTimeout(() => {
+      document.getElementById('btn-right').classList.remove('playing');
+      document.getElementById('status-msg').textContent = 'Test complet';
+    }, 1200);
+  }, 1400);
+}
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Test stereo L/R</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

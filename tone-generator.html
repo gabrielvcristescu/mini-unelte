@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generator Ton Sinusoidal — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #d070f0;
+  --accent-dim: rgba(208,112,240,0.10);
+  --accent-border: rgba(208,112,240,0.28);
+}
+
+.wave-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: var(--content-gap); }
+@media (max-width: 500px) { .wave-grid { grid-template-columns: repeat(2, 1fr); } }
+.wave-btn {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 6px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.wave-btn:hover { border-color: var(--accent-border); }
+.wave-btn.active { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+.wave-name { font-family: var(--font-mono); font-size: 0.72rem; }
+
+.field-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: var(--content-gap);
+}
+.field-name { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text2); font-weight: 500; margin-bottom: 8px; display: block; }
+
+.slider-row { display: flex; align-items: center; gap: 10px; margin-bottom: var(--content-gap); }
+.slider-row input[type=range] { flex: 1; accent-color: var(--accent); }
+.slider-val { font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent); font-weight: 700; width: 70px; text-align: right; }
+
+.play-row { display: flex; gap: 10px; margin-bottom: var(--content-gap); }
+.play-btn {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.play-btn:hover { filter: brightness(1.15); }
+.play-btn.playing { background: rgba(240,96,96,0.15); border-color: rgba(240,96,96,0.4); color: #f06060; }
+
+.preset-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.preset-btn {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  padding: 5px 12px;
+  border-radius: 99px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text2);
+  cursor: pointer;
+}
+.preset-btn:hover { border-color: var(--accent-border); color: var(--accent); }
+
+.warning-note {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: #f0a040;
+  background: rgba(240,160,64,0.08);
+  border: 1px solid rgba(240,160,64,0.25);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  margin-top: var(--content-gap);
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Generator ton sinusoidal</h1>
+    <p>Frecvență, volum, formă undă — Web Audio API</p>
+  </div>
+
+  <div class="wave-grid" id="wave-grid"></div>
+
+  <div class="field-card">
+    <span class="field-name">Frecvență (Hz)</span>
+    <div class="slider-row" style="margin-bottom:0">
+      <input type="range" id="s-freq" min="20" max="20000" value="440" oninput="onFreqChange()">
+      <span class="slider-val" id="v-freq">440 Hz</span>
+    </div>
+  </div>
+
+  <div class="preset-row" id="preset-row" style="margin-bottom:var(--content-gap)"></div>
+
+  <div class="field-card">
+    <span class="field-name">Volum</span>
+    <div class="slider-row" style="margin-bottom:0">
+      <input type="range" id="s-volume" min="0" max="100" value="30" oninput="onVolumeChange()">
+      <span class="slider-val" id="v-volume">30%</span>
+    </div>
+  </div>
+
+  <div class="play-row">
+    <button class="play-btn" id="play-btn" onclick="togglePlay()">▶ Redă tonul</button>
+  </div>
+
+  <p class="warning-note">⚠ Frecvențele foarte joase (&lt;60Hz) sau înalte (&gt;15kHz) pot fi neplăcute sau inaudibile în funcție de difuzoare/căști. Începe cu volum scăzut.</p>
+</div>
+
+<script>
+const WAVES = ['sine', 'square', 'triangle', 'sawtooth'];
+const WAVE_NAMES = { sine: 'Sinusoidal', square: 'Pătrat', triangle: 'Triunghi', sawtooth: 'Fierăstrău' };
+
+const PRESETS = [
+  { name: 'A4 (440Hz)', hz: 440 },
+  { name: 'Middle C (261.6Hz)', hz: 261.63 },
+  { name: 'Test 1kHz', hz: 1000 },
+  { name: 'Sub-bass 40Hz', hz: 40 },
+  { name: 'Prag auditiv 20kHz', hz: 20000 },
+];
+
+let audioCtx = null;
+let oscillator = null;
+let gainNode = null;
+let isPlaying = false;
+let currentWave = 'sine';
+
+function buildWaveGrid() {
+  const grid = document.getElementById('wave-grid');
+  WAVES.forEach(w => {
+    const btn = document.createElement('div');
+    btn.className = 'wave-btn' + (w===currentWave?' active':'');
+    btn.innerHTML = `<div class="wave-name">${WAVE_NAMES[w]}</div>`;
+    btn.onclick = () => {
+      currentWave = w;
+      document.querySelectorAll('.wave-btn').forEach((b,i) => b.classList.toggle('active', WAVES[i]===w));
+      if (oscillator) oscillator.type = w;
+    };
+    grid.appendChild(btn);
+  });
+}
+
+function buildPresets() {
+  const wrap = document.getElementById('preset-row');
+  PRESETS.forEach(p => {
+    const btn = document.createElement('div');
+    btn.className = 'preset-btn';
+    btn.textContent = p.name;
+    btn.onclick = () => {
+      document.getElementById('s-freq').value = p.hz;
+      onFreqChange();
+    };
+    wrap.appendChild(btn);
+  });
+}
+
+function onFreqChange() {
+  const freq = document.getElementById('s-freq').value;
+  document.getElementById('v-freq').textContent = (freq >= 1000 ? (freq/1000).toFixed(2)+'k' : freq) + ' Hz';
+  if (oscillator) oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
+}
+
+function onVolumeChange() {
+  const vol = document.getElementById('s-volume').value;
+  document.getElementById('v-volume').textContent = vol + '%';
+  if (gainNode) gainNode.gain.setValueAtTime(vol/100 * 0.3, audioCtx.currentTime); // 0.3 = plafon siguranță
+}
+
+function togglePlay() {
+  if (isPlaying) {
+    stopTone();
+  } else {
+    startTone();
+  }
+}
+
+function startTone() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  oscillator = audioCtx.createOscillator();
+  gainNode = audioCtx.createGain();
+
+  oscillator.type = currentWave;
+  oscillator.frequency.setValueAtTime(document.getElementById('s-freq').value, audioCtx.currentTime);
+
+  const vol = document.getElementById('s-volume').value;
+  gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+  gainNode.gain.linearRampToValueAtTime(vol/100 * 0.3, audioCtx.currentTime + 0.02); // fade-in scurt anti-pocnet
+
+  oscillator.connect(gainNode);
+  gainNode.connect(audioCtx.destination);
+  oscillator.start();
+
+  isPlaying = true;
+  const btn = document.getElementById('play-btn');
+  btn.textContent = '■ Oprește';
+  btn.classList.add('playing');
+}
+
+function stopTone() {
+  if (gainNode) {
+    gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.02); // fade-out anti-pocnet
+  }
+  if (oscillator) {
+    oscillator.stop(audioCtx.currentTime + 0.03);
+  }
+
+  isPlaying = false;
+  const btn = document.getElementById('play-btn');
+  btn.textContent = '▶ Redă tonul';
+  btn.classList.remove('playing');
+}
+
+buildWaveGrid();
+buildPresets();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Generator ton</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

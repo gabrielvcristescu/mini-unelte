@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Viteza Sunetului — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #f07090;
+  --accent-dim: rgba(240,112,144,0.10);
+  --accent-border: rgba(240,112,144,0.28);
+}
+
+.mode-row { display: flex; gap: 8px; margin-bottom: var(--content-gap); }
+.mode-btn {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.mode-btn.active { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+
+.field-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: var(--content-gap);
+}
+.field-name { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text2); font-weight: 500; margin-bottom: 8px; display: block; }
+
+.result-card {
+  background: var(--bg2);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  text-align: center;
+  margin-bottom: var(--content-gap);
+}
+.result-main { font-family: var(--font-mono); font-size: 2rem; font-weight: 700; color: var(--accent); }
+.result-sub { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text3); margin-top: 4px; }
+
+.info-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: var(--content-gap); }
+@media (max-width: 500px) { .info-row { grid-template-columns: 1fr; } }
+.info-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; text-align: center; }
+.info-val { font-family: var(--font-mono); font-size: 0.95rem; font-weight: 600; color: var(--text); }
+.info-key { font-family: var(--font-mono); font-size: 0.58rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+
+.disclaimer { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text3); line-height: 1.5; }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Viteza sunetului</h1>
+    <p>Fulger → distanță din întârzierea tunetului, sau calculează viteza la orice temperatură</p>
+  </div>
+
+  <div class="mode-row">
+    <button class="mode-btn active" id="btn-lightning" onclick="setMode('lightning')">Fulger-tunet → distanță</button>
+    <button class="mode-btn" id="btn-speed" onclick="setMode('speed')">Viteză sunet la temperatură</button>
+  </div>
+
+  <div id="panel-lightning">
+    <div class="field-card">
+      <span class="field-name">Timp scurs între fulger și tunet</span>
+      <input class="input-calc" id="in-seconds" type="number" min="0" step="any" value="5"
+             style="--input-color:var(--accent);font-size:1.1rem" oninput="computeLightning()">
+      <span style="font-family:var(--font-mono);font-size:0.62rem;color:var(--text3)">secunde</span>
+    </div>
+  </div>
+
+  <div id="panel-speed" style="display:none">
+    <div class="field-card">
+      <span class="field-name">Temperatura aerului</span>
+      <input class="input-calc" id="in-temp" type="number" step="any" value="20"
+             style="--input-color:var(--accent);font-size:1.1rem" oninput="computeSpeed()">
+      <span style="font-family:var(--font-mono);font-size:0.62rem;color:var(--text3)">°C</span>
+    </div>
+  </div>
+
+  <div class="result-card">
+    <div class="result-main" id="result-main">—</div>
+    <div class="result-sub" id="result-sub"></div>
+  </div>
+
+  <div class="info-row" id="info-row"></div>
+
+  <p class="disclaimer">
+    Formula: v = 331.3 + 0.606×T (m/s), T = temperatura în °C — aproximare validă pentru aer uscat la presiune atmosferică normală. Umiditatea și altitudinea influențează ușor rezultatul real.
+  </p>
+</div>
+
+<script>
+let mode = 'lightning';
+
+function trim(n) { return parseFloat(n.toPrecision(5)).toString(); }
+
+function soundSpeed(tempC) {
+  return 331.3 + 0.606 * tempC; // m/s
+}
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('btn-lightning').classList.toggle('active', m==='lightning');
+  document.getElementById('btn-speed').classList.toggle('active', m==='speed');
+  document.getElementById('panel-lightning').style.display = m==='lightning' ? 'block':'none';
+  document.getElementById('panel-speed').style.display = m==='speed' ? 'block':'none';
+  if (m==='lightning') computeLightning(); else computeSpeed();
+}
+
+function computeLightning() {
+  const seconds = parseFloat(document.getElementById('in-seconds').value);
+  const resultMain = document.getElementById('result-main');
+  const resultSub = document.getElementById('result-sub');
+  const infoRow = document.getElementById('info-row');
+
+  if (isNaN(seconds) || seconds < 0) {
+    resultMain.textContent = '—'; resultSub.textContent = 'Introdu un timp valid';
+    infoRow.innerHTML = '';
+    return;
+  }
+
+  const speed = soundSpeed(20); // presupunem 20°C implicit pentru acest mod
+  const distanceM = speed * seconds;
+  const distanceKm = distanceM / 1000;
+
+  resultMain.textContent = trim(distanceKm) + ' km';
+  resultSub.textContent = `${trim(distanceM)} m — la 20°C, viteza sunetului ${trim(speed)} m/s`;
+
+  infoRow.innerHTML = `
+    <div class="info-card"><div class="info-val">${trim(distanceM)}</div><div class="info-key">metri</div></div>
+    <div class="info-card"><div class="info-val">${trim(distanceM*3.28084)}</div><div class="info-key">picioare</div></div>
+    <div class="info-card"><div class="info-val">${trim(distanceKm*0.621371)}</div><div class="info-key">mile</div></div>
+  `;
+}
+
+function computeSpeed() {
+  const tempC = parseFloat(document.getElementById('in-temp').value);
+  const resultMain = document.getElementById('result-main');
+  const resultSub = document.getElementById('result-sub');
+  const infoRow = document.getElementById('info-row');
+
+  if (isNaN(tempC)) {
+    resultMain.textContent = '—'; resultSub.textContent = 'Introdu o temperatură validă';
+    infoRow.innerHTML = '';
+    return;
+  }
+
+  const speed = soundSpeed(tempC);
+  resultMain.textContent = trim(speed) + ' m/s';
+  resultSub.textContent = `la ${tempC}°C, aer uscat, presiune normală`;
+
+  infoRow.innerHTML = `
+    <div class="info-card"><div class="info-val">${trim(speed*3.6)}</div><div class="info-key">km/h</div></div>
+    <div class="info-card"><div class="info-val">${trim(speed*2.23694)}</div><div class="info-key">mph</div></div>
+    <div class="info-card"><div class="info-val">${trim(1000/speed)}</div><div class="info-key">ms / km</div></div>
+  `;
+}
+
+computeLightning();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Viteza sunetului</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

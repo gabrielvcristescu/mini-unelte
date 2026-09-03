@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reverse Geocoding — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #90d060;
+  --accent-dim: rgba(144,208,96,0.10);
+  --accent-border: rgba(144,208,96,0.28);
+}
+
+.fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--content-gap); margin-bottom: var(--content-gap); }
+@media (max-width: 500px) { .fields-grid { grid-template-columns: 1fr; } }
+
+.field-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+.field-name { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text2); font-weight: 500; margin-bottom: 8px; display: block; }
+
+.btn-primary {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.12s;
+  margin-bottom: var(--content-gap);
+}
+.btn-primary:hover { filter: brightness(1.15); }
+.btn-primary:disabled { opacity: 0.5; cursor: default; }
+
+.status-msg { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text3); text-align: center; margin-bottom: var(--content-gap); }
+.status-msg.error { color: #f06060; }
+
+.result-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  margin-bottom: var(--content-gap);
+}
+.result-address { font-family: var(--font-mono); font-size: 1rem; color: var(--accent); font-weight: 600; line-height: 1.5; }
+
+.detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px,1fr)); gap: 6px; }
+.detail-item { background: var(--bg3); border-radius: 6px; padding: 8px 10px; }
+.detail-label { font-family: var(--font-mono); font-size: 0.55rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; }
+.detail-val { font-family: var(--font-mono); font-size: 0.78rem; color: var(--text2); margin-top: 2px; }
+
+.city-presets { display: flex; gap: 6px; flex-wrap: wrap; }
+.city-btn {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  padding: 4px 10px;
+  border-radius: 99px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.city-btn:hover { border-color: var(--accent-border); color: var(--accent); }
+
+.attribution { font-family: var(--font-mono); font-size: 0.6rem; color: var(--text3); text-align: center; }
+.attribution a { color: var(--text2); }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Reverse Geocoding</h1>
+    <p>Coordonate → adresă aproximativă, date live OpenStreetMap</p>
+  </div>
+
+  <div class="fields-grid">
+    <div class="field-card">
+      <span class="field-name">Latitudine</span>
+      <input class="input-calc" id="in-lat" type="number" step="any" value="44.4268"
+             style="--input-color:var(--accent);font-size:1rem">
+    </div>
+    <div class="field-card">
+      <span class="field-name">Longitudine</span>
+      <input class="input-calc" id="in-lon" type="number" step="any" value="26.1025"
+             style="--input-color:var(--accent);font-size:1rem">
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:var(--content-gap)">
+    <div class="field-label" style="margin-bottom:8px">Exemple (click pentru a completa)</div>
+    <div class="city-presets" id="city-presets"></div>
+  </div>
+
+  <button class="btn-primary" id="fetch-btn" onclick="reverseGeocode()">Găsește adresa</button>
+
+  <div class="status-msg" id="status-msg"></div>
+
+  <div class="result-card" id="result-card" style="display:none">
+    <div class="result-address" id="result-address" style="margin-bottom:12px"></div>
+    <div class="detail-grid" id="detail-grid"></div>
+  </div>
+
+  <div class="attribution">Date furnizate de <a href="https://www.openstreetmap.org" target="_blank" rel="noopener">OpenStreetMap</a> / Nominatim</div>
+</div>
+
+<script>
+const CITIES = [
+  { name: 'Piața Unirii, București', lat: 44.4268, lon: 26.1025 },
+  { name: 'Piața Sfatului, Brașov', lat: 45.6427, lon: 25.5887 },
+  { name: 'Times Square, NYC', lat: 40.7580, lon: -73.9855 },
+  { name: 'Turnul Eiffel', lat: 48.8584, lon: 2.2945 },
+];
+
+function buildPresets() {
+  const wrap = document.getElementById('city-presets');
+  CITIES.forEach(c => {
+    const btn = document.createElement('div');
+    btn.className = 'city-btn';
+    btn.textContent = c.name;
+    btn.onclick = () => {
+      document.getElementById('in-lat').value = c.lat;
+      document.getElementById('in-lon').value = c.lon;
+      reverseGeocode();
+    };
+    wrap.appendChild(btn);
+  });
+}
+
+async function reverseGeocode() {
+  const lat = parseFloat(document.getElementById('in-lat').value);
+  const lon = parseFloat(document.getElementById('in-lon').value);
+  const statusMsg = document.getElementById('status-msg');
+  const resultCard = document.getElementById('result-card');
+  const btn = document.getElementById('fetch-btn');
+
+  if (isNaN(lat) || isNaN(lon) || lat<-90 || lat>90 || lon<-180 || lon>180) {
+    statusMsg.textContent = 'Introdu coordonate valide';
+    statusMsg.className = 'status-msg error';
+    resultCard.style.display = 'none';
+    return;
+  }
+
+  btn.disabled = true;
+  statusMsg.className = 'status-msg';
+  statusMsg.textContent = 'Se caută adresa...';
+  resultCard.style.display = 'none';
+
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`;
+    const response = await fetch(url, { headers: { 'Accept-Language': 'ro' } });
+    if (!response.ok) throw new Error('Răspuns invalid de la server');
+    const data = await response.json();
+
+    if (data.error) throw new Error(data.error);
+
+    document.getElementById('result-address').textContent = data.display_name;
+
+    const addr = data.address || {};
+    const details = [
+      ['Oraș', addr.city || addr.town || addr.village || '—'],
+      ['Județ/Regiune', addr.county || addr.state || '—'],
+      ['Țară', addr.country || '—'],
+      ['Cod poștal', addr.postcode || '—'],
+      ['Stradă', addr.road || '—'],
+      ['Tip', data.type || '—'],
+    ];
+    document.getElementById('detail-grid').innerHTML = details.map(([label,val]) => `
+      <div class="detail-item"><div class="detail-label">${label}</div><div class="detail-val">${val}</div></div>
+    `).join('');
+
+    resultCard.style.display = 'block';
+    statusMsg.textContent = '✓ Adresă găsită';
+  } catch (err) {
+    statusMsg.textContent = 'Eroare: ' + err.message;
+    statusMsg.className = 'status-msg error';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+buildPresets();
+reverseGeocode();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Reverse geocoding</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>
