@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Base64 Encode/Decode — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #60a0f0;
+  --accent-dim: rgba(96,160,240,0.10);
+  --accent-border: rgba(96,160,240,0.28);
+}
+
+.mode-row { display: flex; gap: 8px; margin-bottom: var(--content-gap); align-items: center; }
+.mode-btn {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.mode-btn.active { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+
+.swap-btn {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: var(--text2);
+  transition: all 0.15s;
+  margin-left: auto;
+}
+.swap-btn:hover { border-color: var(--accent-border); color: var(--accent); background: var(--accent-dim); }
+
+.text-area-wrap { position: relative; }
+.big-textarea {
+  width: 100%;
+  min-height: 160px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text);
+  outline: none;
+  resize: vertical;
+  line-height: 1.5;
+}
+.big-textarea:focus { border-color: var(--accent-border); box-shadow: 0 0 0 3px var(--accent-dim); }
+.big-textarea.output { color: var(--accent); }
+.big-textarea.error { border-color: #f06060; }
+
+.area-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.area-name { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; }
+.area-actions { display: flex; gap: 6px; }
+.mini-btn {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.mini-btn:hover { border-color: var(--accent-border); color: var(--accent); }
+
+.file-drop {
+  border: 1px dashed var(--border2);
+  border-radius: var(--radius);
+  padding: 14px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text3);
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-top: var(--content-gap);
+}
+.file-drop:hover { border-color: var(--accent-border); color: var(--accent); background: var(--accent-dim); }
+.file-drop.dragover { border-color: var(--accent-border); background: var(--accent-dim); color: var(--accent); }
+
+.stats-bar {
+  display: flex;
+  gap: 14px;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text3);
+  margin-top: 8px;
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Base64 encode/decode</h1>
+    <p>Text sau fișier ↔ Base64, complet local</p>
+  </div>
+
+  <div class="mode-row">
+    <button class="mode-btn active" id="btn-encode" onclick="setMode('encode')">Encode</button>
+    <button class="mode-btn" id="btn-decode" onclick="setMode('decode')">Decode</button>
+    <div class="swap-btn" onclick="swapDirection()" title="Inversează">⇄</div>
+  </div>
+
+  <div style="margin-bottom:var(--content-gap)">
+    <div class="area-label">
+      <span class="area-name" id="input-label">Text original</span>
+      <div class="area-actions">
+        <button class="mini-btn" onclick="pasteInto()">Lipește</button>
+        <button class="mini-btn" onclick="clearInput()">Șterge</button>
+      </div>
+    </div>
+    <textarea class="big-textarea" id="input-area" placeholder="Scrie sau lipește text aici..." oninput="compute()"></textarea>
+    <div class="stats-bar" id="input-stats"></div>
+  </div>
+
+  <div class="file-drop" id="file-drop" onclick="document.getElementById('file-input').click()">
+    Trage un fișier aici sau click pentru a-l încărca (max 5MB)
+    <input type="file" id="file-input" style="display:none">
+  </div>
+
+  <div style="margin: var(--content-gap) 0">
+    <div class="area-label">
+      <span class="area-name" id="output-label">Base64</span>
+      <div class="area-actions">
+        <button class="mini-btn" onclick="copyOutput()">Copiază</button>
+      </div>
+    </div>
+    <textarea class="big-textarea output" id="output-area" readonly placeholder="Rezultatul apare aici..."></textarea>
+    <div class="stats-bar" id="output-stats"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+let mode = 'encode';
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('btn-encode').classList.toggle('active', m === 'encode');
+  document.getElementById('btn-decode').classList.toggle('active', m === 'decode');
+  document.getElementById('input-label').textContent = m === 'encode' ? 'Text original' : 'Base64';
+  document.getElementById('output-label').textContent = m === 'encode' ? 'Base64' : 'Text decodat';
+  document.getElementById('input-area').placeholder = m === 'encode' ? 'Scrie sau lipește text aici...' : 'Lipește codul Base64 aici...';
+  compute();
+}
+
+function swapDirection() {
+  const inp = document.getElementById('input-area');
+  const out = document.getElementById('output-area');
+  const tmp = inp.value;
+  inp.value = out.value;
+  setMode(mode === 'encode' ? 'decode' : 'encode');
+  document.getElementById('input-area').value = tmp === out.value ? out.value : tmp;
+  // Simplu: punem output-ul vechi ca input nou
+  inp.value = out.value || tmp;
+  compute();
+}
+
+function utf8ToBase64(str) {
+  const bytes = new TextEncoder().encode(str);
+  let binary = '';
+  bytes.forEach(b => binary += String.fromCharCode(b));
+  return btoa(binary);
+}
+
+function base64ToUtf8(b64) {
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+}
+
+function compute() {
+  const input = document.getElementById('input-area');
+  const output = document.getElementById('output-area');
+  const text = input.value;
+
+  input.classList.remove('error');
+
+  if (!text) {
+    output.value = '';
+    updateStats('input-stats', '');
+    updateStats('output-stats', '');
+    return;
+  }
+
+  try {
+    if (mode === 'encode') {
+      output.value = utf8ToBase64(text);
+    } else {
+      const cleaned = text.replace(/\s/g, '');
+      output.value = base64ToUtf8(cleaned);
+    }
+  } catch (err) {
+    input.classList.add('error');
+    output.value = mode === 'decode' ? '⚠ Base64 invalid — verifică textul introdus' : '';
+  }
+
+  updateStats('input-stats', text);
+  updateStats('output-stats', output.value);
+}
+
+function updateStats(id, text) {
+  const bytes = new TextEncoder().encode(text).length;
+  document.getElementById(id).textContent = `${text.length} caractere · ${bytes} octeți`;
+}
+
+function clearInput() {
+  document.getElementById('input-area').value = '';
+  compute();
+}
+
+function pasteInto() {
+  navigator.clipboard.readText().then(text => {
+    document.getElementById('input-area').value = text;
+    compute();
+  }).catch(() => showToast('Nu s-a putut accesa clipboard-ul'));
+}
+
+function copyOutput() {
+  const text = document.getElementById('output-area').value;
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => showToast('Copiat!'));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+// File handling
+const fileDrop = document.getElementById('file-drop');
+const fileInput = document.getElementById('file-input');
+
+function handleFile(file) {
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('Fișier prea mare (max 5MB)');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    const b64 = reader.result.split(',')[1];
+    setMode('encode');
+    document.getElementById('input-area').value = `[fișier: ${file.name}, ${file.size} octeți — vezi Base64 mai jos]`;
+    document.getElementById('output-area').value = b64;
+    updateStats('input-stats', document.getElementById('input-area').value);
+    updateStats('output-stats', b64);
+    showToast('Fișier încărcat: ' + file.name);
+  };
+  reader.readAsDataURL(file);
+}
+
+fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+fileDrop.addEventListener('dragover', e => { e.preventDefault(); fileDrop.classList.add('dragover'); });
+fileDrop.addEventListener('dragleave', () => fileDrop.classList.remove('dragover'));
+fileDrop.addEventListener('drop', e => {
+  e.preventDefault();
+  fileDrop.classList.remove('dragover');
+  handleFile(e.dataTransfer.files[0]);
+});
+
+compute();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Base64 encode/decode</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

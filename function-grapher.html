@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grafic Funcție — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #4af0b0;
+  --accent-dim: rgba(74,240,176,0.10);
+  --accent-border: rgba(74,240,176,0.28);
+}
+
+.type-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 6px;
+  margin-bottom: var(--content-gap);
+}
+.type-btn {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 6px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.type-btn:hover { border-color: var(--accent-border); }
+.type-btn.active { background: var(--accent-dim); border-color: var(--accent-border); }
+.type-name { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text2); }
+.type-btn.active .type-name { color: var(--accent); }
+
+.fields-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px,1fr)); gap: var(--content-gap); margin-bottom: var(--content-gap); }
+.field-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+.field-name { font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent); font-weight: 700; margin-bottom: 6px; display: block; }
+
+.equation-display {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+  padding: 0.5rem 0;
+  margin-bottom: var(--content-gap);
+  word-break: break-word;
+}
+.equation-display .coef { color: var(--accent); }
+
+.graph-wrap { display: flex; justify-content: center; padding: 0.5rem 0; overflow-x: auto; }
+.graph-svg text { font-family: var(--font-mono); font-size: 9px; fill: var(--text3); }
+.graph-axis { stroke: var(--text3); stroke-width: 1; }
+.graph-grid-line { stroke: var(--border); stroke-width: 0.5; }
+.graph-curve { stroke: var(--accent); stroke-width: 2.5; fill: none; }
+.graph-point { fill: #f0c040; }
+.domain-note {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text3);
+  text-align: center;
+  margin-top: 6px;
+}
+
+.zoom-row { display: flex; gap: 8px; justify-content: center; margin-top: 8px; }
+.zoom-btn {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text2);
+  cursor: pointer;
+}
+.zoom-btn:hover { border-color: var(--accent-border); color: var(--accent); }
+
+.info-row { display: grid; grid-template-columns: repeat(auto-fit,minmax(120px,1fr)); gap: 8px; margin-top: var(--content-gap); }
+.info-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  text-align: center;
+}
+.info-val { font-family: var(--font-mono); font-size: 0.9rem; font-weight: 600; color: var(--text); }
+.info-key { font-family: var(--font-mono); font-size: 0.58rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Grafic funcție</h1>
+    <p>Liniar, pătratic, cubic, radical, exponențial, logaritm, trigonometrice, 1/x</p>
+  </div>
+
+  <div class="type-grid" id="type-grid"></div>
+
+  <div class="equation-display" id="equation-display"></div>
+
+  <div class="fields-grid" id="fields-grid"></div>
+
+  <div class="card">
+    <div class="graph-wrap" id="graph-wrap"></div>
+    <div class="domain-note" id="domain-note"></div>
+    <div class="zoom-row">
+      <button class="zoom-btn" onclick="zoom(0.7)">Zoom +</button>
+      <button class="zoom-btn" onclick="zoom(1.4)">Zoom −</button>
+      <button class="zoom-btn" onclick="resetZoom()">Reset</button>
+    </div>
+  </div>
+
+  <div class="info-row" id="info-row"></div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+let viewRanges = {}; // range curent per tip, calculat lazy
+
+// Calculează intervalul X implicit sensibil pentru fiecare tip, în funcție de parametrii curenți
+function getDefaultView(type, v) {
+  switch (type) {
+    case 'cubic':
+      return { center: 0, range: 6 }; // creștere rapidă, interval mai mic
+    case 'sqrt':
+      return { center: v.h + 5, range: 10, xMin: v.h }; // pornește exact din domeniu
+    case 'logarithm':
+      return { center: v.h + 5, range: 10, xMin: v.h + 0.1 };
+    case 'exponential':
+      return { center: 0, range: 6 }; // b^x explodează rapid, interval mai mic
+    case 'reciprocal':
+      return { center: v.h, range: 8 };
+    case 'sine': case 'cosine': {
+      const period = v.b !== 0 ? 2*Math.PI/Math.abs(v.b) : 2*Math.PI;
+      return { center: v.h, range: Math.max(4, period * 2.5) }; // arată ~2.5 perioade
+    }
+    default:
+      return { center: 0, range: 10 };
+  }
+}
+
+function ensureViewRange(type, v) {
+  const existing = viewRanges[type];
+  if (existing && existing.customized) return existing; // utilizatorul a zoomat manual — păstrăm alegerea lui
+  const fresh = getDefaultView(type, v);
+  viewRanges[type] = fresh; // altfel recalculăm mereu, ca intervalul să se adapteze la parametri (ex: perioada la sin/cos)
+  return fresh;
+}
+let currentType = 'linear';
+
+function trim(n) {
+  if (!isFinite(n)) return '—';
+  return parseFloat(n.toPrecision(6)).toString();
+}
+function num(v) { return `<span class="coef">${trim(v)}</span>`; }
+
+// Fiecare tip: fields (nume param + valoare implicită), fn(x, v) -> y (NaN dacă în afara domeniului),
+// equation(v) -> HTML string, info(v) -> obiect { label: value }
+const TYPES = {
+  linear: {
+    name: 'Liniar', fields: [['a',1],['b',0]],
+    fn: (x,v) => v.a*x + v.b,
+    eq: v => `y = ${num(v.a)}x ${v.b>=0?'+':'−'} ${num(Math.abs(v.b))}`,
+    info: v => ({ 'Pantă': v.a, 'Intersecție Oy': v.b, 'Intersecție Ox': v.a!==0 ? -v.b/v.a : NaN }),
+  },
+  quadratic: {
+    name: 'Pătratic', fields: [['a',1],['b',0],['c',0]],
+    fn: (x,v) => v.a*x*x + v.b*x + v.c,
+    eq: v => `y = ${num(v.a)}x² ${v.b>=0?'+':'−'} ${num(Math.abs(v.b))}x ${v.c>=0?'+':'−'} ${num(Math.abs(v.c))}`,
+    info: v => {
+      if (v.a===0) return { 'Atenție': 'a=0, devine liniară' };
+      const delta = v.b*v.b - 4*v.a*v.c;
+      const vx = -v.b/(2*v.a);
+      return { 'Vârf X': vx, 'Vârf Y': v.a*vx*vx+v.b*vx+v.c, 'Discriminant': delta };
+    },
+    vertex: v => v.a!==0 ? { x: -v.b/(2*v.a), y: v.c - v.b*v.b/(4*v.a) } : null,
+  },
+  cubic: {
+    name: 'Cubic', fields: [['a',1],['b',0],['c',0],['d',0]],
+    fn: (x,v) => v.a*x**3 + v.b*x*x + v.c*x + v.d,
+    eq: v => `y = ${num(v.a)}x³ ${v.b>=0?'+':'−'} ${num(Math.abs(v.b))}x² ${v.c>=0?'+':'−'} ${num(Math.abs(v.c))}x ${v.d>=0?'+':'−'} ${num(Math.abs(v.d))}`,
+    info: v => ({ 'y(0)': v.d, 'Monotonie': v.a>0 ? 'crescătoare (general)' : 'descrescătoare (general)' }),
+  },
+  abs: {
+    name: 'Valoare absolută', fields: [['a',1],['h',0],['k',0]],
+    fn: (x,v) => v.a*Math.abs(x-v.h) + v.k,
+    eq: v => `y = ${num(v.a)}|x ${v.h>=0?'−':'+'} ${num(Math.abs(v.h))}| ${v.k>=0?'+':'−'} ${num(Math.abs(v.k))}`,
+    info: v => ({ 'Vârf X': v.h, 'Vârf Y': v.k, 'Deschidere': v.a>0?'în sus':'în jos' }),
+    vertex: v => ({ x: v.h, y: v.k }),
+  },
+  sqrt: {
+    name: 'Radical', fields: [['a',1],['h',0],['k',0]],
+    fn: (x,v) => (x-v.h) >= 0 ? v.a*Math.sqrt(x-v.h) + v.k : NaN,
+    eq: v => `y = ${num(v.a)}√(x ${v.h>=0?'−':'+'} ${num(Math.abs(v.h))}) ${v.k>=0?'+':'−'} ${num(Math.abs(v.k))}`,
+    info: v => ({ 'Domeniu': `x ≥ ${trim(v.h)}`, 'Punct start': `(${trim(v.h)}, ${trim(v.k)})` }),
+    domainNote: v => `Definită doar pentru x ≥ ${trim(v.h)}`,
+  },
+  exponential: {
+    name: 'Exponențial', fields: [['a',1],['b',2],['k',0]],
+    fn: (x,v) => v.a*Math.pow(v.b, x) + v.k,
+    eq: v => `y = ${num(v.a)}·${num(v.b)}ˣ ${v.k>=0?'+':'−'} ${num(Math.abs(v.k))}`,
+    info: v => ({ 'Asimptotă orizontală': `y = ${trim(v.k)}`, 'y(0)': v.a + v.k, 'Tip': v.b>1?'creștere':'descreștere' }),
+    domainNote: v => v.b<=0 ? '⚠ baza trebuie să fie pozitivă' : '',
+  },
+  logarithm: {
+    name: 'Logaritm', fields: [['a',1],['h',0],['k',0]],
+    fn: (x,v) => (x-v.h) > 0 ? v.a*Math.log(x-v.h) + v.k : NaN,
+    eq: v => `y = ${num(v.a)}·ln(x ${v.h>=0?'−':'+'} ${num(Math.abs(v.h))}) ${v.k>=0?'+':'−'} ${num(Math.abs(v.k))}`,
+    info: v => ({ 'Domeniu': `x > ${trim(v.h)}`, 'Asimptotă verticală': `x = ${trim(v.h)}` }),
+    domainNote: v => `Definită doar pentru x > ${trim(v.h)}`,
+  },
+  sine: {
+    name: 'Sinus', fields: [['a',1],['b',1],['h',0],['k',0]],
+    fn: (x,v) => v.a*Math.sin(v.b*(x-v.h)) + v.k,
+    eq: v => `y = ${num(v.a)}·sin(${num(v.b)}(x ${v.h>=0?'−':'+'} ${num(Math.abs(v.h))})) ${v.k>=0?'+':'−'} ${num(Math.abs(v.k))}`,
+    info: v => ({ 'Amplitudine': Math.abs(v.a), 'Perioadă': v.b!==0 ? 2*Math.PI/Math.abs(v.b) : NaN, 'Ax. verticală': v.k }),
+  },
+  cosine: {
+    name: 'Cosinus', fields: [['a',1],['b',1],['h',0],['k',0]],
+    fn: (x,v) => v.a*Math.cos(v.b*(x-v.h)) + v.k,
+    eq: v => `y = ${num(v.a)}·cos(${num(v.b)}(x ${v.h>=0?'−':'+'} ${num(Math.abs(v.h))})) ${v.k>=0?'+':'−'} ${num(Math.abs(v.k))}`,
+    info: v => ({ 'Amplitudine': Math.abs(v.a), 'Perioadă': v.b!==0 ? 2*Math.PI/Math.abs(v.b) : NaN, 'Ax. verticală': v.k }),
+  },
+  reciprocal: {
+    name: '1/x (hiperbolă)', fields: [['a',1],['h',0],['k',0]],
+    fn: (x,v) => Math.abs(x-v.h) > 1e-9 ? v.a/(x-v.h) + v.k : NaN,
+    eq: v => `y = ${num(v.a)}/(x ${v.h>=0?'−':'+'} ${num(Math.abs(v.h))}) ${v.k>=0?'+':'−'} ${num(Math.abs(v.k))}`,
+    info: v => ({ 'Asimptotă verticală': `x = ${trim(v.h)}`, 'Asimptotă orizontală': `y = ${trim(v.k)}` }),
+    domainNote: v => `Nedefinită la x = ${trim(v.h)}`,
+  },
+};
+
+function buildTypeGrid() {
+  const grid = document.getElementById('type-grid');
+  grid.innerHTML = '';
+  Object.entries(TYPES).forEach(([key, t]) => {
+    const btn = document.createElement('div');
+    btn.className = 'type-btn' + (key===currentType ? ' active' : '');
+    btn.innerHTML = `<div class="type-name">${t.name}</div>`;
+    btn.onclick = () => { currentType = key; buildTypeGrid(); buildFields(); compute(); };
+    grid.appendChild(btn);
+  });
+}
+
+function buildFields() {
+  const type = TYPES[currentType];
+  const grid = document.getElementById('fields-grid');
+  grid.innerHTML = type.fields.map(([key, def]) => `
+    <div class="field-card">
+      <span class="field-name">${key}</span>
+      <input class="input-calc" id="in-${key}" type="number" step="any" value="${def}"
+             style="--input-color:var(--accent)" oninput="compute()">
+    </div>
+  `).join('');
+}
+
+function getValues() {
+  const type = TYPES[currentType];
+  const v = {};
+  let valid = true;
+  type.fields.forEach(([key]) => {
+    const val = parseFloat(document.getElementById('in-'+key).value);
+    if (isNaN(val)) valid = false;
+    v[key] = val;
+  });
+  return valid ? v : null;
+}
+
+function compute() {
+  const type = TYPES[currentType];
+  const v = getValues();
+  const eqEl = document.getElementById('equation-display');
+  const domainNoteEl = document.getElementById('domain-note');
+
+  if (!v) {
+    eqEl.textContent = 'Completează coeficienții';
+    document.getElementById('graph-wrap').innerHTML = '';
+    document.getElementById('info-row').innerHTML = '';
+    domainNoteEl.textContent = '';
+    return;
+  }
+
+  eqEl.innerHTML = type.eq(v);
+  domainNoteEl.textContent = type.domainNote ? type.domainNote(v) : '';
+
+  const infoResults = type.info(v);
+  document.getElementById('info-row').innerHTML = Object.entries(infoResults).map(([label,val]) => `
+    <div class="info-card"><div class="info-val">${typeof val === 'number' ? trim(val) : val}</div><div class="info-key">${label}</div></div>
+  `).join('');
+
+  const vertex = type.vertex ? type.vertex(v) : null;
+  const view = ensureViewRange(currentType, v);
+  renderGraph(x => type.fn(x, v), vertex, view);
+}
+
+function renderGraph(fn, vertex, view) {
+  const wrap = document.getElementById('graph-wrap');
+  const w = 320, h = 280;
+  const padX = 30, padY = 20;
+  const plotW = w - padX*2, plotH = h - padY*2;
+
+  const xMin = view.xMin !== undefined ? view.xMin : view.center - view.range/2;
+  const xMax = xMin + view.range;
+  const samples = 200;
+  let yMin = Infinity, yMax = -Infinity;
+  const segments = [[]];
+
+  for (let i = 0; i <= samples; i++) {
+    const x = xMin + (xMax-xMin)*i/samples;
+    const y = fn(x);
+    if (isFinite(y)) {
+      segments[segments.length-1].push([x,y]);
+      yMin = Math.min(yMin, y);
+      yMax = Math.max(yMax, y);
+    } else if (segments[segments.length-1].length > 0) {
+      segments.push([]);
+    }
+  }
+  if (vertex && isFinite(vertex.y)) { yMin = Math.min(yMin, vertex.y); yMax = Math.max(yMax, vertex.y); }
+  if (!isFinite(yMin) || !isFinite(yMax)) { yMin=-10; yMax=10; }
+  const rawSpread = yMax - yMin;
+  if (rawSpread > view.range*6) {
+    const mid = (yMax+yMin)/2;
+    yMin = mid - view.range*3; yMax = mid + view.range*3;
+  }
+  const yPad = (yMax-yMin)*0.1 || 1;
+  yMin -= yPad; yMax += yPad;
+
+  function toSvgX(x) { return padX + (x-xMin)/(xMax-xMin)*plotW; }
+  function toSvgY(y) { return padY + (1-(y-yMin)/(yMax-yMin))*plotH; }
+
+  let svg = `<svg class="graph-svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`;
+
+  for (let gx = Math.ceil(xMin); gx <= xMax; gx += Math.max(1,Math.round(view.range/5))) {
+    svg += `<line class="graph-grid-line" x1="${toSvgX(gx)}" y1="${padY}" x2="${toSvgX(gx)}" y2="${h-padY}"/>`;
+  }
+
+  if (yMin<=0 && yMax>=0) svg += `<line class="graph-axis" x1="${padX}" y1="${toSvgY(0)}" x2="${w-padX}" y2="${toSvgY(0)}"/>`;
+  if (xMin<=0 && xMax>=0) svg += `<line class="graph-axis" x1="${toSvgX(0)}" y1="${padY}" x2="${toSvgX(0)}" y2="${h-padY}"/>`;
+
+  segments.forEach(seg => {
+    if (seg.length < 2) return;
+    let path = '';
+    seg.forEach(([x,y], i) => {
+      const svgY = Math.max(padY, Math.min(h-padY, toSvgY(y)));
+      path += (i===0?'M':'L') + toSvgX(x) + ' ' + svgY + ' ';
+    });
+    svg += `<path class="graph-curve" d="${path}"/>`;
+  });
+
+  if (vertex && isFinite(vertex.y) && vertex.x >= xMin && vertex.x <= xMax) {
+    svg += `<circle class="graph-point" cx="${toSvgX(vertex.x)}" cy="${toSvgY(vertex.y)}" r="4"/>`;
+  }
+
+  svg += `</svg>`;
+  wrap.innerHTML = svg;
+}
+
+function zoom(factor) {
+  const view = viewRanges[currentType];
+  if (!view) return;
+  view.range *= factor;
+  view.range = Math.max(0.5, Math.min(1000, view.range));
+  view.customized = true;
+  compute();
+}
+function resetZoom() {
+  delete viewRanges[currentType];
+  compute();
+}
+
+buildTypeGrid();
+buildFields();
+compute();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Grafic funcție simplă</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

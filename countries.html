@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REST Countries Info — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #80e8b0;
+  --accent-dim: rgba(96,160,240,0.10);
+  --accent-border: rgba(96,160,240,0.28);
+}
+
+.search-row { display: flex; gap: 8px; margin-bottom: var(--content-gap); }
+.search-row input { flex: 1; }
+
+.region-row { display: flex; gap: 6px; margin-bottom: var(--content-gap); flex-wrap: wrap; }
+.region-btn {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 5px 12px;
+  border-radius: 99px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text2);
+  cursor: pointer;
+}
+.region-btn.active { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+
+.status-msg { text-align: center; font-family: var(--font-mono); font-size: 0.78rem; color: var(--text3); margin-bottom: var(--content-gap); }
+.status-msg.error { color: #f06060; }
+
+.country-list { display: flex; flex-direction: column; gap: 6px; max-height: 500px; overflow-y: auto; margin-bottom: var(--content-gap); }
+.country-row {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: border-color 0.12s;
+}
+.country-row:hover { border-color: var(--accent-border); }
+.country-flag { font-size: 1.6rem; }
+.country-name { font-family: var(--font-sans); font-size: 0.85rem; font-weight: 600; color: var(--text); flex: 1; }
+.country-region { font-family: var(--font-mono); font-size: 0.62rem; color: var(--text3); }
+
+.detail-card {
+  background: var(--bg2);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: var(--content-gap);
+  display: none;
+}
+.detail-card.show { display: block; }
+.detail-header { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.detail-flag { font-size: 3rem; }
+.detail-name { font-family: var(--font-sans); font-size: 1.2rem; font-weight: 700; color: var(--text); }
+.detail-official { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text3); }
+
+.detail-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+@media (max-width: 500px) { .detail-grid { grid-template-columns: 1fr; } }
+.detail-item { background: var(--bg3); border-radius: 6px; padding: 8px 12px; }
+.detail-label { font-family: var(--font-mono); font-size: 0.58rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; }
+.detail-value { font-family: var(--font-mono); font-size: 0.8rem; color: var(--text2); margin-top: 2px; }
+
+.attribution { font-family: var(--font-mono); font-size: 0.6rem; color: var(--text3); text-align: center; margin-top: var(--content-gap); }
+.attribution a { color: var(--text2); }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>REST Countries info</h1>
+    <p>Capitală, populație, monedă, limbi — pentru toate țările lumii</p>
+  </div>
+
+  <div class="search-row">
+    <input class="input-calc" id="in-search" type="text" placeholder="Caută țară..." style="--input-color:var(--accent);font-size:0.95rem" oninput="filterList()">
+  </div>
+
+  <div class="region-row" id="region-row"></div>
+
+  <div class="status-msg" id="status-msg">Se încarcă lista de țări...</div>
+
+  <div class="detail-card" id="detail-card"></div>
+
+  <div class="country-list" id="country-list"></div>
+
+  <div class="attribution">Date furnizate de <a href="https://github.com/mledoze/countries" target="_blank" rel="noopener">mledoze/countries</a> (open-source, ODbL)</div>
+</div>
+
+<script>
+let allCountries = [];
+let currentRegion = 'all';
+
+function ccaToFlag(cca2) {
+  if (!cca2 || cca2.length !== 2) return '🏳️';
+  const codePoints = [...cca2.toUpperCase()].map(c => 127397 + c.charCodeAt(0));
+  return String.fromCodePoint(...codePoints);
+}
+
+function fmtNumber(n) {
+  return n ? n.toLocaleString('ro-RO') : '—';
+}
+
+async function loadCountries() {
+  const statusEl = document.getElementById('status-msg');
+  try {
+    const res = await fetch('https://raw.githubusercontent.com/mledoze/countries/master/dist/countries-unescaped.json');
+    if (!res.ok) throw new Error('Răspuns invalid');
+    const data = await res.json();
+
+    allCountries = data
+      .filter(c => c.independent !== false || c.unMember) // excludem teritorii non-independente fără recunoaștere ONU
+      .map(c => ({
+        name: c.name.common,
+        official: c.name.official,
+        cca2: c.cca2,
+        region: c.region,
+        subregion: c.subregion,
+        capital: (c.capital || []).join(', ') || '—',
+        population: c.population,
+        area: c.area,
+        currencies: c.currencies ? Object.values(c.currencies).map(cur => `${cur.name} (${cur.symbol||''})`).join(', ') : '—',
+        languages: c.languages ? Object.values(c.languages).join(', ') : '—',
+        callingCode: c.idd ? (c.idd.root||'') + (c.idd.suffixes ? c.idd.suffixes[0] : '') : '—',
+      }))
+      .sort((a,b) => a.name.localeCompare(b.name, 'ro'));
+
+    buildRegionFilter();
+    renderList(allCountries);
+    statusEl.textContent = `${allCountries.length} țări încărcate`;
+  } catch (err) {
+    statusEl.textContent = 'Eroare la încărcare: ' + err.message;
+    statusEl.className = 'status-msg error';
+  }
+}
+
+function buildRegionFilter() {
+  const regions = ['all', ...new Set(allCountries.map(c => c.region).filter(Boolean))].sort();
+  const wrap = document.getElementById('region-row');
+  wrap.innerHTML = '';
+  regions.forEach(r => {
+    const btn = document.createElement('div');
+    btn.className = 'region-btn' + (r===currentRegion?' active':'');
+    btn.textContent = r === 'all' ? 'Toate' : r;
+    btn.onclick = () => {
+      currentRegion = r;
+      document.querySelectorAll('.region-btn').forEach(b => b.classList.toggle('active', b.textContent === (r==='all'?'Toate':r)));
+      filterList();
+    };
+    wrap.appendChild(btn);
+  });
+}
+
+function filterList() {
+  const query = document.getElementById('in-search').value.toLowerCase();
+  let filtered = allCountries;
+  if (currentRegion !== 'all') filtered = filtered.filter(c => c.region === currentRegion);
+  if (query) filtered = filtered.filter(c => c.name.toLowerCase().includes(query));
+  renderList(filtered);
+}
+
+function renderList(list) {
+  const listEl = document.getElementById('country-list');
+  if (list.length === 0) {
+    listEl.innerHTML = '<div style="text-align:center;font-family:var(--font-mono);font-size:0.8rem;color:var(--text3);padding:20px">Nicio țară găsită</div>';
+    return;
+  }
+  listEl.innerHTML = list.map(c => `
+    <div class="country-row" onclick='showDetail(${JSON.stringify(c).replace(/'/g,"&apos;")})'>
+      <span class="country-flag">${ccaToFlag(c.cca2)}</span>
+      <span class="country-name">${c.name}</span>
+      <span class="country-region">${c.region}</span>
+    </div>
+  `).join('');
+}
+
+function showDetail(c) {
+  const card = document.getElementById('detail-card');
+  card.innerHTML = `
+    <div class="detail-header">
+      <span class="detail-flag">${ccaToFlag(c.cca2)}</span>
+      <div>
+        <div class="detail-name">${c.name}</div>
+        <div class="detail-official">${c.official}</div>
+      </div>
+    </div>
+    <div class="detail-grid">
+      <div class="detail-item"><div class="detail-label">Capitală</div><div class="detail-value">${c.capital}</div></div>
+      <div class="detail-item"><div class="detail-label">Regiune</div><div class="detail-value">${c.region} · ${c.subregion||'—'}</div></div>
+      <div class="detail-item"><div class="detail-label">Populație</div><div class="detail-value">${fmtNumber(c.population)}</div></div>
+      <div class="detail-item"><div class="detail-label">Suprafață</div><div class="detail-value">${fmtNumber(c.area)} km²</div></div>
+      <div class="detail-item"><div class="detail-label">Monedă</div><div class="detail-value">${c.currencies}</div></div>
+      <div class="detail-item"><div class="detail-label">Limbi</div><div class="detail-value">${c.languages}</div></div>
+      <div class="detail-item" style="grid-column:1/-1"><div class="detail-label">Cod telefonic</div><div class="detail-value">+${c.callingCode}</div></div>
+    </div>
+  `;
+  card.classList.add('show');
+  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+loadCountries();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>REST Countries info</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

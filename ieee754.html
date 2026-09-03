@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IEEE 754 Float — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #c080f0;
+  --accent-dim: rgba(224,112,160,0.10);
+  --accent-border: rgba(224,112,160,0.28);
+}
+
+.mode-row { display: flex; gap: 8px; margin-bottom: var(--content-gap); }
+.mode-btn {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  cursor: pointer;
+}
+.mode-btn.active { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+
+.field-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: var(--content-gap);
+}
+.field-name { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text2); font-weight: 500; margin-bottom: 8px; display: block; }
+
+.bit-display {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  margin-bottom: var(--content-gap);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+.bit {
+  padding: 4px 2px;
+  border-radius: 3px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.1s;
+}
+.bit.sign { background: rgba(240,96,96,0.15); color: #f06060; }
+.bit.exponent { background: rgba(240,192,64,0.15); color: #f0c040; }
+.bit.mantissa { background: rgba(74,240,176,0.12); color: #4af0b0; }
+.bit:hover { filter: brightness(1.3); }
+
+.legend-row { display: flex; gap: 12px; margin-bottom: var(--content-gap); font-family: var(--font-mono); font-size: 0.65rem; }
+.legend-item { display: flex; align-items: center; gap: 5px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+.breakdown-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: var(--content-gap); }
+@media (max-width: 500px) { .breakdown-grid { grid-template-columns: 1fr; } }
+.breakdown-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; text-align: center; }
+.breakdown-val { font-family: var(--font-mono); font-size: 0.85rem; font-weight: 600; color: var(--text); word-break: break-all; }
+.breakdown-key { font-family: var(--font-mono); font-size: 0.58rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+
+.result-card {
+  background: var(--bg2);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius);
+  padding: 18px;
+  text-align: center;
+  margin-bottom: var(--content-gap);
+}
+.result-val { font-family: var(--font-mono); font-size: 1.3rem; font-weight: 700; color: var(--accent); word-break: break-all; }
+
+.special-note {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: #f0a040;
+  background: rgba(240,160,64,0.08);
+  border: 1px solid rgba(240,160,64,0.25);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  margin-bottom: var(--content-gap);
+  display: none;
+}
+.special-note.show { display: block; }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>IEEE 754 Float</h1>
+    <p>Reprezentarea binară exactă a numerelor cu virgulă mobilă (32-bit)</p>
+  </div>
+
+  <div class="mode-row">
+    <button class="mode-btn active" id="btn-decimal" onclick="setMode('decimal')">Zecimal → Binar</button>
+    <button class="mode-btn" id="btn-bits" onclick="setMode('bits')">Biți → Zecimal</button>
+  </div>
+
+  <div id="panel-decimal">
+    <div class="field-card">
+      <span class="field-name">Număr zecimal</span>
+      <input class="input-calc" id="in-decimal" type="number" step="any" value="3.14159"
+             style="--input-color:var(--accent);font-size:1.1rem" oninput="fromDecimal()">
+    </div>
+  </div>
+
+  <div class="legend-row">
+    <span class="legend-item"><span class="legend-dot" style="background:rgba(240,96,96,0.5)"></span>Semn (1 bit)</span>
+    <span class="legend-item"><span class="legend-dot" style="background:rgba(240,192,64,0.5)"></span>Exponent (8 biți)</span>
+    <span class="legend-item"><span class="legend-dot" style="background:rgba(74,240,176,0.4)"></span>Mantisă (23 biți)</span>
+  </div>
+
+  <div class="bit-display" id="bit-display"></div>
+
+  <div class="special-note" id="special-note"></div>
+
+  <div class="breakdown-grid">
+    <div class="breakdown-card"><div class="breakdown-val" id="bd-sign">—</div><div class="breakdown-key">semn</div></div>
+    <div class="breakdown-card"><div class="breakdown-val" id="bd-exp">—</div><div class="breakdown-key">exponent (real)</div></div>
+    <div class="breakdown-card"><div class="breakdown-val" id="bd-mantissa">—</div><div class="breakdown-key">mantisă (fracție)</div></div>
+  </div>
+
+  <div class="result-card">
+    <div style="font-family:var(--font-mono);font-size:0.65rem;color:var(--text3);margin-bottom:6px">Hex (32-bit)</div>
+    <div class="result-val" id="result-hex">—</div>
+  </div>
+
+  <div class="result-card">
+    <div style="font-family:var(--font-mono);font-size:0.65rem;color:var(--text3);margin-bottom:6px">Valoare reconstituită</div>
+    <div class="result-val" id="result-value">—</div>
+  </div>
+</div>
+
+<script>
+let mode = 'decimal';
+let currentBits = new Array(32).fill(0);
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('btn-decimal').classList.toggle('active', m==='decimal');
+  document.getElementById('btn-bits').classList.toggle('active', m==='bits');
+  document.getElementById('panel-decimal').style.display = m==='decimal' ? 'block' : 'none';
+  render();
+}
+
+function floatToBits(num) {
+  const buf = new ArrayBuffer(4);
+  new Float32Array(buf)[0] = num;
+  const intView = new Uint32Array(buf)[0];
+  const bits = [];
+  for (let i = 31; i >= 0; i--) bits.push((intView >> i) & 1);
+  return bits;
+}
+
+function bitsToFloat(bits) {
+  let intVal = 0;
+  for (let i = 0; i < 32; i++) intVal = (intVal << 1) | bits[i];
+  const buf = new ArrayBuffer(4);
+  new Uint32Array(buf)[0] = intVal >>> 0;
+  return new Float32Array(buf)[0];
+}
+
+function fromDecimal() {
+  const num = parseFloat(document.getElementById('in-decimal').value);
+  if (isNaN(num)) return;
+  currentBits = floatToBits(num);
+  render();
+}
+
+function toggleBit(index) {
+  if (mode !== 'bits') return;
+  currentBits[index] = currentBits[index] ? 0 : 1;
+  render();
+}
+
+function render() {
+  renderBitDisplay();
+
+  const sign = currentBits[0];
+  const expBits = currentBits.slice(1, 9);
+  const mantissaBits = currentBits.slice(9, 32);
+
+  const expRaw = parseInt(expBits.join(''), 2);
+  const expReal = expRaw - 127;
+  const mantissaFraction = mantissaBits.reduce((acc, b, i) => acc + b * Math.pow(2, -(i+1)), 0);
+
+  document.getElementById('bd-sign').textContent = sign === 0 ? '+ (0)' : '− (1)';
+  document.getElementById('bd-exp').textContent = `${expRaw} − 127 = ${expReal}`;
+  document.getElementById('bd-mantissa').textContent = '1.' + mantissaBits.join('') + ` (${(1+mantissaFraction).toFixed(6)})`;
+
+  const value = bitsToFloat(currentBits);
+
+  const specialNote = document.getElementById('special-note');
+  if (expRaw === 255 && mantissaBits.every(b => b === 0)) {
+    specialNote.textContent = sign === 0 ? '⚠ Reprezintă +Infinity' : '⚠ Reprezintă −Infinity';
+    specialNote.classList.add('show');
+  } else if (expRaw === 255) {
+    specialNote.textContent = '⚠ Reprezintă NaN (Not a Number)';
+    specialNote.classList.add('show');
+  } else if (expRaw === 0 && mantissaBits.some(b => b === 1)) {
+    specialNote.textContent = 'ℹ Număr subnormal (foarte apropiat de zero, precizie redusă)';
+    specialNote.classList.add('show');
+  } else if (expRaw === 0 && mantissaBits.every(b => b === 0)) {
+    specialNote.textContent = sign === 0 ? 'ℹ Reprezintă +0' : 'ℹ Reprezintă −0 (zero negativ, distinct binar de +0)';
+    specialNote.classList.add('show');
+  } else {
+    specialNote.classList.remove('show');
+  }
+
+  // Hex: reconstruim din biți
+  let intVal = 0;
+  for (let i = 0; i < 32; i++) intVal = (intVal << 1) | currentBits[i];
+  const hex = (intVal >>> 0).toString(16).toUpperCase().padStart(8, '0');
+  document.getElementById('result-hex').textContent = '0x' + hex;
+
+  document.getElementById('result-value').textContent = value.toString();
+
+  if (mode === 'bits') {
+    document.getElementById('in-decimal').value = value;
+  }
+}
+
+function renderBitDisplay() {
+  const wrap = document.getElementById('bit-display');
+  wrap.innerHTML = currentBits.map((b, i) => {
+    let cls = 'bit ';
+    if (i === 0) cls += 'sign';
+    else if (i >= 1 && i <= 8) cls += 'exponent';
+    else cls += 'mantissa';
+    return `<span class="${cls}" onclick="toggleBit(${i})">${b}</span>`;
+  }).join('');
+}
+
+fromDecimal();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>IEEE 754 float</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

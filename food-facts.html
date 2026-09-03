@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Open Food Facts Lookup — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #80e8b0;
+  --accent-dim: rgba(64,192,160,0.10);
+  --accent-border: rgba(64,192,160,0.28);
+}
+
+.search-row { display: flex; gap: 8px; margin-bottom: var(--content-gap); }
+.search-row input { flex: 1; }
+.btn-primary {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+}
+.btn-primary:hover { filter: brightness(1.15); }
+.btn-primary:disabled { opacity: 0.5; cursor: default; }
+
+.preset-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: var(--content-gap); }
+.preset-btn {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 5px 12px;
+  border-radius: 99px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text2);
+  cursor: pointer;
+}
+.preset-btn:hover { border-color: var(--accent-border); color: var(--accent); }
+
+.status-msg { text-align: center; font-family: var(--font-mono); font-size: 0.78rem; color: var(--text3); margin-bottom: var(--content-gap); }
+.status-msg.error { color: #f06060; }
+
+.result-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: var(--content-gap);
+  display: none;
+}
+.result-card.show { display: block; }
+.result-header { display: flex; gap: 14px; margin-bottom: 14px; }
+.result-thumb { width: 80px; height: 80px; border-radius: 8px; object-fit: contain; background: var(--bg3); flex-shrink: 0; }
+.result-title { font-family: var(--font-sans); font-size: 1.05rem; font-weight: 700; color: var(--text); }
+.result-brand { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text3); margin-top: 3px; }
+.result-grade { display: inline-block; margin-top: 6px; font-family: var(--font-mono); font-size: 0.68rem; font-weight: 700; padding: 2px 10px; border-radius: 99px; }
+
+.section-label { font-family: var(--font-mono); font-size: 0.62rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin: 12px 0 6px; }
+.ingredients-text { font-family: var(--font-sans); font-size: 0.82rem; color: var(--text2); line-height: 1.6; }
+
+.nutrition-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.nutrition-item { background: var(--bg3); border-radius: 6px; padding: 8px 10px; text-align: center; }
+.nutrition-val { font-family: var(--font-mono); font-size: 0.85rem; font-weight: 700; color: var(--text); }
+.nutrition-key { font-family: var(--font-mono); font-size: 0.55rem; color: var(--text3); text-transform: uppercase; margin-top: 2px; }
+
+.allergen-chip {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  padding: 3px 9px;
+  border-radius: 99px;
+  background: rgba(240,96,96,0.12);
+  color: #f06060;
+  margin: 2px 4px 2px 0;
+}
+
+.play-btn {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  margin-top: 14px;
+}
+.play-btn:hover { filter: brightness(1.15); }
+
+.attribution { font-family: var(--font-mono); font-size: 0.6rem; color: var(--text3); text-align: center; margin-top: var(--content-gap); }
+.attribution a { color: var(--text2); }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Open Food Facts lookup</h1>
+    <p>Cod de bare → produs, ingrediente, nutriție — util pentru cumpărături asistate</p>
+  </div>
+
+  <div class="search-row">
+    <input class="input-calc" id="in-barcode" type="text" inputmode="numeric" placeholder="Cod de bare (EAN/UPC)..." value="3017620422003"
+           style="--input-color:var(--accent);font-size:1rem" onkeydown="if(event.key==='Enter')search()">
+    <button class="btn-primary" id="search-btn" onclick="search()">Caută</button>
+  </div>
+
+  <div class="preset-row" id="preset-row"></div>
+
+  <div class="status-msg" id="status-msg"></div>
+
+  <div class="result-card" id="result-card"></div>
+
+  <div class="attribution">Date furnizate de <a href="https://openfoodfacts.org" target="_blank" rel="noopener">Open Food Facts</a> (bază de date colaborativă, deschisă)</div>
+</div>
+
+<script>
+const PRESETS = [
+  { name: 'Nutella (3017620422003)', code: '3017620422003' },
+  { name: 'Coca-Cola (5449000000996)', code: '5449000000996' },
+  { name: 'Oreo (7622210449283)', code: '7622210449283' },
+];
+
+function buildPresets() {
+  const wrap = document.getElementById('preset-row');
+  PRESETS.forEach(p => {
+    const btn = document.createElement('div');
+    btn.className = 'preset-btn';
+    btn.textContent = p.name;
+    btn.onclick = () => {
+      document.getElementById('in-barcode').value = p.code;
+      search();
+    };
+    wrap.appendChild(btn);
+  });
+}
+
+function gradeColor(grade) {
+  const colors = { a: '#4af0b0', b: '#a0d060', c: '#f0d040', d: '#f0a040', e: '#f06060' };
+  return colors[grade?.toLowerCase()] || '#888';
+}
+
+async function search() {
+  const barcode = document.getElementById('in-barcode').value.trim();
+  if (!barcode) return;
+
+  const statusEl = document.getElementById('status-msg');
+  const resultCard = document.getElementById('result-card');
+  const btn = document.getElementById('search-btn');
+
+  btn.disabled = true;
+  statusEl.className = 'status-msg';
+  statusEl.textContent = 'Se caută produsul...';
+  resultCard.classList.remove('show');
+
+  try {
+    const url = `https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(barcode)}.json`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Răspuns invalid de la server');
+    const data = await res.json();
+
+    if (data.status === 0 || !data.product) {
+      statusEl.textContent = 'Produs negăsit în baza de date pentru acest cod';
+      statusEl.className = 'status-msg error';
+      btn.disabled = false;
+      return;
+    }
+
+    renderProduct(data.product);
+    statusEl.textContent = '';
+  } catch (err) {
+    statusEl.textContent = 'Eroare la căutare: ' + err.message;
+    statusEl.className = 'status-msg error';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function renderProduct(p) {
+  const card = document.getElementById('result-card');
+
+  const name = p.product_name || p.product_name_ro || 'Nume necunoscut';
+  const brand = p.brands || '';
+  const grade = p.nutriscore_grade;
+  const thumbUrl = p.image_front_small_url || p.image_small_url || '';
+  const ingredients = p.ingredients_text_ro || p.ingredients_text || 'Ingrediente necunoscute';
+  const allergens = (p.allergens_tags || []).map(a => a.replace('en:','').replace('ro:','')).filter(Boolean);
+
+  const nutriments = p.nutriments || {};
+  const energy = nutriments['energy-kcal_100g'];
+  const fat = nutriments['fat_100g'];
+  const sugars = nutriments['sugars_100g'];
+  const protein = nutriments['proteins_100g'];
+  const salt = nutriments['salt_100g'];
+  const fiber = nutriments['fiber_100g'];
+
+  card.innerHTML = `
+    <div class="result-header">
+      ${thumbUrl ? `<img class="result-thumb" src="${thumbUrl}" alt="">` : '<div class="result-thumb"></div>'}
+      <div>
+        <div class="result-title">${name}</div>
+        <div class="result-brand">${brand}</div>
+        ${grade ? `<span class="result-grade" style="background:${gradeColor(grade)}22;color:${gradeColor(grade)}">Nutri-Score ${grade.toUpperCase()}</span>` : ''}
+      </div>
+    </div>
+
+    <div class="section-label">Ingrediente</div>
+    <div class="ingredients-text">${ingredients}</div>
+
+    ${allergens.length > 0 ? `
+      <div class="section-label">Alergeni</div>
+      <div>${allergens.map(a => `<span class="allergen-chip">${a}</span>`).join('')}</div>
+    ` : ''}
+
+    <div class="section-label">Nutriție (per 100g)</div>
+    <div class="nutrition-grid">
+      <div class="nutrition-item"><div class="nutrition-val">${energy!=null?energy:'—'}</div><div class="nutrition-key">kcal</div></div>
+      <div class="nutrition-item"><div class="nutrition-val">${fat!=null?fat+'g':'—'}</div><div class="nutrition-key">grăsimi</div></div>
+      <div class="nutrition-item"><div class="nutrition-val">${sugars!=null?sugars+'g':'—'}</div><div class="nutrition-key">zahăr</div></div>
+      <div class="nutrition-item"><div class="nutrition-val">${protein!=null?protein+'g':'—'}</div><div class="nutrition-key">proteine</div></div>
+      <div class="nutrition-item"><div class="nutrition-val">${salt!=null?salt+'g':'—'}</div><div class="nutrition-key">sare</div></div>
+      <div class="nutrition-item"><div class="nutrition-val">${fiber!=null?fiber+'g':'—'}</div><div class="nutrition-key">fibre</div></div>
+    </div>
+
+    <button class="play-btn" onclick='playSummary(${JSON.stringify({name,brand,ingredients,allergens,grade}).replace(/'/g,"&apos;")})'>🔊 Ascultă rezumat</button>
+  `;
+  card.classList.add('show');
+}
+
+function playSummary(info) {
+  if (!('speechSynthesis' in window)) return;
+  let text = `${info.name}`;
+  if (info.brand) text += `, marca ${info.brand}`;
+  text += `. Ingrediente: ${info.ingredients}.`;
+  if (info.allergens && info.allergens.length > 0) {
+    text += ` Conține alergeni: ${info.allergens.join(', ')}.`;
+  }
+  if (info.grade) {
+    text += ` Scor nutrițional: ${info.grade.toUpperCase()}.`;
+  }
+
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'ro-RO';
+  window.speechSynthesis.speak(utter);
+}
+
+buildPresets();
+search();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Open Food Facts lookup</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gradient Generator CSS — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #f0c040;
+  --accent-dim: rgba(240,192,64,0.10);
+  --accent-border: rgba(240,192,64,0.28);
+}
+
+.type-row { display: flex; gap: 8px; margin-bottom: var(--content-gap); }
+.type-btn {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.type-btn.active { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+
+.preview-box {
+  height: 200px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  margin-bottom: var(--content-gap);
+}
+
+.angle-row { display: flex; align-items: center; gap: 12px; margin-bottom: var(--content-gap); }
+.angle-row input[type=range] { flex: 1; accent-color: var(--accent); }
+.angle-val { font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent); font-weight: 700; width: 50px; text-align: right; }
+
+.stops-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: var(--content-gap); }
+.stop-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+.stop-row input[type=color] { width: 40px; height: 36px; border: 1px solid var(--border2); border-radius: 6px; cursor: pointer; background: none; padding: 2px; }
+.stop-row input[type=range] { flex: 1; accent-color: var(--accent); }
+.stop-pct { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text3); width: 40px; text-align: right; }
+.stop-remove {
+  background: none; border: none; cursor: pointer;
+  color: var(--text3); padding: 4px 8px; border-radius: 5px;
+  transition: color 0.12s, background 0.12s; flex-shrink: 0;
+}
+.stop-remove:hover { color: #f06060; background: var(--bg3); }
+
+.add-stop-btn {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--border2);
+  background: none;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+  margin-bottom: var(--content-gap);
+}
+.add-stop-btn:hover { border-color: var(--accent-border); color: var(--accent); background: var(--accent-dim); }
+
+.code-box {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text2);
+  word-break: break-all;
+  position: relative;
+}
+.copy-btn {
+  position: absolute;
+  top: 10px; right: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  padding: 4px 10px;
+  border-radius: 5px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text2);
+  cursor: pointer;
+}
+.copy-btn:hover { border-color: var(--accent-border); color: var(--accent); }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Gradient generator CSS</h1>
+    <p>Linear/radial, stops multiple, export CSS instant</p>
+  </div>
+
+  <div class="type-row">
+    <button class="type-btn active" id="btn-linear" onclick="setType('linear')">Linear</button>
+    <button class="type-btn" id="btn-radial" onclick="setType('radial')">Radial</button>
+  </div>
+
+  <div class="preview-box" id="preview-box"></div>
+
+  <div class="angle-row" id="angle-row">
+    <span style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text3)">Unghi</span>
+    <input type="range" id="angle-slider" min="0" max="360" value="90" oninput="updateGradient()">
+    <span class="angle-val" id="angle-val">90°</span>
+  </div>
+
+  <div class="stops-list" id="stops-list"></div>
+
+  <button class="add-stop-btn" onclick="addStop()">+ adaugă culoare</button>
+
+  <div class="code-box">
+    <button class="copy-btn" onclick="copyCss()">Copiază</button>
+    <div id="css-output">—</div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+let gradType = 'linear';
+let stops = [
+  { color: '#8a5cf6', pos: 0 },
+  { color: '#f0608a', pos: 100 },
+];
+
+function setType(t) {
+  gradType = t;
+  document.getElementById('btn-linear').classList.toggle('active', t==='linear');
+  document.getElementById('btn-radial').classList.toggle('active', t==='radial');
+  document.getElementById('angle-row').style.display = t==='linear' ? 'flex' : 'none';
+  updateGradient();
+}
+
+function renderStops() {
+  const list = document.getElementById('stops-list');
+  list.innerHTML = stops.map((s, i) => `
+    <div class="stop-row">
+      <input type="color" value="${s.color}" oninput="updateStopColor(${i}, this.value)">
+      <input type="range" min="0" max="100" value="${s.pos}" oninput="updateStopPos(${i}, this.value)">
+      <span class="stop-pct">${s.pos}%</span>
+      <button class="stop-remove" onclick="removeStop(${i})" ${stops.length<=2?'disabled':''}>✕</button>
+    </div>
+  `).join('');
+}
+
+function updateStopColor(i, val) {
+  stops[i].color = val;
+  updateGradient();
+}
+function updateStopPos(i, val) {
+  stops[i].pos = +val;
+  renderStops();
+  updateGradient();
+}
+function removeStop(i) {
+  if (stops.length <= 2) return;
+  stops.splice(i, 1);
+  renderStops();
+  updateGradient();
+}
+function addStop() {
+  const lastPos = stops[stops.length-1].pos;
+  const newPos = Math.min(100, lastPos + 20);
+  stops.push({ color: '#40c0a0', pos: newPos });
+  renderStops();
+  updateGradient();
+}
+
+function buildGradientCss() {
+  const sortedStops = [...stops].sort((a,b) => a.pos - b.pos);
+  const stopsStr = sortedStops.map(s => `${s.color} ${s.pos}%`).join(', ');
+
+  if (gradType === 'linear') {
+    const angle = document.getElementById('angle-slider').value;
+    return `linear-gradient(${angle}deg, ${stopsStr})`;
+  } else {
+    return `radial-gradient(circle, ${stopsStr})`;
+  }
+}
+
+function updateGradient() {
+  const angle = document.getElementById('angle-slider').value;
+  document.getElementById('angle-val').textContent = angle + '°';
+
+  const css = buildGradientCss();
+  document.getElementById('preview-box').style.background = css;
+  document.getElementById('css-output').textContent = `background: ${css};`;
+}
+
+function copyCss() {
+  const css = document.getElementById('css-output').textContent;
+  navigator.clipboard.writeText(css).then(() => showToast('Copiat!'));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+renderStops();
+updateGradient();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Gradient generator CSS</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

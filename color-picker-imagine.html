@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="Color picker local pentru imagine și selecție manuală, optimizat pentru mouse, stylus, telefon și tabletă.">
+<title>Color Picker — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #f08060;
+  --accent-dim: rgba(240,128,96,0.10);
+  --accent-border: rgba(240,128,96,0.28);
+  --picker-hue: hsl(14 82% 66%);
+}
+
+.tool-page { max-width: 1180px; }
+.tool-header { padding-right: 5rem; }
+.header-badges { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+
+.mode-tabs {
+  display:flex; gap:6px; padding:4px; margin-bottom:var(--content-gap);
+  background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius);
+  width:max-content; max-width:100%;
+}
+.mode-tab {
+  min-height:42px; padding:8px 14px; border:0; border-radius:7px;
+  background:transparent; color:var(--text3); cursor:pointer;
+  font:600 .72rem var(--font-mono); letter-spacing:.02em;
+}
+.mode-tab:hover { color:var(--text); background:var(--bg3); }
+.mode-tab.active { background:var(--accent-dim); color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent-border); }
+
+.mode-panel { display:none; }
+.mode-panel.active { display:block; }
+
+.file-drop {
+  border:2px dashed var(--border2); border-radius:var(--radius); padding:28px 20px;
+  text-align:center; font:500 .78rem var(--font-mono); color:var(--text3);
+  cursor:pointer; transition:.15s; margin-bottom:var(--content-gap); min-height:96px;
+  display:grid; place-items:center; touch-action:manipulation;
+}
+.file-drop:hover,.file-drop.dragover { border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
+.file-drop strong { color:var(--text2); font-weight:600; }
+.file-drop small { display:block; margin-top:5px; font-size:.63rem; color:var(--text3); }
+
+.canvas-wrap {
+  display:none; justify-content:center; background:var(--bg3); border:1px solid var(--border);
+  border-radius:var(--radius); padding:10px; margin-bottom:var(--content-gap); position:relative;
+  overflow:hidden;
+}
+.canvas-wrap.show { display:flex; }
+#img-canvas {
+  max-width:100%; max-height:min(64vh,720px); height:auto; display:block; border-radius:7px;
+  cursor:crosshair; touch-action:none; user-select:none; -webkit-user-select:none;
+}
+.image-help { font:400 .65rem var(--font-mono); color:var(--text3); margin:-2px 0 12px; text-align:center; }
+
+.magnifier {
+  position:absolute; width:112px; height:112px; border:2px solid #fff; border-radius:50%;
+  pointer-events:none; display:none; overflow:hidden; box-shadow:0 6px 24px rgba(0,0,0,.45),0 0 0 2px rgba(0,0,0,.35);
+  z-index:10; background:#111;
+}
+.magnifier canvas { width:100%; height:100%; image-rendering:pixelated; }
+
+.picker-layout { display:grid; grid-template-columns:minmax(260px,1.25fr) minmax(280px,.75fr); gap:var(--content-gap); }
+.picker-card { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:14px; min-width:0; }
+.sv-wrap { position:relative; border-radius:10px; overflow:hidden; touch-action:none; user-select:none; cursor:crosshair; background:var(--picker-hue); aspect-ratio:1.6/1; min-height:220px; }
+.sv-wrap::before { content:""; position:absolute; inset:0; background:linear-gradient(to right,#fff,rgba(255,255,255,0)); }
+.sv-wrap::after { content:""; position:absolute; inset:0; background:linear-gradient(to top,#000,rgba(0,0,0,0)); }
+.sv-cursor { position:absolute; width:22px; height:22px; border-radius:50%; border:3px solid #fff; box-shadow:0 1px 5px rgba(0,0,0,.7), inset 0 0 0 1px rgba(0,0,0,.25); transform:translate(-50%,-50%); z-index:2; pointer-events:none; }
+.hue-row { margin-top:14px; }
+.hue-label { display:flex; justify-content:space-between; align-items:center; font:500 .64rem var(--font-mono); color:var(--text3); margin-bottom:6px; }
+#hue-range { width:100%; height:32px; appearance:none; background:linear-gradient(90deg,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00); border-radius:999px; outline:none; cursor:pointer; }
+#hue-range::-webkit-slider-thumb { appearance:none; width:28px; height:28px; border-radius:50%; background:transparent; border:3px solid #fff; box-shadow:0 1px 6px #0009; }
+#hue-range::-moz-range-thumb { width:24px; height:24px; border-radius:50%; background:transparent; border:3px solid #fff; box-shadow:0 1px 6px #0009; }
+
+.result-card {
+  background:var(--bg2); border:1px solid var(--accent-border); border-radius:var(--radius);
+  padding:16px; display:grid; grid-template-columns:84px 1fr; gap:14px; align-items:center; margin-bottom:var(--content-gap);
+}
+.result-swatch { width:84px; height:84px; border-radius:14px; border:1px solid var(--border2); box-shadow:inset 0 0 0 1px rgba(255,255,255,.08); }
+.result-main { min-width:0; }
+.result-hex-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.result-hex { font:700 clamp(1.05rem,3vw,1.35rem) var(--font-mono); color:var(--text); }
+.copy-mini { min-height:38px; padding:6px 10px; border-radius:7px; border:1px solid var(--border2); background:var(--bg3); color:var(--text2); cursor:pointer; font:500 .66rem var(--font-mono); }
+.copy-mini:hover { color:var(--text); border-color:var(--accent-border); }
+.result-coords { margin-top:5px; font:400 .62rem var(--font-mono); color:var(--text3); }
+
+.value-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.value-item { background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:9px 10px; min-width:0; cursor:pointer; }
+.value-item:hover { border-color:var(--accent-border); }
+.value-key { font:500 .55rem var(--font-mono); color:var(--text3); letter-spacing:.08em; text-transform:uppercase; }
+.value-val { margin-top:2px; font:600 .72rem var(--font-mono); color:var(--text2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+.contrast-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
+.contrast-card { border-radius:8px; padding:10px; min-height:74px; display:flex; flex-direction:column; justify-content:space-between; font:600 .65rem var(--font-mono); border:1px solid var(--border); }
+.contrast-card span { opacity:.75; font-weight:400; }
+
+.picks-card { margin-top:var(--content-gap); }
+.picks-header { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:9px; }
+.picks-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:7px; }
+.pick-row { display:flex; align-items:center; gap:9px; background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:7px 9px; cursor:pointer; min-height:44px; }
+.pick-row:hover { border-color:var(--accent-border); }
+.pick-swatch { width:30px; height:30px; border-radius:7px; border:1px solid var(--border2); flex:none; }
+.pick-hex { font:600 .72rem var(--font-mono); color:var(--text2); }
+.empty { font:400 .7rem var(--font-mono); color:var(--text3); padding:4px 0; }
+
+.eye-btn { display:none; width:100%; margin-top:10px; }
+.eye-btn.show { display:inline-flex; }
+
+@media (max-width:760px) {
+  .tool-page { padding:1.2rem 14px 3rem; }
+  .tool-header { padding-right:3.6rem; margin-bottom:1.4rem; }
+  .tool-header h1 { font-size:1.35rem; }
+  .mode-tabs { width:100%; }
+  .mode-tab { flex:1; padding-inline:8px; }
+  .picker-layout { grid-template-columns:1fr; }
+  .sv-wrap { min-height:260px; aspect-ratio:1.25/1; }
+  .result-card { grid-template-columns:68px 1fr; }
+  .result-swatch { width:68px; height:68px; }
+  .picks-list { grid-template-columns:1fr 1fr; }
+  .magnifier { width:96px; height:96px; }
+}
+@media (max-width:430px) {
+  .value-grid,.contrast-grid,.picks-list { grid-template-columns:1fr; }
+  .file-drop { padding:22px 14px; }
+  .sv-wrap { min-height:235px; }
+  .result-card { padding:12px; gap:11px; }
+}
+@media (hover:none) and (pointer:coarse) {
+  #img-canvas { cursor:default; }
+  .image-help::after { content:" Ține degetul și glisează pentru precizie."; }
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-tool="color-picker" data-show-source="true">
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Color picker</h1>
+    <p>Imagine sau selecție manuală → HEX, RGB, HSL, OKLCH și contrast. Procesare locală.</p>
+    <div class="header-badges">
+      <span class="badge">local</span><span class="badge">touch</span><span class="badge">tablet</span><span class="badge">mobile</span>
+    </div>
+  </div>
+
+  <div class="mode-tabs" role="tablist" aria-label="Mod color picker">
+    <button class="mode-tab active" data-mode="image" role="tab" aria-selected="true">Din imagine</button>
+    <button class="mode-tab" data-mode="manual" role="tab" aria-selected="false">Alege culoarea</button>
+  </div>
+
+  <section class="mode-panel active" id="panel-image">
+    <div class="file-drop" id="file-drop" tabindex="0" role="button" aria-label="Încarcă o imagine">
+      <div><strong>Trage o imagine aici sau atinge pentru încărcare</strong><small>JPG · PNG · WEBP · procesarea rămâne în browser</small></div>
+      <input type="file" id="file-input" accept="image/*" style="display:none">
+    </div>
+    <div class="canvas-wrap" id="canvas-wrap">
+      <canvas id="img-canvas" aria-label="Imagine pentru selectarea culorilor"></canvas>
+      <div class="magnifier" id="magnifier"><canvas id="mag-canvas" width="112" height="112"></canvas></div>
+    </div>
+    <div class="image-help" id="image-help">Mouse: deplasează pentru previzualizare, click pentru memorare.</div>
+  </section>
+
+  <section class="mode-panel" id="panel-manual">
+    <div class="picker-layout">
+      <div class="picker-card">
+        <div class="field-label">Saturație / luminozitate</div>
+        <div class="sv-wrap" id="sv-wrap" tabindex="0" aria-label="Selectează saturația și luminozitatea culorii">
+          <div class="sv-cursor" id="sv-cursor"></div>
+        </div>
+        <div class="hue-row">
+          <div class="hue-label"><span>Hue</span><span id="hue-out">14°</span></div>
+          <input type="range" id="hue-range" min="0" max="360" value="14" aria-label="Nuanță hue">
+        </div>
+        <button class="btn btn-secondary eye-btn" id="eye-btn" type="button">⌖ Alege de pe ecran</button>
+      </div>
+      <div class="picker-card">
+        <div class="field-label">Valori</div>
+        <div class="value-grid" id="value-grid"></div>
+        <div class="field-label" style="margin-top:13px">Contrast text</div>
+        <div class="contrast-grid" id="contrast-grid"></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="result-card">
+    <div class="result-swatch" id="result-swatch" style="background:#F08060"></div>
+    <div class="result-main">
+      <div class="result-hex-row">
+        <div class="result-hex" id="result-hex">#F08060</div>
+        <button class="copy-mini" id="copy-current" type="button">Copiază HEX</button>
+      </div>
+      <div class="result-coords" id="result-coords">culoare curentă</div>
+    </div>
+  </div>
+
+  <div class="card picks-card">
+    <div class="picks-header">
+      <span class="field-label" style="margin:0">Culori recente</span>
+      <button class="copy-mini" id="clear-picks" type="button">Șterge</button>
+    </div>
+    <div class="picks-list" id="picks-list"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+const state = { h:14, s:60, v:94, r:240, g:128, b:96, hex:'#F08060', picks:[] };
+let toastTimer = null;
+let imagePointerActive = false;
+let svPointerActive = false;
+
+const $ = id => document.getElementById(id);
+
+function clamp(v,min,max){ return Math.max(min,Math.min(max,v)); }
+function rgbToHex(r,g,b){ return '#' + [r,g,b].map(v=>Math.round(v).toString(16).padStart(2,'0')).join('').toUpperCase(); }
+
+function hexToRgb(hex){
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex);
+  return m ? {r:parseInt(m[1].slice(0,2),16),g:parseInt(m[1].slice(2,4),16),b:parseInt(m[1].slice(4,6),16)} : null;
+}
+
+function hsvToRgb(h,s,v){
+  s/=100; v/=100; h=((h%360)+360)%360;
+  const c=v*s, x=c*(1-Math.abs((h/60)%2-1)), m=v-c;
+  let rp=0,gp=0,bp=0;
+  if(h<60)[rp,gp,bp]=[c,x,0]; else if(h<120)[rp,gp,bp]=[x,c,0];
+  else if(h<180)[rp,gp,bp]=[0,c,x]; else if(h<240)[rp,gp,bp]=[0,x,c];
+  else if(h<300)[rp,gp,bp]=[x,0,c]; else [rp,gp,bp]=[c,0,x];
+  return {r:Math.round((rp+m)*255),g:Math.round((gp+m)*255),b:Math.round((bp+m)*255)};
+}
+
+function rgbToHsv(r,g,b){
+  r/=255; g/=255; b/=255; const max=Math.max(r,g,b), min=Math.min(r,g,b), d=max-min;
+  let h=0; if(d){ if(max===r)h=60*(((g-b)/d)%6); else if(max===g)h=60*((b-r)/d+2); else h=60*((r-g)/d+4); }
+  if(h<0)h+=360; return {h, s:max?d/max*100:0, v:max*100};
+}
+
+function rgbToHsl(r,g,b){
+  r/=255;g/=255;b/=255; const max=Math.max(r,g,b),min=Math.min(r,g,b),d=max-min; let h=0;
+  const l=(max+min)/2; let s=0;
+  if(d){ s=d/(1-Math.abs(2*l-1)); if(max===r)h=60*(((g-b)/d)%6); else if(max===g)h=60*((b-r)/d+2); else h=60*((r-g)/d+4); }
+  if(h<0)h+=360; return {h,s:s*100,l:l*100};
+}
+
+function srgbToLinear(c){ c/=255; return c<=0.04045?c/12.92:Math.pow((c+0.055)/1.055,2.4); }
+function rgbToOklch(r,g,b){
+  const R=srgbToLinear(r),G=srgbToLinear(g),B=srgbToLinear(b);
+  const l=0.4122214708*R+0.5363325363*G+0.0514459929*B;
+  const m=0.2119034982*R+0.6806995451*G+0.1073969566*B;
+  const s=0.0883024619*R+0.2817188376*G+0.6299787005*B;
+  const l_=Math.cbrt(l),m_=Math.cbrt(m),s_=Math.cbrt(s);
+  const L=0.2104542553*l_+0.793617785*m_-0.0040720468*s_;
+  const a=1.9779984951*l_-2.428592205*m_+0.4505937099*s_;
+  const bb=0.0259040371*l_+0.7827717662*m_-0.808675766*s_;
+  const C=Math.sqrt(a*a+bb*bb); let H=Math.atan2(bb,a)*180/Math.PI; if(H<0)H+=360;
+  return {L,C,H};
+}
+
+function luminance(r,g,b){ return .2126*srgbToLinear(r)+.7152*srgbToLinear(g)+.0722*srgbToLinear(b); }
+function contrastRatio(rgb1,rgb2){ const a=luminance(rgb1.r,rgb1.g,rgb1.b),b=luminance(rgb2.r,rgb2.g,rgb2.b); return (Math.max(a,b)+.05)/(Math.min(a,b)+.05); }
+
+function setColorFromRgb(r,g,b,source='manual',coords=''){
+  const hsv=rgbToHsv(r,g,b); Object.assign(state,{r,g,b,h:hsv.h,s:hsv.s,v:hsv.v,hex:rgbToHex(r,g,b)});
+  syncUi(source,coords);
+}
+function setColorFromHsv(h,s,v,source='manual'){
+  const rgb=hsvToRgb(h,s,v); Object.assign(state,{h,s,v,...rgb,hex:rgbToHex(rgb.r,rgb.g,rgb.b)});
+  syncUi(source,'culoare aleasă manual');
+}
+
+function syncUi(source,coords){
+  $('result-swatch').style.background=state.hex; $('result-hex').textContent=state.hex;
+  $('result-coords').textContent=coords || (source==='image'?'pixel selectat':'culoare curentă');
+  document.documentElement.style.setProperty('--picker-hue',`hsl(${state.h} 100% 50%)`);
+  $('hue-range').value=Math.round(state.h); $('hue-out').textContent=Math.round(state.h)+'°';
+  $('sv-cursor').style.left=state.s+'%'; $('sv-cursor').style.top=(100-state.v)+'%';
+  renderValues(); renderContrast();
+}
+
+function renderValues(){
+  const hsl=rgbToHsl(state.r,state.g,state.b), ok=rgbToOklch(state.r,state.g,state.b);
+  const vals=[
+    ['HEX',state.hex],
+    ['RGB',`rgb(${state.r}, ${state.g}, ${state.b})`],
+    ['HSL',`hsl(${Math.round(hsl.h)} ${Math.round(hsl.s)}% ${Math.round(hsl.l)}%)`],
+    ['OKLCH',`oklch(${ok.L.toFixed(3)} ${ok.C.toFixed(3)} ${Math.round(ok.H)})`]
+  ];
+  $('value-grid').innerHTML=vals.map(([k,v])=>`<div class="value-item" data-copy="${escapeAttr(v)}"><div class="value-key">${k}</div><div class="value-val">${v}</div></div>`).join('');
+}
+function renderContrast(){
+  const current={r:state.r,g:state.g,b:state.b}, white={r:255,g:255,b:255}, black={r:0,g:0,b:0};
+  const cw=contrastRatio(current,white), cb=contrastRatio(current,black);
+  $('contrast-grid').innerHTML=`
+    <div class="contrast-card" style="background:${state.hex};color:#fff"><b>Text alb</b><span>${cw.toFixed(2)}:1 · ${cw>=4.5?'AA ✓':'AA ✕'}</span></div>
+    <div class="contrast-card" style="background:${state.hex};color:#000"><b>Text negru</b><span>${cb.toFixed(2)}:1 · ${cb>=4.5?'AA ✓':'AA ✕'}</span></div>`;
+}
+function escapeAttr(v){ return v.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function addPick(hex=state.hex){ state.picks=state.picks.filter(x=>x!==hex); state.picks.unshift(hex); state.picks=state.picks.slice(0,12); renderPicks(); }
+function renderPicks(){
+  const list=$('picks-list');
+  if(!state.picks.length){ list.innerHTML='<div class="empty">Nicio culoare memorată încă.</div>'; return; }
+  list.innerHTML=state.picks.map(hex=>`<div class="pick-row" data-hex="${hex}"><div class="pick-swatch" style="background:${hex}"></div><div class="pick-hex">${hex}</div></div>`).join('');
+}
+
+async function copyText(text){
+  try { await navigator.clipboard.writeText(text); showToast('Copiat: '+text); }
+  catch { const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); showToast('Copiat: '+text); }
+}
+function showToast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),1500); }
+
+function switchMode(mode){
+  document.querySelectorAll('.mode-tab').forEach(b=>{ const on=b.dataset.mode===mode; b.classList.toggle('active',on); b.setAttribute('aria-selected',String(on)); });
+  document.querySelectorAll('.mode-panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+mode));
+}
+
+document.querySelectorAll('.mode-tab').forEach(btn=>btn.addEventListener('click',()=>switchMode(btn.dataset.mode)));
+
+function handleFile(file){
+  if(!file||!file.type.startsWith('image/')){ showToast('Selectează un fișier imagine valid'); return; }
+  const reader=new FileReader();
+  reader.onload=e=>{ const img=new Image(); img.onload=()=>{ const canvas=$('img-canvas'),ctx=canvas.getContext('2d',{willReadFrequently:true}); canvas.width=img.naturalWidth; canvas.height=img.naturalHeight; ctx.clearRect(0,0,canvas.width,canvas.height); ctx.drawImage(img,0,0); $('canvas-wrap').classList.add('show'); $('image-help').textContent='Atinge sau glisează pe imagine pentru a inspecta; ridică degetul/click pentru a memora culoarea.'; }; img.src=e.target.result; };
+  reader.readAsDataURL(file);
+}
+
+function getPixelAt(canvas,clientX,clientY){
+  const rect=canvas.getBoundingClientRect(),scaleX=canvas.width/rect.width,scaleY=canvas.height/rect.height;
+  const x=Math.floor((clientX-rect.left)*scaleX), y=Math.floor((clientY-rect.top)*scaleY);
+  if(x<0||y<0||x>=canvas.width||y>=canvas.height)return null;
+  const d=canvas.getContext('2d',{willReadFrequently:true}).getImageData(x,y,1,1).data;
+  return {x,y,r:d[0],g:d[1],b:d[2]};
+}
+
+function showMagnifier(canvas,clientX,clientY,px,pointerType='mouse'){
+  const mag=$('magnifier'),mc=$('mag-canvas'),ctx=mc.getContext('2d'); ctx.imageSmoothingEnabled=false;
+  const size=11,sx=clamp(px.x-Math.floor(size/2),0,Math.max(0,canvas.width-size)),sy=clamp(px.y-Math.floor(size/2),0,Math.max(0,canvas.height-size));
+  ctx.clearRect(0,0,mc.width,mc.height); ctx.drawImage(canvas,sx,sy,size,size,0,0,mc.width,mc.height);
+  const cx=(px.x-sx+.5)*(mc.width/size),cy=(px.y-sy+.5)*(mc.height/size);
+  ctx.strokeStyle='rgba(255,255,255,.95)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(cx,0);ctx.lineTo(cx,mc.height);ctx.moveTo(0,cy);ctx.lineTo(mc.width,cy);ctx.stroke();
+  const wr=$('canvas-wrap').getBoundingClientRect(); let left=clientX-wr.left-mag.offsetWidth/2, top=clientY-wr.top-mag.offsetHeight/2;
+  if(pointerType!=='mouse') top-=mag.offsetHeight*.95;
+  left=clamp(left,4,Math.max(4,wr.width-mag.offsetWidth-4)); top=clamp(top,4,Math.max(4,wr.height-mag.offsetHeight-4));
+  mag.style.left=left+'px';mag.style.top=top+'px';mag.style.display='block';
+}
+function hideMagnifier(){ $('magnifier').style.display='none'; }
+function inspectImagePointer(e,commit=false){
+  const canvas=$('img-canvas'),px=getPixelAt(canvas,e.clientX,e.clientY); if(!px)return;
+  showMagnifier(canvas,e.clientX,e.clientY,px,e.pointerType); setColorFromRgb(px.r,px.g,px.b,'image',`pixel ${px.x}, ${px.y}`);
+  if(commit){ addPick(); showToast('Culoare memorată'); }
+}
+
+const imgCanvas=$('img-canvas');
+imgCanvas.addEventListener('pointerdown',e=>{ imagePointerActive=true; imgCanvas.setPointerCapture?.(e.pointerId); inspectImagePointer(e,false); e.preventDefault(); });
+imgCanvas.addEventListener('pointermove',e=>{ if(e.pointerType==='mouse'||imagePointerActive) inspectImagePointer(e,false); });
+imgCanvas.addEventListener('pointerup',e=>{ if(imagePointerActive) inspectImagePointer(e,true); imagePointerActive=false; if(e.pointerType!=='mouse') setTimeout(hideMagnifier,220); });
+imgCanvas.addEventListener('pointercancel',()=>{imagePointerActive=false;hideMagnifier();});
+imgCanvas.addEventListener('pointerleave',e=>{ if(e.pointerType==='mouse'&&!imagePointerActive)hideMagnifier(); });
+
+function updateSvFromPointer(e){
+  const el=$('sv-wrap'),r=el.getBoundingClientRect(); const s=clamp((e.clientX-r.left)/r.width,0,1)*100,v=(1-clamp((e.clientY-r.top)/r.height,0,1))*100;
+  setColorFromHsv(state.h,s,v);
+}
+const sv=$('sv-wrap');
+sv.addEventListener('pointerdown',e=>{svPointerActive=true;sv.setPointerCapture?.(e.pointerId);updateSvFromPointer(e);e.preventDefault();});
+sv.addEventListener('pointermove',e=>{if(svPointerActive)updateSvFromPointer(e);});
+sv.addEventListener('pointerup',e=>{if(svPointerActive){updateSvFromPointer(e);addPick();}svPointerActive=false;});
+sv.addEventListener('pointercancel',()=>svPointerActive=false);
+sv.addEventListener('keydown',e=>{ let ds=0,dv=0;if(e.key==='ArrowLeft')ds=-1;if(e.key==='ArrowRight')ds=1;if(e.key==='ArrowUp')dv=1;if(e.key==='ArrowDown')dv=-1;if(ds||dv){e.preventDefault();setColorFromHsv(state.h,clamp(state.s+ds,0,100),clamp(state.v+dv,0,100));} });
+
+$('hue-range').addEventListener('input',e=>setColorFromHsv(+e.target.value,state.s,state.v));
+$('hue-range').addEventListener('change',()=>addPick());
+$('copy-current').addEventListener('click',()=>copyText(state.hex));
+$('clear-picks').addEventListener('click',()=>{state.picks=[];renderPicks();showToast('Lista a fost golită');});
+$('value-grid').addEventListener('click',e=>{const item=e.target.closest('[data-copy]');if(item)copyText(item.dataset.copy);});
+$('picks-list').addEventListener('click',e=>{const row=e.target.closest('[data-hex]');if(!row)return; const rgb=hexToRgb(row.dataset.hex); if(rgb){setColorFromRgb(rgb.r,rgb.g,rgb.b);copyText(row.dataset.hex);} });
+
+const fileInput=$('file-input'), fileDrop=$('file-drop');
+fileDrop.addEventListener('click',()=>fileInput.click());
+fileDrop.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fileInput.click();}});
+fileInput.addEventListener('change',e=>handleFile(e.target.files[0]));
+fileDrop.addEventListener('dragover',e=>{e.preventDefault();fileDrop.classList.add('dragover');});
+fileDrop.addEventListener('dragleave',()=>fileDrop.classList.remove('dragover'));
+fileDrop.addEventListener('drop',e=>{e.preventDefault();fileDrop.classList.remove('dragover');handleFile(e.dataTransfer.files[0]);});
+
+if('EyeDropper' in window){ $('eye-btn').classList.add('show'); $('eye-btn').addEventListener('click',async()=>{ try{const res=await new EyeDropper().open();const rgb=hexToRgb(res.sRGBHex);if(rgb){setColorFromRgb(rgb.r,rgb.g,rgb.b);addPick();}}catch{} }); }
+
+renderPicks(); syncUi('manual','culoare inițială');
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Color picker din imagine</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

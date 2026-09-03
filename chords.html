@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Acorduri Muzicale — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #d070f0;
+  --accent-dim: rgba(208,112,240,0.10);
+  --accent-border: rgba(208,112,240,0.28);
+}
+
+.fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--content-gap); margin-bottom: var(--content-gap); }
+@media (max-width: 500px) { .fields-grid { grid-template-columns: 1fr; } }
+.field-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+.field-name { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text2); font-weight: 500; margin-bottom: 8px; display: block; }
+
+.result-card {
+  background: var(--bg2);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius);
+  padding: 20px;
+  text-align: center;
+  margin-bottom: var(--content-gap);
+}
+.result-name { font-family: var(--font-mono); font-size: 1.4rem; font-weight: 700; color: var(--accent); }
+.notes-row { display: flex; justify-content: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.note-chip {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-border);
+  color: var(--accent);
+}
+.note-chip-alt { font-size: 0.65rem; color: var(--text3); display: block; margin-top: 2px; }
+
+.play-row { display: flex; gap: 8px; margin-bottom: var(--content-gap); }
+.play-btn {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.play-btn:hover { filter: brightness(1.15); }
+
+.chord-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px,1fr));
+  gap: 6px;
+}
+.chord-btn {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 6px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.12s;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+.chord-btn:hover { border-color: var(--accent-border); }
+.chord-btn.active { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+
+.piano-wrap { overflow-x: auto; padding: 8px 0; }
+.piano { display: flex; height: 90px; min-width: 600px; position: relative; }
+.piano-key {
+  flex: 1;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 0 0 4px 4px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 5px;
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  color: var(--text3);
+  transition: background 0.15s, color 0.15s;
+}
+.piano-key.chord-note { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); font-weight: 700; }
+
+.piano-key.black {
+  position: absolute;
+  top: 0;
+  width: 60%;
+  height: 60%;
+  background: #1a1a1a;
+  border: 1px solid #000;
+  border-radius: 0 0 3px 3px;
+  z-index: 2;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.45rem;
+  color: #d0d0d0;
+}
+.piano-key.black:hover { background: var(--accent); color: #1a1a1a; }
+.piano-key.black.chord-note { background: var(--accent); color: #1a1a1a; }
+
+/* Clapele albe rămân clape albe indiferent de tema paginii. */
+.piano-key.white {
+  background: #f7f7f4;
+  color: #42464d;
+  border-color: #aeb4bd;
+}
+
+.piano-key.white.chord-note {
+  background: #dff8ee;
+  color: #146b4c;
+  border-color: #58b993;
+  font-weight: 700;
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Acorduri muzicale</h1>
+    <p>Alege tonica și tipul → notele componente, cu player</p>
+  </div>
+
+  <div class="fields-grid">
+    <div class="field-card">
+      <span class="field-name">Tonică</span>
+      <select class="unit-select" id="in-root" onchange="compute()" style="width:100%;padding:8px"></select>
+    </div>
+    <div class="field-card">
+      <span class="field-name">Octavă bază</span>
+      <select class="unit-select" id="in-octave" onchange="compute()" style="width:100%;padding:8px"></select>
+    </div>
+  </div>
+
+  <div class="chord-grid" id="chord-grid"></div>
+
+  <div class="result-card" style="margin-top:var(--content-gap)">
+    <div class="result-name" id="result-name">Do major</div>
+    <div class="notes-row" id="notes-row"></div>
+  </div>
+
+  <div class="play-row">
+    <button class="play-btn" onclick="playChord(false)">🎵 Redă simultan</button>
+    <button class="play-btn" onclick="playChord(true)">🎼 Redă arpegiat</button>
+  </div>
+
+  <div class="piano-wrap">
+    <div class="piano" id="piano"></div>
+  </div>
+
+  <p style="font-family:var(--font-mono);font-size:0.65rem;color:var(--text3);text-align:center;margin-top:8px">
+    Notele foarte grave (sub ~150Hz) pot suna slab pe difuzoare mici de laptop/telefon — volumul e compensat automat, dar hardware-ul rămâne un factor.
+  </p>
+</div>
+
+<script>
+const NOTE_NAMES_EN = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const NOTE_NAMES_RO = ['Do','Do#','Re','Re#','Mi','Fa','Fa#','Sol','Sol#','La','La#','Si'];
+const WHITE_KEYS_EN = ['C','D','E','F','G','A','B'];
+
+// Care taste albe au o clapă neagră imediat după ele (# lor) — lipsesc după E și B, ca la un pian real
+const BLACK_AFTER = { C:'C#', D:'D#', F:'F#', G:'G#', A:'A#' };
+
+function buildPiano() {
+  const piano = document.getElementById('piano');
+  piano.innerHTML = '';
+  const whiteKeyEls = [];
+
+  for (let octave = 2; octave <= 5; octave++) {
+    WHITE_KEYS_EN.forEach(letter => {
+      const key = document.createElement('div');
+      key.className = 'piano-key white';
+      key.dataset.note = NOTE_NAMES_EN.indexOf(letter);
+      key.dataset.octave = octave;
+      key.textContent = letter + octave;
+      piano.appendChild(key);
+      whiteKeyEls.push({ letter, octave });
+    });
+  }
+
+  const whiteKeyWidth = 100 / whiteKeyEls.length; // procent
+
+  whiteKeyEls.forEach((wk, i) => {
+    const sharpName = BLACK_AFTER[wk.letter];
+    if (!sharpName) return; // fără clapă neagră după E și B
+
+    const noteIdx = NOTE_NAMES_EN.indexOf(sharpName);
+    const black = document.createElement('div');
+    black.className = 'piano-key black';
+    black.textContent = sharpName;
+    black.dataset.note = noteIdx;
+    black.dataset.octave = wk.octave;
+    black.style.left = `calc(${(i+1) * whiteKeyWidth}% - ${whiteKeyWidth*0.3}%)`;
+    black.style.width = `${whiteKeyWidth*0.6}%`;
+    piano.appendChild(black);
+  });
+}
+
+function highlightPianoNotes(notes) {
+  document.querySelectorAll('.piano-key').forEach(k => {
+    const match = notes.some(n => NOTE_NAMES_EN.indexOf(n.en) === +k.dataset.note && n.octave === +k.dataset.octave);
+    k.classList.toggle('chord-note', match);
+  });
+}
+
+// Formule acorduri: intervale în semitonuri față de tonică
+const CHORD_TYPES = [
+  { key: 'major', name: 'Major', intervals: [0,4,7] },
+  { key: 'minor', name: 'Minor', intervals: [0,3,7] },
+  { key: 'dim', name: 'Diminuat', intervals: [0,3,6] },
+  { key: 'aug', name: 'Augmentat', intervals: [0,4,8] },
+  { key: 'maj7', name: 'Major 7', intervals: [0,4,7,11] },
+  { key: 'min7', name: 'Minor 7', intervals: [0,3,7,10] },
+  { key: 'dom7', name: 'Dominant 7', intervals: [0,4,7,10] },
+  { key: 'sus2', name: 'Sus2', intervals: [0,2,7] },
+  { key: 'sus4', name: 'Sus4', intervals: [0,5,7] },
+  { key: 'add9', name: 'Add9', intervals: [0,4,7,14] },
+];
+
+let currentType = 'major';
+let audioCtx = null;
+
+function noteToHz(semitoneFromA4) {
+  return 440 * Math.pow(2, semitoneFromA4/12);
+}
+
+function buildSelectors() {
+  const rootSelect = document.getElementById('in-root');
+  NOTE_NAMES_EN.forEach((en, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = `${en} (${NOTE_NAMES_RO[i]})`;
+    if (en === 'C') opt.selected = true;
+    rootSelect.appendChild(opt);
+  });
+
+  const octaveSelect = document.getElementById('in-octave');
+  for (let o = 2; o <= 6; o++) {
+    const opt = document.createElement('option');
+    opt.value = o;
+    opt.textContent = 'Oct. ' + o;
+    if (o === 4) opt.selected = true;
+    octaveSelect.appendChild(opt);
+  }
+}
+
+function buildChordGrid() {
+  const grid = document.getElementById('chord-grid');
+  CHORD_TYPES.forEach(ct => {
+    const btn = document.createElement('div');
+    btn.className = 'chord-btn' + (ct.key===currentType?' active':'');
+    btn.textContent = ct.name;
+    btn.onclick = () => {
+      currentType = ct.key;
+      document.querySelectorAll('.chord-btn').forEach((b,i) => b.classList.toggle('active', CHORD_TYPES[i].key===ct.key));
+      compute();
+    };
+    grid.appendChild(btn);
+  });
+}
+
+function compute() {
+  const rootIdx = parseInt(document.getElementById('in-root').value);
+  const octave = parseInt(document.getElementById('in-octave').value);
+  const chordType = CHORD_TYPES.find(c => c.key === currentType);
+
+  const aIndex = NOTE_NAMES_EN.indexOf('A');
+  const rootSemitone = (octave-4)*12 + (rootIdx - aIndex);
+
+  const notes = chordType.intervals.map(interval => {
+    const semitone = rootSemitone + interval;
+    const hz = noteToHz(semitone);
+    let noteIdx = ((rootIdx + interval) % 12 + 12) % 12;
+    const noteOctave = octave + Math.floor((rootIdx + interval) / 12);
+    return { en: NOTE_NAMES_EN[noteIdx], ro: NOTE_NAMES_RO[noteIdx], octave: noteOctave, hz };
+  });
+
+  document.getElementById('result-name').textContent =
+    `${NOTE_NAMES_RO[rootIdx]} ${chordType.name}`;
+
+  document.getElementById('notes-row').innerHTML = notes.map(n => `
+    <div class="note-chip">${n.en}${n.octave}<span class="note-chip-alt">${n.ro}</span></div>
+  `).join('');
+
+  window.currentChordHz = notes.map(n => n.hz);
+  highlightPianoNotes(notes);
+}
+
+function playChord(arpeggiate) {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const hzList = window.currentChordHz || [];
+
+  hzList.forEach((hz, i) => {
+    const startDelay = arpeggiate ? i * 0.15 : 0;
+    const startTime = audioCtx.currentTime + startDelay;
+    const duration = arpeggiate ? 1.2 : 1.5;
+
+    // Compensare volum pentru note grave — majoritatea difuzoarelor mici (laptop/telefon)
+    // au un declin puternic sub ~150Hz, deci fără asta notele joase ar suna aproape inaudibil
+    const bassBoost = hz < 200 ? Math.min(2.2, 1 + (200-hz)/150) : 1;
+    const peakGain = 0.2 * bassBoost;
+
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.frequency.value = hz;
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0, startTime);
+    gain.gain.linearRampToValueAtTime(peakGain, startTime+0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, startTime+duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(startTime);
+    osc.stop(startTime+duration);
+  });
+}
+
+buildSelectors();
+buildChordGrid();
+buildPiano();
+compute();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Acorduri muzicale</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

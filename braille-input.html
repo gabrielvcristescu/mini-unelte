@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Braille → Literă — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #e070a0;
+  --accent-dim: rgba(96,192,208,0.10);
+  --accent-border: rgba(96,192,208,0.28);
+}
+
+.cell-wrap { display: flex; justify-content: center; padding: 1.5rem 0; margin-bottom: var(--content-gap); }
+.braille-input-cell {
+  display: inline-grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 14px;
+  padding: 24px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+.dot-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--bg3);
+  border: 2px solid var(--border2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.dot-btn:hover { border-color: var(--accent-border); }
+.dot-btn.active { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 16px var(--accent-dim); }
+
+.result-card {
+  background: var(--bg2);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius);
+  padding: 24px;
+  text-align: center;
+  margin-bottom: var(--content-gap);
+}
+.result-letter { font-family: var(--font-mono); font-size: 3rem; font-weight: 700; color: var(--accent); }
+.result-sub { font-family: var(--font-mono); font-size: 0.75rem; color: var(--text3); margin-top: 6px; }
+
+.built-text {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  color: var(--text);
+  min-height: 50px;
+  margin-bottom: var(--content-gap);
+  word-break: break-all;
+}
+
+.action-row { display: flex; gap: 8px; }
+.action-btn {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  cursor: pointer;
+}
+.action-btn:hover { border-color: var(--accent-border); color: var(--accent); }
+.action-btn.primary { border-color: var(--accent-border); background: var(--accent-dim); color: var(--accent); }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Braille → literă</h1>
+    <p>Apasă punctele tu însuți, vezi litera corespunzătoare — construiește un cuvânt</p>
+  </div>
+
+  <div class="cell-wrap">
+    <div class="braille-input-cell">
+      <div class="dot-btn" data-dot="1" onclick="toggleDot(1)"></div>
+      <div class="dot-btn" data-dot="4" onclick="toggleDot(4)"></div>
+      <div class="dot-btn" data-dot="2" onclick="toggleDot(2)"></div>
+      <div class="dot-btn" data-dot="5" onclick="toggleDot(5)"></div>
+      <div class="dot-btn" data-dot="3" onclick="toggleDot(3)"></div>
+      <div class="dot-btn" data-dot="6" onclick="toggleDot(6)"></div>
+    </div>
+  </div>
+
+  <div class="result-card">
+    <div class="result-letter" id="result-letter">?</div>
+    <div class="result-sub" id="result-sub">Apasă punctele pentru a forma o literă</div>
+  </div>
+
+  <div class="area-label" style="margin-bottom:6px">
+    <span style="font-family:var(--font-mono);font-size:0.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em">Cuvânt construit</span>
+  </div>
+  <div class="built-text" id="built-text"></div>
+
+  <div class="action-row">
+    <button class="action-btn primary" onclick="addLetter()">+ Adaugă litera</button>
+    <button class="action-btn" onclick="addSpace()">Spațiu</button>
+    <button class="action-btn" onclick="clearCell()">Curăță celula</button>
+    <button class="action-btn" onclick="clearAll()">Șterge tot</button>
+  </div>
+</div>
+
+<script>
+const BRAILLE_TO_LETTER = {
+  '1':'A', '1,2':'B', '1,4':'C', '1,4,5':'D', '1,5':'E', '1,2,4':'F', '1,2,4,5':'G', '1,2,5':'H',
+  '2,4':'I', '2,4,5':'J', '1,3':'K', '1,2,3':'L', '1,3,4':'M', '1,3,4,5':'N', '1,3,5':'O',
+  '1,2,3,4':'P', '1,2,3,4,5':'Q', '1,2,3,5':'R', '2,3,4':'S', '2,3,4,5':'T',
+  '1,3,6':'U', '1,2,3,6':'V', '2,4,5,6':'W', '1,3,4,6':'X', '1,3,4,5,6':'Y', '1,3,5,6':'Z',
+};
+
+let activeDots = new Set();
+let builtText = '';
+
+function toggleDot(n) {
+  if (activeDots.has(n)) activeDots.delete(n);
+  else activeDots.add(n);
+
+  document.querySelector(`.dot-btn[data-dot="${n}"]`).classList.toggle('active');
+  updateResult();
+}
+
+function updateResult() {
+  const sorted = [...activeDots].sort((a,b)=>a-b).join(',');
+  const letter = BRAILLE_TO_LETTER[sorted];
+
+  const letterEl = document.getElementById('result-letter');
+  const subEl = document.getElementById('result-sub');
+
+  if (activeDots.size === 0) {
+    letterEl.textContent = '?';
+    subEl.textContent = 'Apasă punctele pentru a forma o literă';
+  } else if (letter) {
+    letterEl.textContent = letter;
+    subEl.textContent = `Puncte active: ${sorted}`;
+  } else {
+    letterEl.textContent = '✕';
+    subEl.textContent = `Combinație necunoscută (puncte: ${sorted})`;
+  }
+}
+
+function clearCell() {
+  activeDots.clear();
+  document.querySelectorAll('.dot-btn').forEach(b => b.classList.remove('active'));
+  updateResult();
+}
+
+function addLetter() {
+  const sorted = [...activeDots].sort((a,b)=>a-b).join(',');
+  const letter = BRAILLE_TO_LETTER[sorted];
+  if (!letter) return;
+  builtText += letter;
+  document.getElementById('built-text').textContent = builtText;
+  clearCell();
+}
+
+function addSpace() {
+  builtText += ' ';
+  document.getElementById('built-text').textContent = builtText;
+  clearCell();
+}
+
+function clearAll() {
+  builtText = '';
+  document.getElementById('built-text').textContent = '';
+  clearCell();
+}
+
+updateResult();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Braille → literă</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

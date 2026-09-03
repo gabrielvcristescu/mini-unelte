@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EFM — Eight-to-Fourteen Modulation — Mini Unelte</title>
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root{
+  --good:#46b97f;
+  --warn:#dea232;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text)}
+.page{max-width:1450px;margin:0 auto;padding:0 18px 38px}
+.hero{
+  border:1px solid var(--border);
+  background:var(--bg2);
+  border-radius:14px;
+  padding:18px 20px;
+  margin-bottom:12px;
+}
+.hero h1{margin:0 0 6px;font-size:22px}
+.hero p{margin:0;color:var(--text2);line-height:1.55}
+.flow{
+  display:grid;
+  grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;
+  gap:8px;align-items:stretch;margin-top:12px
+}
+.flow .box{
+  border:1px solid var(--border);background:var(--bg3);border-radius:11px;padding:11px 12px;min-height:74px
+}
+.flow .box b{display:block;margin-bottom:4px}
+.flow .box span{font-size:12px;color:var(--text2);line-height:1.45}
+.flow .arrow{align-self:center;font-size:20px;color:var(--accent)}
+.grid{
+  display:grid;
+  grid-template-columns:minmax(350px,.75fr) minmax(560px,1.25fr);
+  gap:12px;
+}
+.card{
+  border:1px solid var(--border);
+  background:var(--bg2);
+  border-radius:12px;
+  padding:16px;
+}
+.card h2{margin:0 0 6px;font-size:16px}
+.card > p{margin:0 0 10px;color:var(--text2);font-size:13px;line-height:1.55}
+.mapping-table,.run-table{
+  width:100%;border-collapse:collapse;font-size:12px
+}
+.mapping-table th,.mapping-table td,.run-table th,.run-table td{
+  padding:7px 8px;border-bottom:1px solid var(--border);text-align:left
+}
+.mapping-table th,.run-table th{
+  font:11px var(--font-mono);
+  color:var(--text3);text-transform:uppercase;letter-spacing:.05em
+}
+.mapping-table code,.run-table code,.mono{font-family:var(--font-mono)}
+.picker{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px
+}
+.pick{
+  border:1px solid var(--border);background:var(--bg3);border-radius:10px;padding:10px;cursor:pointer
+}
+.pick:hover{border-color:var(--accent)}
+.pick b{display:block;font:13px var(--font-mono)}
+.pick span{display:block;margin-top:5px;color:var(--text3);font-size:11px}
+.selected-list{
+  min-height:76px;background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:10px;
+  display:flex;gap:6px;flex-wrap:wrap;align-content:flex-start
+}
+.token{
+  border:1px solid var(--border);background:var(--bg3);border-radius:8px;padding:6px 8px
+}
+.token b{font:13px var(--font-mono)}
+.token small{display:block;color:var(--text3);font-size:10px}
+.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.btn{
+  font:12px var(--font-mono);padding:7px 11px;border-radius:7px;
+  border:1px solid var(--border);background:var(--bg3);color:var(--text);cursor:pointer
+}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.strip{
+  min-height:72px;background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:10px;
+  display:flex;gap:5px;flex-wrap:wrap;align-content:flex-start
+}
+.segment{
+  border:1px solid var(--border);border-radius:8px;background:var(--bg3);padding:5px 7px
+}
+.segment.code{color:var(--accent)}
+.segment.merge{color:var(--warn)}
+.segment.active{outline:2px solid var(--accent);outline-offset:1px}
+.note{
+  margin-top:10px;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+  color:var(--text2);font-size:12px;line-height:1.55
+}
+.kpi{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px
+}
+.kpi .item{
+  border:1px solid var(--border);background:var(--bg3);border-radius:10px;padding:10px
+}
+.kpi .item b{display:block;font-size:18px}
+.kpi .item span{font-size:11px;color:var(--text3)}
+.result{
+  font-size:12px;color:var(--text2);line-height:1.65
+}
+.good{color:var(--good);font-weight:700}
+.warn{color:var(--warn);font-weight:700}
+.tape{
+  margin-top:12px;
+  min-height:90px;max-height:180px;overflow:auto;
+  background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:10px;
+  font:14px/1.95 var(--font-mono);letter-spacing:.11em;white-space:pre-wrap;word-break:break-all
+}
+.brace{
+  min-height:24px;font:12px/1.45 var(--font-mono);color:var(--text3);white-space:pre-wrap;margin-top:6px
+}
+.section-gap{margin-top:12px}
+.source-note{font-size:11px;color:var(--text3);line-height:1.55}
+@media(max-width:1000px){
+  .grid{grid-template-columns:1fr}
+  .flow{grid-template-columns:1fr}
+  .flow .arrow{justify-self:center;transform:rotate(90deg)}
+  .kpi{grid-template-columns:1fr 1fr}
+}
+@media(max-width:560px){.kpi{grid-template-columns:1fr}}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+
+<style id="tool-bottom-align-style">
+.tool-page > .lab-source,
+.tool-page > .tool-about-note {
+  width: calc(100% - 2 * 18px);
+  max-width: 1450px;
+  margin-left: auto;
+  margin-right: auto;
+}
+</style>
+
+
+<style id="category-accent-override">
+:root { --accent: #60a0f0; }
+</style>
+</head>
+<body data-show-source="true">
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+<div class="tool-page">
+  <div class="tool-header"><a class="back" href="index.html">← index</a></div>
+  <main class="page">
+    <section class="hero">
+      <h1>EFM — Eight-to-Fourteen Modulation</h1>
+      <p>
+        Explorator educațional pentru EFM, metoda de modulație folosită la Compact Disc. EFM transformă fiecare simbol de date de 8 biți
+        într-un cuvânt de 14 biți, iar între două cuvinte se introduc <b>3 merge bits</b>. În această versiune
+        folosim un <b>subset real</b> din tabela EFM și alegem merge bits astfel încât să respectăm constrângerea de bază
+        a lungimilor de run.
+      </p>
+      <div class="flow">
+        <div class="box"><b>1. Byte</b><span>un simbol de 8 biți</span></div>
+        <div class="arrow">→</div>
+        <div class="box"><b>2. Cod EFM</b><span>tabelă 8 → 14</span></div>
+        <div class="arrow">→</div>
+        <div class="box"><b>3. Merge bits</b><span>3 biți între simboluri</span></div>
+        <div class="arrow">→</div>
+        <div class="box"><b>4. Flux de canal</b><span>cu run-length controlat</span></div>
+      </div>
+    </section>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Subset de simboluri EFM</h2>
+        <p>
+          Pagina include un subset verificat din tabela EFM clasică.
+          Selectezi din ele și construiești o secvență.
+        </p>
+        <div class="picker" id="picker"></div>
+        <div class="section-gap">
+          <div class="mono" style="font-size:12px;color:var(--text3);margin-bottom:6px">Secvență selectată</div>
+          <div class="selected-list" id="selectedList"></div>
+          <div class="actions">
+            <button class="btn" id="clearSelBtn">curăță</button>
+            <button class="btn" id="sampleSelBtn">exemplu</button>
+            <button class="btn" id="buildBtn">construiește fluxul</button>
+          </div>
+        </div>
+        <div class="note">
+          <b>Important:</b> aici <b>1</b> marchează tranziții de canal. Constrângerea EFM clasică înseamnă că
+          între două tranziții consecutive apar între <b>2</b> și <b>10</b> zerouri,
+          echivalent cu <b>Tmin = 3</b> și <b>Tmax = 11</b> channel bits.
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Tabelul disponibil</h2>
+        <p>Valorile de mai jos sunt reale și pot fi extinse mai târziu la tabela completă de 256 simboluri.</p>
+        <table class="mapping-table">
+          <thead><tr><th>Dec</th><th>Hex</th><th>Byte</th><th>EFM 14-bit</th></tr></thead>
+          <tbody id="mappingBody"></tbody>
+        </table>
+      </section>
+    </div>
+
+    <section class="card section-gap">
+      <h2>Fluxul de canal rezultat</h2>
+      <p>
+        Cuvintele EFM sunt afișate separat de cei 3 merge bits. La trecerea cu mouse-ul peste un cod EFM,
+        este evidențiat și simbolul sursă.
+      </p>
+      <div class="strip" id="channelStrip"></div>
+      <div class="kpi">
+        <div class="item"><b id="kpiSymbols">0</b><span>simboluri selectate</span></div>
+        <div class="item"><b id="kpiChannel">0</b><span>biți de canal</span></div>
+        <div class="item"><b id="kpiRuns">—</b><span>interval zerouri între 1-uri</span></div>
+        <div class="item"><b id="kpiStatus">—</b><span>respectă regula?</span></div>
+      </div>
+      <div class="tape" id="tape">Alege câteva simboluri și apasă „construiește fluxul”.</div>
+      <div class="brace" id="brace"></div>
+      <div class="note" id="buildNote">Nimic construit încă.</div>
+    </section>
+
+    <section class="card section-gap">
+      <h2>Analiza run-length</h2>
+      <p>Pentru fiecare distanță dintre două tranziții consecutive, afișăm câte zerouri sunt între ele.</p>
+      <table class="run-table">
+        <thead><tr><th>#</th><th>Fragment</th><th>Zerouri între 1-uri</th><th>Valid</th></tr></thead>
+        <tbody id="runBody"></tbody>
+      </table>
+      <div class="source-note">
+        În standardul complet, alegerea merge bits nu urmărește doar regula run-length, ci și controlul digital-sum value.
+        În această versiune demo alegem merge bits din cele 8 combinații posibile astfel încât să respectăm numai constrângerea de bază.
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+(()=>{
+  // Real subset from the classical EFM conversion table (demo subset).
+  const EFM = [
+    {dec:106, hex:'6A', byte:'01101010', efm:'10010001000010'},
+    {dec:107, hex:'6B', byte:'01101011', efm:'10001001000010'},
+    {dec:108, hex:'6C', byte:'01101100', efm:'01000001000010'},
+    {dec:109, hex:'6D', byte:'01101101', efm:'00000001000010'},
+    {dec:110, hex:'6E', byte:'01101110', efm:'00010001000010'},
+    {dec:111, hex:'6F', byte:'01101111', efm:'00100001000010'},
+    {dec:112, hex:'70', byte:'01110000', efm:'10000000100010'},
+    {dec:113, hex:'71', byte:'01110001', efm:'10000010000010'},
+    {dec:114, hex:'72', byte:'01110010', efm:'10010010000010'},
+    {dec:115, hex:'73', byte:'01110011', efm:'00100000100010'},
+    {dec:116, hex:'74', byte:'01110100', efm:'01000010000010'},
+    {dec:117, hex:'75', byte:'01110101', efm:'00000010000010'},
+    {dec:118, hex:'76', byte:'01110110', efm:'00010010000010'},
+    {dec:119, hex:'77', byte:'01110111', efm:'00100010000010'},
+    {dec:121, hex:'79', byte:'01111001', efm:'00001001001000'},
+    {dec:122, hex:'7A', byte:'01111010', efm:'10010000000010'},
+    {dec:123, hex:'7B', byte:'01111011', efm:'10001000000010'},
+    {dec:124, hex:'7C', byte:'01111100', efm:'01000000000010'},
+    {dec:125, hex:'7D', byte:'01111101', efm:'00001000000010'},
+    {dec:126, hex:'7E', byte:'01111110', efm:'00010000000010'},
+    {dec:127, hex:'7F', byte:'01111111', efm:'00100000000010'}
+  ];
+
+  const picker = document.getElementById('picker');
+  const selectedList = document.getElementById('selectedList');
+  const mappingBody = document.getElementById('mappingBody');
+  const channelStrip = document.getElementById('channelStrip');
+  const tape = document.getElementById('tape');
+  const brace = document.getElementById('brace');
+  const buildNote = document.getElementById('buildNote');
+  const runBody = document.getElementById('runBody');
+  const clearSelBtn = document.getElementById('clearSelBtn');
+  const sampleSelBtn = document.getElementById('sampleSelBtn');
+  const buildBtn = document.getElementById('buildBtn');
+  const kpiSymbols = document.getElementById('kpiSymbols');
+  const kpiChannel = document.getElementById('kpiChannel');
+  const kpiRuns = document.getElementById('kpiRuns');
+  const kpiStatus = document.getElementById('kpiStatus');
+
+  let selected = [];
+
+  EFM.forEach((x, idx)=>{
+    const btn = document.createElement('button');
+    btn.className = 'pick';
+    btn.innerHTML = `<b>${x.hex}</b><span>dec ${x.dec}<br>${x.byte}</span>`;
+    btn.onclick = ()=>{ selected.push(idx); renderSelected(); };
+    picker.appendChild(btn);
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${x.dec}</td><td><code>${x.hex}</code></td><td><code>${x.byte}</code></td><td><code>${x.efm}</code></td>`;
+    mappingBody.appendChild(tr);
+  });
+
+  function renderSelected(){
+    selectedList.innerHTML = '';
+    if(!selected.length){
+      selectedList.innerHTML = '<span style="color:var(--text3)">Nicio selecție.</span>';
+      return;
+    }
+    selected.forEach((idx,i)=>{
+      const x=EFM[idx];
+      const div=document.createElement('div');
+      div.className='token';
+      div.innerHTML=`<b>${x.hex}</b><small>${x.dec}</small>`;
+      div.onclick=()=>{ selected.splice(i,1); renderSelected(); };
+      selectedList.appendChild(div);
+    });
+  }
+
+  function zeroRunInfo(bits){
+    const ones = [];
+    for(let i=0;i<bits.length;i++) if(bits[i]==='1') ones.push(i);
+    const runs = [];
+    for(let i=0;i<ones.length-1;i++){
+      const a = ones[i], b = ones[i+1];
+      const zeros = b-a-1;
+      runs.push({
+        start:a,end:b,zeros,
+        frag: bits.slice(a,b+1),
+        valid: zeros>=2 && zeros<=10
+      });
+    }
+    return runs;
+  }
+
+  function chooseMerge(prev14,next14){
+    const candidates = ['000','001','010','011','100','101','110','111'];
+    for(const m of candidates){
+      const test = prev14 + m + next14;
+      const runs = zeroRunInfo(test);
+      // Only check runs that touch the boundary zone: enough for demo
+      const ok = runs.every(r => r.zeros>=2 && r.zeros<=10);
+      if(ok) return m;
+    }
+    return '000';
+  }
+
+  function buildChannel(){
+    channelStrip.innerHTML='';
+    runBody.innerHTML='';
+    brace.textContent='';
+
+    if(!selected.length){
+      tape.textContent='Alege câteva simboluri și apasă „construiește fluxul”.';
+      buildNote.textContent='Nimic construit încă.';
+      kpiSymbols.textContent='0';
+      kpiChannel.textContent='0';
+      kpiRuns.textContent='—';
+      kpiStatus.textContent='—';
+      return;
+    }
+
+    const seq = selected.map(i=>EFM[i]);
+    const merges = [];
+    for(let i=0;i<seq.length-1;i++){
+      merges.push(chooseMerge(seq[i].efm, seq[i+1].efm));
+    }
+
+    let parts = [];
+    seq.forEach((sym, i)=>{
+      parts.push({type:'code', txt:sym.efm, symIndex:i, label:sym.hex});
+      if(i<merges.length) parts.push({type:'merge', txt:merges[i], symIndex:i, label:'m'});
+    });
+
+    parts.forEach((p, idx)=>{
+      const span=document.createElement('span');
+      span.className='segment ' + (p.type==='code' ? 'code' : 'merge');
+      span.textContent=p.txt;
+      if(p.type==='code'){
+        span.dataset.sym = p.symIndex;
+        span.onmouseenter = ()=>{
+          channelStrip.querySelectorAll(`[data-sym="${p.symIndex}"]`).forEach(el=>el.classList.add('active'));
+        };
+        span.onmouseleave = ()=>{
+          channelStrip.querySelectorAll(`[data-sym="${p.symIndex}"]`).forEach(el=>el.classList.remove('active'));
+        };
+      }
+      channelStrip.appendChild(span);
+    });
+
+    const fullBits = parts.map(p=>p.txt).join('');
+    tape.textContent = fullBits;
+
+    let marks = '';
+    let pos = 0;
+    seq.forEach((sym, i)=>{
+      marks += ' '.repeat(pos) + '^' + sym.hex + '\n';
+      pos += 14;
+      if(i<merges.length) pos += 3;
+    });
+    brace.textContent = marks;
+
+    const runs = zeroRunInfo(fullBits);
+    runs.forEach((r, i)=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML = `<td>${i+1}</td><td><code>${r.frag}</code></td><td>${r.zeros}</td><td>${r.valid ? '<span class="good">DA</span>' : '<span class="warn">NU</span>'}</td>`;
+      runBody.appendChild(tr);
+    });
+
+    const minz = Math.min(...runs.map(r=>r.zeros));
+    const maxz = Math.max(...runs.map(r=>r.zeros));
+    const ok = runs.every(r=>r.valid);
+
+    kpiSymbols.textContent = String(seq.length);
+    kpiChannel.textContent = String(fullBits.length);
+    kpiRuns.textContent = `${minz}…${maxz}`;
+    kpiStatus.innerHTML = ok ? '<span class="good">DA</span>' : '<span class="warn">NU</span>';
+
+    buildNote.innerHTML =
+      `<b>Secvență:</b> ${seq.map(s=>s.hex).join(' · ')}<br>`+
+      `<b>Biți de canal:</b> ${fullBits.length} = ${seq.length}×14 + ${Math.max(0,seq.length-1)}×3<br>`+
+      `În această versiune, merge bits au fost alese local astfel încât intervalele de zerouri dintre tranziții să rămână în fereastra EFM clasică.`;
+  }
+
+  clearSelBtn.onclick = ()=>{ selected=[]; renderSelected(); buildChannel(); };
+  sampleSelBtn.onclick = ()=>{ selected=[16,17,18,19,20]; renderSelected(); buildChannel(); };
+  buildBtn.onclick = buildChannel;
+
+  renderSelected();
+  buildChannel();
+})();
+</script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>EFM — Eight-to-Fourteen Modulation</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

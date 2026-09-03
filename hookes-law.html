@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Legea lui Hooke — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #f07090;
+  --accent-dim: rgba(240,112,144,0.10);
+  --accent-border: rgba(240,112,144,0.28);
+}
+
+.fields-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--content-gap); margin-bottom: var(--content-gap); }
+@media (max-width: 500px) { .fields-grid { grid-template-columns: 1fr; } }
+.field-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+.field-name { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text2); font-weight: 500; margin-bottom: 8px; display: block; }
+
+.spring-wrap { display: flex; justify-content: center; padding: 1.5rem 0; }
+.spring-svg text { font-family: var(--font-mono); font-size: 10px; fill: var(--text2); }
+.spring-coil { stroke: var(--accent); stroke-width: 2.5; fill: none; }
+.spring-wall { stroke: var(--text3); stroke-width: 3; }
+.spring-mass { fill: var(--bg3); stroke: var(--text2); stroke-width: 1.5; }
+.spring-force-arrow { stroke: #f0c040; stroke-width: 2; }
+
+.result-card {
+  background: var(--bg2);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  text-align: center;
+  margin-bottom: var(--content-gap);
+}
+.result-main { font-family: var(--font-mono); font-size: 2rem; font-weight: 700; color: var(--accent); }
+.result-sub { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text3); margin-top: 4px; }
+
+.info-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.info-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; text-align: center; }
+.info-val { font-family: var(--font-mono); font-size: 0.95rem; font-weight: 600; color: var(--text); }
+.info-key { font-family: var(--font-mono); font-size: 0.58rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Legea lui Hooke</h1>
+    <p>F = k·x — forța elastică unui arc</p>
+  </div>
+
+  <div class="fields-grid">
+    <div class="field-card">
+      <span class="field-name">Constanta elastică (k)</span>
+      <input class="input-calc" id="in-k" type="number" min="0" step="any" value="50"
+             style="--input-color:var(--accent);font-size:1.05rem" oninput="compute()">
+      <span style="font-family:var(--font-mono);font-size:0.62rem;color:var(--text3)">N/m</span>
+    </div>
+    <div class="field-card">
+      <span class="field-name">Deformare (x)</span>
+      <input class="input-calc" id="in-x" type="number" step="any" value="0.1"
+             style="--input-color:var(--accent);font-size:1.05rem" oninput="compute()">
+      <span style="font-family:var(--font-mono);font-size:0.62rem;color:var(--text3)">m</span>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:var(--content-gap)">
+    <div class="spring-wrap" id="spring-wrap"></div>
+  </div>
+
+  <div class="result-card">
+    <div class="result-main" id="result-main">—</div>
+    <div class="result-sub" id="result-sub"></div>
+  </div>
+
+  <div class="info-row">
+    <div class="info-card"><div class="info-val" id="info-energy">—</div><div class="info-key">energie potențială elastică (J)</div></div>
+    <div class="info-card"><div class="info-val" id="info-xcm">—</div><div class="info-key">deformare (cm)</div></div>
+  </div>
+</div>
+
+<script>
+function trim(n) {
+  if (!isFinite(n)) return '—';
+  return parseFloat(n.toPrecision(6)).toString();
+}
+
+function compute() {
+  const k = parseFloat(document.getElementById('in-k').value);
+  const x = parseFloat(document.getElementById('in-x').value);
+
+  const resultMain = document.getElementById('result-main');
+  const resultSub = document.getElementById('result-sub');
+
+  if (isNaN(k) || isNaN(x) || k < 0) {
+    resultMain.textContent = '—';
+    resultSub.textContent = 'Completează valorile';
+    document.getElementById('info-energy').textContent = '—';
+    document.getElementById('info-xcm').textContent = '—';
+    renderSpring(0, 0);
+    return;
+  }
+
+  const F = k * x;
+  resultMain.textContent = trim(F) + ' N';
+  resultSub.textContent = `F = ${k} N/m × ${x} m`;
+
+  const Ep = 0.5 * k * x * x;
+  document.getElementById('info-energy').textContent = trim(Ep);
+  document.getElementById('info-xcm').textContent = trim(x*100);
+
+  renderSpring(k, x);
+}
+
+function renderSpring(k, x) {
+  const wrap = document.getElementById('spring-wrap');
+  const w = 320, h = 120;
+  const wallX = 40, restLen = 140, baseY = 60;
+
+  // Scalăm vizual deformarea (limităm la ±60px pentru claritate)
+  const visualStretch = Math.max(-50, Math.min(80, x * 300));
+  const springEndX = wallX + restLen + visualStretch;
+
+  let svg = `<svg class="spring-svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`;
+
+  // Perete
+  svg += `<line class="spring-wall" x1="${wallX}" y1="${baseY-30}" x2="${wallX}" y2="${baseY+30}"/>`;
+  for (let i=0; i<6; i++) {
+    svg += `<line class="spring-wall" x1="${wallX-8}" y1="${baseY-25+i*10}" x2="${wallX}" y2="${baseY-30+i*10}" stroke-width="1.5"/>`;
+  }
+
+  // Arc (zig-zag)
+  const coils = 8;
+  const coilWidth = (springEndX - wallX - 15) / coils;
+  let path = `M ${wallX} ${baseY}`;
+  for (let i=0; i<coils; i++) {
+    const x1 = wallX + i*coilWidth + coilWidth/2;
+    const y1 = baseY + (i%2===0 ? -15 : 15);
+    path += ` L ${x1} ${y1}`;
+  }
+  path += ` L ${springEndX-15} ${baseY}`;
+  svg += `<path class="spring-coil" d="${path}"/>`;
+
+  // Masă (bloc)
+  svg += `<rect class="spring-mass" x="${springEndX-15}" y="${baseY-18}" width="36" height="36" rx="4"/>`;
+
+  // Săgeată forță (dacă x != 0)
+  if (Math.abs(x) > 0.001) {
+    const arrowDir = x > 0 ? 1 : -1;
+    const arrowStart = springEndX + 21;
+    const arrowEnd = arrowStart + arrowDir*30;
+    svg += `<line class="spring-force-arrow" x1="${arrowStart}" y1="${baseY}" x2="${arrowEnd}" y2="${baseY}" marker-end="url(#arrowhead)"/>`;
+    svg += `<defs><marker id="arrowhead" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><polygon points="0 0, 8 4, 0 8" fill="#f0c040"/></marker></defs>`;
+    svg += `<text x="${(arrowStart+arrowEnd)/2}" y="${baseY-10}" text-anchor="middle" style="fill:#f0c040">F</text>`;
+  }
+
+  svg += `<text x="${wallX + restLen/2}" y="${baseY+35}" text-anchor="middle">x = ${trim(x)} m</text>`;
+
+  svg += `</svg>`;
+  wrap.innerHTML = svg;
+}
+
+compute();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Legea lui Hooke</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

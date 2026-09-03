@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculator Bitrate → Dimensiune Fișier — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #70d0f0;
+  --accent-dim: rgba(208,112,240,0.10);
+  --accent-border: rgba(208,112,240,0.28);
+}
+
+.direction-row { display: flex; gap: 8px; margin-bottom: var(--content-gap); }
+.dir-btn {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.dir-btn.active {
+  background: var(--accent-dim);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+.fields-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--content-gap);
+}
+@media (max-width: 600px) { .fields-grid { grid-template-columns: 1fr; } }
+
+.field-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.field-card.locked { opacity: 0.45; }
+.field-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.field-name { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text2); font-weight: 500; }
+
+/* ── Time input (hh:mm:ss style) ── */
+.time-inputs { display: flex; gap: 4px; align-items: center; }
+.time-inputs input { text-align: center; }
+.time-sep { color: var(--text3); font-family: var(--font-mono); font-size: 0.9rem; }
+
+.result-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  text-align: center;
+}
+.result-main {
+  font-family: var(--font-mono);
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1.2;
+}
+.result-formula { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text3); margin-top: 4px; }
+
+/* ── Presets ── */
+.preset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 6px;
+}
+.preset-btn {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: all 0.12s;
+  text-align: left;
+}
+.preset-btn:hover { border-color: var(--accent-border); background: var(--accent-dim); }
+.preset-name { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text); font-weight: 500; }
+.preset-rate { font-family: var(--font-mono); font-size: 0.6rem; color: var(--text3); margin-top: 2px; }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Calculator bitrate → dimensiune fișier</h1>
+    <p>Bitrate audio/video + durată → dimensiune estimată, sau invers</p>
+  </div>
+
+  <!-- Direcție -->
+  <div class="direction-row">
+    <button class="dir-btn active" id="btn-fwd" onclick="setDir('fwd')">Bitrate → Dimensiune</button>
+    <button class="dir-btn" id="btn-rev" onclick="setDir('rev')">Dimensiune → Bitrate</button>
+  </div>
+
+  <!-- Câmpuri -->
+  <div class="fields-grid" style="margin-bottom:var(--content-gap)">
+    <div class="field-card" id="card-bitrate">
+      <div class="field-top">
+        <span class="field-name">Bitrate</span>
+        <select class="unit-select" id="bitrate-unit" onchange="compute()">
+          <option value="1000">kbps</option>
+          <option value="1000000">Mbps</option>
+        </select>
+      </div>
+      <input class="input-calc" id="in-bitrate" type="number" min="0" step="any" value="320"
+             style="--input-color:var(--accent);font-size:1.05rem" oninput="compute()">
+    </div>
+
+    <div class="field-card">
+      <div class="field-top"><span class="field-name">Durată (h:m:s)</span></div>
+      <div class="time-inputs">
+        <input class="input-calc" id="in-h" type="number" min="0" step="1" value="0"
+               style="--input-color:var(--accent);font-size:0.95rem;padding:6px 4px" oninput="compute()">
+        <span class="time-sep">:</span>
+        <input class="input-calc" id="in-m" type="number" min="0" max="59" step="1" value="3"
+               style="--input-color:var(--accent);font-size:0.95rem;padding:6px 4px" oninput="compute()">
+        <span class="time-sep">:</span>
+        <input class="input-calc" id="in-s" type="number" min="0" max="59" step="1" value="30"
+               style="--input-color:var(--accent);font-size:0.95rem;padding:6px 4px" oninput="compute()">
+      </div>
+    </div>
+
+    <div class="field-card" id="card-size">
+      <div class="field-top">
+        <span class="field-name">Dimensiune</span>
+        <select class="unit-select" id="size-unit" onchange="compute()">
+          <option value="1">MB</option>
+          <option value="1024">GB</option>
+        </select>
+      </div>
+      <input class="input-calc" id="in-size" type="number" min="0" step="any" value="8"
+             style="--input-color:var(--accent);font-size:1.05rem" oninput="compute()" disabled>
+    </div>
+  </div>
+
+  <!-- Rezultat -->
+  <div class="result-card" style="margin-bottom:var(--content-gap)">
+    <div class="result-main" id="result-main">—</div>
+    <div class="result-formula" id="result-formula"></div>
+  </div>
+
+  <!-- Presetări bitrate comune -->
+  <div class="card">
+    <div class="field-name" style="margin-bottom:10px">Bitrate-uri comune</div>
+    <div class="preset-grid" id="preset-grid"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+let direction = 'fwd';
+
+const PRESETS = [
+  { name: 'MP3 standard', rate: 128, unit: 'kbps' },
+  { name: 'MP3 înaltă calitate', rate: 320, unit: 'kbps' },
+  { name: 'Opus/AAC voce', rate: 32, unit: 'kbps' },
+  { name: 'FLAC (aprox.)', rate: 1000, unit: 'kbps' },
+  { name: 'Video 720p YouTube', rate: 5, unit: 'Mbps' },
+  { name: 'Video 1080p YouTube', rate: 8, unit: 'Mbps' },
+  { name: 'Video 4K YouTube', rate: 35, unit: 'Mbps' },
+  { name: 'Stream Twitch 1080p', rate: 6, unit: 'Mbps' },
+];
+
+function trim(n) { return parseFloat(n.toPrecision(5)).toString(); }
+
+function getDurationSeconds() {
+  const h = parseFloat(document.getElementById('in-h').value) || 0;
+  const m = parseFloat(document.getElementById('in-m').value) || 0;
+  const s = parseFloat(document.getElementById('in-s').value) || 0;
+  return h*3600 + m*60 + s;
+}
+
+function setDir(d) {
+  direction = d;
+  document.getElementById('btn-fwd').classList.toggle('active', d === 'fwd');
+  document.getElementById('btn-rev').classList.toggle('active', d === 'rev');
+
+  const cardBitrate = document.getElementById('card-bitrate');
+  const cardSize = document.getElementById('card-size');
+  const inBitrate = document.getElementById('in-bitrate');
+  const inSize = document.getElementById('in-size');
+
+  if (d === 'fwd') {
+    cardBitrate.classList.remove('locked'); cardSize.classList.add('locked');
+    inBitrate.disabled = false; inSize.disabled = true;
+  } else {
+    cardBitrate.classList.add('locked'); cardSize.classList.remove('locked');
+    inBitrate.disabled = true; inSize.disabled = false;
+  }
+  compute();
+}
+
+function compute() {
+  const durationS = getDurationSeconds();
+  const main = document.getElementById('result-main');
+  const formula = document.getElementById('result-formula');
+
+  if (durationS <= 0) {
+    main.textContent = '—'; formula.textContent = 'Introdu o durată validă';
+    return;
+  }
+
+  const bitrateUnitFactor = parseFloat(document.getElementById('bitrate-unit').value); // bps per unit
+  const sizeUnitFactor = parseFloat(document.getElementById('size-unit').value); // MB per unit (1 sau 1024)
+
+  if (direction === 'fwd') {
+    const bitrateRaw = parseFloat(document.getElementById('in-bitrate').value);
+    if (isNaN(bitrateRaw) || bitrateRaw <= 0) {
+      main.textContent = '—'; formula.textContent = 'Introdu un bitrate valid';
+      return;
+    }
+    const bitrateBps = bitrateRaw * bitrateUnitFactor;
+    const totalBits = bitrateBps * durationS;
+    const totalMB = totalBits / 8 / (1024*1024);
+    const displaySize = totalMB / sizeUnitFactor;
+
+    document.getElementById('in-size').value = trim(displaySize);
+    main.textContent = fmtSize(totalMB);
+    const unitLabel = bitrateUnitFactor === 1000 ? 'kbps' : 'Mbps';
+    formula.textContent = `Dimensiune = (bitrate × durată) / 8 = (${bitrateRaw}${unitLabel} × ${durationS}s) / 8`;
+  } else {
+    const sizeRaw = parseFloat(document.getElementById('in-size').value);
+    if (isNaN(sizeRaw) || sizeRaw <= 0) {
+      main.textContent = '—'; formula.textContent = 'Introdu o dimensiune validă';
+      return;
+    }
+    const totalMB = sizeRaw * sizeUnitFactor;
+    const totalBits = totalMB * 1024 * 1024 * 8;
+    const bitrateBps = totalBits / durationS;
+    const displayBitrate = bitrateBps / bitrateUnitFactor;
+
+    document.getElementById('in-bitrate').value = trim(displayBitrate);
+    const unitLabel = bitrateUnitFactor === 1000 ? 'kbps' : 'Mbps';
+    main.textContent = trim(displayBitrate) + ' ' + unitLabel;
+    formula.textContent = `Bitrate = (dimensiune × 8) / durată = (${fmtSize(totalMB)} × 8) / ${durationS}s`;
+  }
+}
+
+function fmtSize(mb) {
+  if (mb >= 1024) return trim(mb/1024) + ' GB';
+  if (mb < 1) return trim(mb*1024) + ' KB';
+  return trim(mb) + ' MB';
+}
+
+function buildPresets() {
+  const grid = document.getElementById('preset-grid');
+  PRESETS.forEach(p => {
+    const btn = document.createElement('div');
+    btn.className = 'preset-btn';
+    btn.innerHTML = `<div class="preset-name">${p.name}</div><div class="preset-rate">${p.rate} ${p.unit}</div>`;
+    btn.onclick = () => {
+      if (direction === 'rev') setDir('fwd');
+      document.getElementById('bitrate-unit').value = p.unit === 'kbps' ? '1000' : '1000000';
+      document.getElementById('in-bitrate').value = p.rate;
+      compute();
+    };
+    grid.appendChild(btn);
+  });
+}
+
+['in-h','in-m','in-s'].forEach(id => document.getElementById(id).addEventListener('input', compute));
+
+buildPresets();
+compute();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Calculator bitrate</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

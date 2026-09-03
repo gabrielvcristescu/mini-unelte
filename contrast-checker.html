@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contrast Checker WCAG — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #f0c040;
+  --accent-dim: rgba(240,192,64,0.10);
+  --accent-border: rgba(240,192,64,0.28);
+}
+
+.fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--content-gap); margin-bottom: var(--content-gap); }
+@media (max-width: 500px) { .fields-grid { grid-template-columns: 1fr; } }
+.field-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+.field-name { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text2); font-weight: 500; margin-bottom: 8px; display: block; }
+.field-input-row { display: flex; gap: 8px; align-items: center; }
+.field-input-row input[type=text] { flex: 1; }
+.field-input-row input[type=color] { width: 44px; height: 40px; border: 1px solid var(--border2); border-radius: 6px; cursor: pointer; background: none; padding: 2px; }
+
+.swap-btn-row { display: flex; justify-content: center; margin-bottom: var(--content-gap); }
+.swap-btn {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 50%;
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: var(--text2);
+  transition: all 0.15s;
+}
+.swap-btn:hover { border-color: var(--accent-border); color: var(--accent); background: var(--accent-dim); }
+
+.preview-box {
+  border-radius: var(--radius);
+  padding: 40px 24px;
+  text-align: center;
+  margin-bottom: var(--content-gap);
+  transition: background 0.15s, color 0.15s;
+}
+.preview-large { font-size: 1.8rem; font-weight: 700; margin-bottom: 8px; }
+.preview-small { font-size: 0.95rem; }
+
+.ratio-card {
+  background: var(--bg2);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius);
+  padding: 20px;
+  text-align: center;
+  margin-bottom: var(--content-gap);
+}
+.ratio-val { font-family: var(--font-mono); font-size: 2.2rem; font-weight: 700; color: var(--accent); }
+.ratio-label { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text3); margin-top: 4px; }
+
+.checks-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+@media (max-width: 500px) { .checks-grid { grid-template-columns: 1fr; } }
+.check-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.check-icon { font-size: 1.2rem; flex-shrink: 0; }
+.check-icon.pass { color: #4af0b0; }
+.check-icon.fail { color: #f06060; }
+.check-text { font-family: var(--font-mono); font-size: 0.75rem; }
+.check-label { color: var(--text2); font-weight: 600; }
+.check-req { color: var(--text3); font-size: 0.65rem; }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Contrast Checker WCAG</h1>
+    <p>Verifică raportul de contrast pentru text normal și text mare</p>
+  </div>
+
+  <div class="fields-grid">
+    <div class="field-card">
+      <span class="field-name">Culoare text</span>
+      <div class="field-input-row">
+        <input type="color" id="picker-fg" value="#1a1a2e" oninput="syncFromPicker('fg')">
+        <input class="input-calc" id="in-fg" type="text" value="#1a1a2e" style="--input-color:var(--accent);font-size:0.9rem" oninput="syncFromText('fg')">
+      </div>
+    </div>
+    <div class="field-card">
+      <span class="field-name">Culoare fundal</span>
+      <div class="field-input-row">
+        <input type="color" id="picker-bg" value="#f4f5f7" oninput="syncFromPicker('bg')">
+        <input class="input-calc" id="in-bg" type="text" value="#f4f5f7" style="--input-color:var(--accent);font-size:0.9rem" oninput="syncFromText('bg')">
+      </div>
+    </div>
+  </div>
+
+  <div class="swap-btn-row">
+    <div class="swap-btn" onclick="swapColors()" title="Inversează">⇄</div>
+  </div>
+
+  <div class="preview-box" id="preview-box">
+    <div class="preview-large" id="preview-large">Text exemplu mare</div>
+    <div class="preview-small" id="preview-small">Text exemplu normal, pentru citire obișnuită într-un paragraf.</div>
+  </div>
+
+  <div class="ratio-card">
+    <div class="ratio-val" id="ratio-val">—</div>
+    <div class="ratio-label">raport de contrast</div>
+  </div>
+
+  <div class="checks-grid" id="checks-grid"></div>
+</div>
+
+<script>
+function hexToRgb(hex) {
+  hex = hex.replace('#','');
+  if (hex.length === 3) hex = [...hex].map(c=>c+c).join('');
+  const num = parseInt(hex, 16);
+  return { r: (num>>16)&255, g: (num>>8)&255, b: num&255 };
+}
+
+function relLuminance(r,g,b) {
+  const [rs,gs,bs] = [r,g,b].map(v => {
+    v /= 255;
+    return v <= 0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4);
+  });
+  return 0.2126*rs + 0.7152*gs + 0.0722*bs;
+}
+
+function contrastRatio(hex1, hex2) {
+  const c1 = hexToRgb(hex1), c2 = hexToRgb(hex2);
+  const l1 = relLuminance(c1.r,c1.g,c1.b);
+  const l2 = relLuminance(c2.r,c2.g,c2.b);
+  const lighter = Math.max(l1,l2), darker = Math.min(l1,l2);
+  return (lighter+0.05)/(darker+0.05);
+}
+
+function isValidHex(hex) {
+  return /^#?[0-9a-fA-F]{3}$|^#?[0-9a-fA-F]{6}$/.test(hex);
+}
+
+function normalizeHex(hex) {
+  if (!hex.startsWith('#')) hex = '#'+hex;
+  return hex;
+}
+
+function syncFromPicker(which) {
+  const hex = document.getElementById('picker-'+which).value;
+  document.getElementById('in-'+which).value = hex;
+  compute();
+}
+
+function syncFromText(which) {
+  const val = normalizeHex(document.getElementById('in-'+which).value.trim());
+  if (!isValidHex(val)) return;
+  document.getElementById('picker-'+which).value = val;
+  compute();
+}
+
+function swapColors() {
+  const fg = document.getElementById('in-fg').value;
+  const bg = document.getElementById('in-bg').value;
+  document.getElementById('in-fg').value = bg;
+  document.getElementById('in-bg').value = fg;
+  document.getElementById('picker-fg').value = normalizeHex(bg);
+  document.getElementById('picker-bg').value = normalizeHex(fg);
+  compute();
+}
+
+function compute() {
+  const fg = normalizeHex(document.getElementById('in-fg').value.trim());
+  const bg = normalizeHex(document.getElementById('in-bg').value.trim());
+
+  if (!isValidHex(fg) || !isValidHex(bg)) return;
+
+  const ratio = contrastRatio(fg, bg);
+  document.getElementById('ratio-val').textContent = ratio.toFixed(2) + ':1';
+
+  const preview = document.getElementById('preview-box');
+  preview.style.background = bg;
+  preview.style.color = fg;
+
+  const checks = [
+    { label: 'AA — Text normal', req: '≥ 4.5:1', pass: ratio >= 4.5 },
+    { label: 'AA — Text mare', req: '≥ 3:1', pass: ratio >= 3 },
+    { label: 'AAA — Text normal', req: '≥ 7:1', pass: ratio >= 7 },
+    { label: 'AAA — Text mare', req: '≥ 4.5:1', pass: ratio >= 4.5 },
+  ];
+
+  document.getElementById('checks-grid').innerHTML = checks.map(c => `
+    <div class="check-card">
+      <span class="check-icon ${c.pass?'pass':'fail'}">${c.pass?'✓':'✕'}</span>
+      <div class="check-text">
+        <div class="check-label">${c.label}</div>
+        <div class="check-req">necesar ${c.req}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+compute();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Contrast checker WCAG</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

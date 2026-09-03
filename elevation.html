@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Altitudine din Coordonate — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #90d060;
+  --accent-dim: rgba(144,208,96,0.10);
+  --accent-border: rgba(144,208,96,0.28);
+}
+
+.fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--content-gap); margin-bottom: var(--content-gap); }
+@media (max-width: 500px) { .fields-grid { grid-template-columns: 1fr; } }
+
+.field-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+.field-name { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text2); font-weight: 500; margin-bottom: 8px; display: block; }
+
+.btn-primary {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.12s;
+  margin-bottom: var(--content-gap);
+}
+.btn-primary:hover { filter: brightness(1.15); }
+.btn-primary:disabled { opacity: 0.5; cursor: default; }
+
+.result-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  text-align: center;
+  margin-bottom: var(--content-gap);
+}
+.result-main { font-family: var(--font-mono); font-size: 2rem; font-weight: 700; color: var(--accent); }
+.result-sub { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text3); margin-top: 4px; }
+
+.city-presets { display: flex; gap: 6px; flex-wrap: wrap; }
+.city-btn {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  padding: 4px 10px;
+  border-radius: 99px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.city-btn:hover { border-color: var(--accent-border); color: var(--accent); }
+
+.status-msg {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text3);
+  text-align: center;
+  margin-bottom: var(--content-gap);
+}
+.status-msg.error { color: #f06060; }
+
+.attribution {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--text3);
+  text-align: center;
+}
+.attribution a { color: var(--text2); }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Altitudine din coordonate</h1>
+    <p>Elevație deasupra nivelului mării — date live Open-Meteo, fără cheie</p>
+  </div>
+
+  <div class="fields-grid">
+    <div class="field-card">
+      <span class="field-name">Latitudine</span>
+      <input class="input-calc" id="in-lat" type="number" step="any" value="45.5"
+             style="--input-color:var(--accent);font-size:1rem">
+    </div>
+    <div class="field-card">
+      <span class="field-name">Longitudine</span>
+      <input class="input-calc" id="in-lon" type="number" step="any" value="25.5"
+             style="--input-color:var(--accent);font-size:1rem">
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:var(--content-gap)">
+    <div class="field-label" style="margin-bottom:8px">Exemple (click pentru a completa)</div>
+    <div class="city-presets" id="city-presets"></div>
+  </div>
+
+  <button class="btn-primary" id="fetch-btn" onclick="fetchElevation()">Obține altitudinea</button>
+
+  <div class="status-msg" id="status-msg"></div>
+
+  <div class="result-card">
+    <div class="result-main" id="result-main">—</div>
+    <div class="result-sub" id="result-sub"></div>
+  </div>
+
+  <div class="attribution">Date furnizate de <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo.com</a> (Copernicus DEM)</div>
+</div>
+
+<script>
+const CITIES = [
+  { name: 'Vf. Moldoveanu', lat: 45.6039, lon: 24.7358 },
+  { name: 'București', lat: 44.4268, lon: 26.1025 },
+  { name: 'Marea Neagră (Constanța)', lat: 44.1733, lon: 28.6383 },
+  { name: 'Predeal', lat: 45.5017, lon: 25.5661 },
+  { name: 'Death Valley, US', lat: 36.5323, lon: -116.9325 },
+  { name: 'Everest Base Camp', lat: 28.0026, lon: 86.8528 },
+];
+
+function buildPresets() {
+  const wrap = document.getElementById('city-presets');
+  CITIES.forEach(c => {
+    const btn = document.createElement('div');
+    btn.className = 'city-btn';
+    btn.textContent = c.name;
+    btn.onclick = () => {
+      document.getElementById('in-lat').value = c.lat;
+      document.getElementById('in-lon').value = c.lon;
+      fetchElevation();
+    };
+    wrap.appendChild(btn);
+  });
+}
+
+async function fetchElevation() {
+  const lat = parseFloat(document.getElementById('in-lat').value);
+  const lon = parseFloat(document.getElementById('in-lon').value);
+  const statusMsg = document.getElementById('status-msg');
+  const resultMain = document.getElementById('result-main');
+  const resultSub = document.getElementById('result-sub');
+  const btn = document.getElementById('fetch-btn');
+
+  if (isNaN(lat) || isNaN(lon) || lat<-90 || lat>90 || lon<-180 || lon>180) {
+    statusMsg.textContent = 'Introdu coordonate valide';
+    statusMsg.className = 'status-msg error';
+    return;
+  }
+
+  btn.disabled = true;
+  statusMsg.className = 'status-msg';
+  statusMsg.textContent = 'Se încarcă...';
+  resultMain.textContent = '—';
+  resultSub.textContent = '';
+
+  try {
+    const url = `https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lon}`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Răspuns invalid de la server');
+    const data = await response.json();
+
+    const elevation = data.elevation?.[0];
+    if (elevation === undefined) throw new Error('Date lipsă în răspuns');
+
+    resultMain.textContent = elevation.toLocaleString('ro-RO') + ' m';
+    resultSub.textContent = `${elevation.toFixed(0)} m deasupra nivelului mării · lat ${lat}, lon ${lon}`;
+    statusMsg.textContent = '✓ Date primite cu succes';
+  } catch (err) {
+    statusMsg.textContent = 'Eroare: ' + err.message;
+    statusMsg.className = 'status-msg error';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+buildPresets();
+fetchElevation();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Altitudine din coordonate</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

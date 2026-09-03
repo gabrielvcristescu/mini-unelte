@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Convertor Baze — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --dec: #4af0b0; --dec-dim: rgba(74,240,176,0.08);  --dec-border: rgba(74,240,176,0.25);
+  --bin: #f06060; --bin-dim: rgba(240,96,96,0.08);   --bin-border: rgba(240,96,96,0.25);
+  --oct: #f0c040; --oct-dim: rgba(240,192,64,0.08);  --oct-border: rgba(240,192,64,0.25);
+  --hex: #60a0f0; --hex-dim: rgba(96,160,240,0.08);  --hex-border: rgba(96,160,240,0.25);
+}
+
+/* ── Base cards grid ── */
+.bases {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+@media (max-width: 500px) { .bases { grid-template-columns: 1fr; } }
+
+.base-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px 12px;
+  position: relative;
+  transition: border-color 0.15s;
+}
+.base-card:focus-within { border-color: var(--active-border); }
+
+.base-card .lbl {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.base-card .lbl-left { display: flex; align-items: center; gap: 8px; }
+
+.base-badge {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: var(--active-dim);
+  color: var(--active-color);
+  border: 1px solid var(--active-border);
+}
+.base-name {
+  font-size: 0.75rem;
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-weight: 300;
+}
+.base-num {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text3);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+/* .input-calc din shared.css — suprascriem doar culoarea */
+.base-card input { --input-color: var(--active-color); }
+.base-card input.error { color: #f06060; animation: shake 0.3s ease; }
+
+.copy-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text3);
+  padding: 2px 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s, background 0.15s;
+}
+.copy-btn:hover { color: var(--text2); background: var(--bg3); }
+.copy-btn.copied { color: var(--dec); }
+
+.dec-card { --active-color: var(--dec); --active-dim: var(--dec-dim); --active-border: var(--dec-border); }
+.bin-card { --active-color: var(--bin); --active-dim: var(--bin-dim); --active-border: var(--bin-border); }
+.oct-card { --active-color: var(--oct); --active-dim: var(--oct-dim); --active-border: var(--oct-border); }
+.hex-card { --active-color: var(--hex); --active-dim: var(--hex-dim); --active-border: var(--hex-border); }
+
+/* ── Bit visualization ── */
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 10px;
+}
+.bit-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+}
+.nibble { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.nibble-bits { display: flex; gap: 3px; }
+.bit-position-row { display: flex; gap: 3px; margin-bottom: 2px; }
+.bit-pos {
+  width: 20px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  color: var(--text3);
+}
+.bit {
+  width: 20px; height: 26px;
+  border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 0.7rem; font-weight: 700;
+  transition: all 0.12s ease;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text3);
+  cursor: default;
+}
+.bit.on {
+  background: rgba(240,96,96,0.15);
+  border-color: rgba(240,96,96,0.45);
+  color: var(--bin);
+}
+.nibble-val {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--hex);
+}
+
+/* ── Ops ── */
+.ops-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.ops-label {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--text3);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-right: 2px;
+}
+.op-btn {
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  font-weight: 500;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  color: var(--text2);
+  padding: 5px 11px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.op-btn:hover { color: var(--text); border-color: var(--border2); background: var(--bg4); }
+.op-btn:active { transform: scale(0.96); }
+
+/* ── Info row ── */
+.info-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+@media (max-width: 500px) { .info-row { grid-template-columns: 1fr 1fr; } }
+
+.info-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  text-align: center;
+}
+.info-val {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+.info-key {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ── Ref table ── */
+.ref-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+.ref-table th {
+  text-align: left;
+  color: var(--text3);
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.ref-table th:not(:first-child) { text-align: center; }
+.ref-table td {
+  padding: 3px 8px;
+  border-bottom: 1px solid rgba(128,128,128,0.05);
+  color: var(--text2);
+}
+.ref-table td:not(:first-child) { text-align: center; }
+.ref-table tr:hover td { background: var(--bg3); }
+.ref-table tr.highlight td { background: rgba(74,240,176,0.07); }
+.ref-table tr { cursor: pointer; }
+.dec-c { color: var(--dec); }
+.bin-c { color: var(--bin); }
+.oct-c { color: var(--oct); }
+.hex-c { color: var(--hex); }
+
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+
+<style id="category-accent-override">
+:root { --accent: #4af0b0; }
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Convertor Baze</h1>
+    <p>dec · bin · oct · hex — editează oricare câmp</p>
+  </div>
+
+  <!-- 4 baze -->
+  <div class="bases">
+    <div class="base-card dec-card" id="card-dec">
+      <div class="lbl">
+        <div class="lbl-left">
+          <span class="base-badge">DEC</span>
+          <span class="base-name">decimal</span>
+        </div>
+        <span class="base-num">10</span>
+      </div>
+      <input class="input-calc" type="text" id="in-dec" placeholder="ex: 255" autocomplete="off" spellcheck="false" inputmode="numeric">
+    </div>
+    <div class="base-card bin-card" id="card-bin">
+      <div class="lbl">
+        <div class="lbl-left">
+          <span class="base-badge">BIN</span>
+          <span class="base-name">binar</span>
+        </div>
+        <span class="base-num">2</span>
+      </div>
+      <input class="input-calc" type="text" id="in-bin" placeholder="ex: 11111111" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="base-card oct-card" id="card-oct">
+      <div class="lbl">
+        <div class="lbl-left">
+          <span class="base-badge">OCT</span>
+          <span class="base-name">octal</span>
+        </div>
+        <span class="base-num">8</span>
+      </div>
+      <input class="input-calc" type="text" id="in-oct" placeholder="ex: 377" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="base-card hex-card" id="card-hex">
+      <div class="lbl">
+        <div class="lbl-left">
+          <span class="base-badge">HEX</span>
+          <span class="base-name">hexazecimal</span>
+        </div>
+        <span class="base-num">16</span>
+      </div>
+      <input class="input-calc" type="text" id="in-hex" placeholder="ex: FF" autocomplete="off" spellcheck="false">
+    </div>
+  </div>
+
+  <!-- Biți -->
+  <div class="card" style="margin-bottom:10px">
+    <div class="section-label">Reprezentare biți</div>
+    <div class="bit-groups" id="bit-groups"></div>
+  </div>
+
+  <!-- Operații -->
+  <div class="card" style="margin-bottom:10px">
+    <div class="ops-row">
+      <span class="ops-label">op</span>
+      <button class="op-btn" onclick="applyOp('shl')">≪ SHL</button>
+      <button class="op-btn" onclick="applyOp('shr')">SHR ≫</button>
+      <button class="op-btn" onclick="applyOp('not')">NOT ~</button>
+      <button class="op-btn" onclick="applyOp('x2')">× 2</button>
+      <button class="op-btn" onclick="applyOp('d2')">÷ 2</button>
+      <button class="op-btn" onclick="applyOp('clr')">CLR</button>
+    </div>
+  </div>
+
+  <!-- Info -->
+  <div class="info-row" style="margin-bottom:10px">
+    <div class="info-card"><div class="info-val" id="info-bits">—</div><div class="info-key">biți</div></div>
+    <div class="info-card"><div class="info-val" id="info-bytes">—</div><div class="info-key">octeți</div></div>
+    <div class="info-card"><div class="info-val" id="info-sign">—</div><div class="info-key">semn</div></div>
+    <div class="info-card"><div class="info-val" id="info-pow">—</div><div class="info-key">putere 2</div></div>
+  </div>
+
+  <!-- Tabel referință -->
+  <div class="card">
+    <div class="section-label">Tabel referință 0–15</div>
+    <table class="ref-table">
+      <thead>
+        <tr>
+          <th class="dec-c">DEC</th>
+          <th class="bin-c">BIN</th>
+          <th class="oct-c">OCT</th>
+          <th class="hex-c">HEX</th>
+          <th style="color:var(--text3)">ASCII</th>
+        </tr>
+      </thead>
+      <tbody id="ref-tbody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+const ASCII_CHARS = {32:'SP',33:'!',34:'"',35:'#',36:'$',37:'%',38:'&',39:"'",40:'(',41:')',42:'*',43:'+',44:',',45:'-',46:'.',47:'/',48:'0',49:'1',50:'2',51:'3',52:'4',53:'5',54:'6',55:'7',56:'8',57:'9',58:':',59:';',60:'<',61:'=',62:'>',63:'?',64:'@',65:'A',66:'B',67:'C',68:'D',69:'E',70:'F',71:'G',72:'H',73:'I',74:'J',75:'K',76:'L',77:'M',78:'N',79:'O',80:'P',81:'Q',82:'R',83:'S',84:'T',85:'U',86:'V',87:'W',88:'X',89:'Y',90:'Z'};
+const CTRL = ['NUL','SOH','STX','ETX','EOT','ENQ','ACK','BEL','BS','TAB','LF','VT','FF','CR','SO','SI'];
+
+let currentVal = 0;
+let updating = false;
+
+function buildRefTable() {
+  const tbody = document.getElementById('ref-tbody');
+  for (let i = 0; i <= 15; i++) {
+    const tr = document.createElement('tr');
+    tr.id = 'ref-row-' + i;
+    const asc = i < 32 ? (CTRL[i] || '·') : (ASCII_CHARS[i] || '·');
+    tr.innerHTML = `
+      <td class="dec-c">${i}</td>
+      <td class="bin-c">${i.toString(2).padStart(4,'0')}</td>
+      <td class="oct-c">${i.toString(8)}</td>
+      <td class="hex-c">${i.toString(16).toUpperCase()}</td>
+      <td>${asc}</td>
+    `;
+    tr.onclick = () => { currentVal = i; updateAll(); };
+    tbody.appendChild(tr);
+  }
+}
+
+function buildBits(val) {
+  const container = document.getElementById('bit-groups');
+  container.innerHTML = '';
+  let binStr = val === 0 ? '00000000' : val.toString(2);
+  while (binStr.length % 8 !== 0) binStr = '0' + binStr;
+
+  const bytes = [];
+  for (let i = 0; i < binStr.length; i += 8) bytes.push(binStr.slice(i, i+8));
+
+  bytes.forEach((byte, byteIdx) => {
+    const byteDiv = document.createElement('div');
+    byteDiv.style.cssText = 'display:flex;gap:4px;align-items:flex-end;';
+    [byte.slice(0,4), byte.slice(4,8)].forEach((nibble, ni) => {
+      const nDiv = document.createElement('div');
+      nDiv.className = 'nibble';
+      const posRow = document.createElement('div');
+      posRow.className = 'bit-position-row';
+      const bitsRow = document.createElement('div');
+      bitsRow.className = 'nibble-bits';
+      const globalOffset = (bytes.length - 1 - byteIdx) * 8 + (1 - ni) * 4;
+      for (let b = 0; b < 4; b++) {
+        const bitPos = globalOffset + (3 - b);
+        const posEl = document.createElement('div');
+        posEl.className = 'bit-pos';
+        posEl.textContent = bitPos;
+        posRow.appendChild(posEl);
+        const bitEl = document.createElement('div');
+        bitEl.className = 'bit' + (nibble[b] === '1' ? ' on' : '');
+        bitEl.textContent = nibble[b];
+        bitsRow.appendChild(bitEl);
+      }
+      const valEl = document.createElement('div');
+      valEl.className = 'nibble-val';
+      valEl.textContent = parseInt(nibble, 2).toString(16).toUpperCase();
+      nDiv.appendChild(posRow);
+      nDiv.appendChild(bitsRow);
+      nDiv.appendChild(valEl);
+      byteDiv.appendChild(nDiv);
+    });
+    container.appendChild(byteDiv);
+  });
+}
+
+function updateInfo(val) {
+  const bits = val === 0 ? 1 : Math.floor(Math.log2(val)) + 1;
+  const bytes = Math.ceil(bits / 8);
+  const isPow2 = val > 0 && (val & (val - 1)) === 0;
+  document.getElementById('info-bits').textContent = bits;
+  document.getElementById('info-bytes').textContent = bytes;
+  document.getElementById('info-sign').textContent = val > 0 ? '+' : '0';
+  document.getElementById('info-pow').textContent = isPow2 ? '2^' + Math.log2(val) : '—';
+}
+
+function updateAll(source) {
+  if (updating) return;
+  updating = true;
+  const val = currentVal;
+  const fields = { 'in-dec': val.toString(10), 'in-bin': val.toString(2), 'in-oct': val.toString(8), 'in-hex': val.toString(16).toUpperCase() };
+  Object.entries(fields).forEach(([id, v]) => {
+    const el = document.getElementById(id);
+    if (id !== source) el.value = v === '0' ? '' : v;
+    el.classList.remove('error');
+  });
+  buildBits(val);
+  updateInfo(val);
+  document.querySelectorAll('#ref-tbody tr').forEach(tr => tr.classList.remove('highlight'));
+  if (val <= 15) document.getElementById('ref-row-' + val)?.classList.add('highlight');
+  updating = false;
+}
+
+function handleInput(inputId, base) {
+  const el = document.getElementById(inputId);
+  let raw = el.value.trim().replace(/\s/g, '');
+  if (raw === '' || raw === '0') { currentVal = 0; updateAll(inputId); return; }
+  const valid = { 10:/^[0-9]+$/, 2:/^[01]+$/, 8:/^[0-7]+$/, 16:/^[0-9A-Fa-f]+$/ };
+  if (!valid[base].test(raw)) {
+    el.classList.add('error');
+    setTimeout(() => el.classList.remove('error'), 400);
+    return;
+  }
+  const parsed = parseInt(raw, base);
+  if (isNaN(parsed) || parsed < 0 || parsed > 0xFFFFFFFF) { el.classList.add('error'); return; }
+  currentVal = parsed;
+  updateAll(inputId);
+}
+
+const ALLOWED = {
+  'in-dec': /^[0-9]$/,
+  'in-bin': /^[01]$/,
+  'in-oct': /^[0-7]$/,
+  'in-hex': /^[0-9A-Fa-f]$/,
+};
+
+// Blochează tastele nepermise înainte să ajungă în câmp
+Object.entries(ALLOWED).forEach(([id, pattern]) => {
+  document.getElementById(id).addEventListener('keydown', e => {
+    // Permite: taste de control (Backspace, Delete, Arrow, Tab, Enter, Ctrl+A/C/V/X)
+    if (e.ctrlKey || e.metaKey) return;
+    if (['Backspace','Delete','ArrowLeft','ArrowRight','Home','End','Tab','Enter'].includes(e.key)) return;
+    // Blochează orice caracter care nu e permis pentru baza respectivă
+    if (e.key.length === 1 && !pattern.test(e.key)) {
+      e.preventDefault();
+      // Animație shake scurtă ca feedback
+      const el = document.getElementById(id);
+      el.classList.add('error');
+      setTimeout(() => el.classList.remove('error'), 250);
+    }
+  });
+});
+
+document.getElementById('in-dec').addEventListener('input', () => handleInput('in-dec', 10));
+document.getElementById('in-bin').addEventListener('input', () => handleInput('in-bin', 2));
+document.getElementById('in-oct').addEventListener('input', () => handleInput('in-oct', 8));
+document.getElementById('in-hex').addEventListener('input', () => handleInput('in-hex', 16));
+
+function applyOp(op) {
+  let v = currentVal;
+  if (op==='shl') v = (v << 1) & 0xFFFFFFFF;
+  else if (op==='shr') v = v >>> 1;
+  else if (op==='not') v = (~v) >>> 0;
+  else if (op==='x2') v = Math.min(v * 2, 0xFFFFFFFF);
+  else if (op==='d2') v = Math.floor(v / 2);
+  else if (op==='clr') v = 0;
+  currentVal = v;
+  updateAll();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+// Copy buttons
+document.querySelectorAll('.base-card').forEach(card => {
+  const lbl = card.querySelector('.lbl');
+  const btn = document.createElement('button');
+  btn.className = 'copy-btn';
+  btn.title = 'Copiază';
+  btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>';
+  btn.onclick = e => {
+    e.stopPropagation();
+    const val = card.querySelector('input').value || '0';
+    navigator.clipboard.writeText(val).then(() => {
+      btn.classList.add('copied');
+      showToast('Copiat: ' + val);
+      setTimeout(() => btn.classList.remove('copied'), 1200);
+    });
+  };
+  lbl.appendChild(btn);
+});
+
+buildRefTable();
+updateAll();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Conversie baze numerice</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

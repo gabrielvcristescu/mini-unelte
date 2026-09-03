@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Watermark Imagine — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #f08060;
+  --accent-dim: rgba(240,128,96,0.10);
+  --accent-border: rgba(240,128,96,0.28);
+}
+
+.file-drop {
+  border: 2px dashed var(--border2);
+  border-radius: var(--radius);
+  padding: 40px 20px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text3);
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: var(--content-gap);
+}
+.file-drop:hover, .file-drop.dragover { border-color: var(--accent-border); color: var(--accent); background: var(--accent-dim); }
+
+.preview-wrap {
+  display: none;
+  justify-content: center;
+  background: var(--bg3);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-bottom: var(--content-gap);
+}
+.preview-wrap.show { display: flex; }
+#preview-canvas { max-width: 100%; border-radius: 6px; }
+
+.fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--content-gap); margin-bottom: var(--content-gap); }
+@media (max-width: 500px) { .fields-grid { grid-template-columns: 1fr; } }
+.field-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+.field-name { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text2); font-weight: 500; margin-bottom: 8px; display: block; }
+
+.position-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: var(--content-gap);
+}
+.pos-btn {
+  aspect-ratio: 2;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.12s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+}
+.pos-btn:hover { border-color: var(--accent-border); }
+.pos-btn.active { background: var(--accent-dim); border-color: var(--accent-border); }
+
+.slider-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.slider-row label { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text2); width: 90px; flex-shrink: 0; }
+.slider-row input[type=range] { flex: 1; accent-color: var(--accent); }
+.slider-row .val { font-family: var(--font-mono); font-size: 0.72rem; color: var(--accent); width: 45px; text-align: right; }
+
+.color-input { width: 40px; height: 32px; border: 1px solid var(--border2); border-radius: 6px; cursor: pointer; background: none; padding: 2px; }
+
+.download-btn {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.download-btn:hover { filter: brightness(1.15); }
+.download-btn:disabled { opacity: 0.4; cursor: default; }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Watermark imagine</h1>
+    <p>Text peste imagine, poziție/opacitate/mărime configurabile, local</p>
+  </div>
+
+  <div class="file-drop" id="file-drop" onclick="document.getElementById('file-input').click()">
+    Trage o imagine aici sau click pentru a o încărca
+    <input type="file" id="file-input" accept="image/*" style="display:none">
+  </div>
+
+  <div class="preview-wrap" id="preview-wrap">
+    <canvas id="preview-canvas"></canvas>
+  </div>
+
+  <div class="fields-grid">
+    <div class="field-card">
+      <span class="field-name">Text watermark</span>
+      <input class="input-calc" id="in-text" type="text" value="© Mini Unelte 2026" style="--input-color:var(--accent);font-size:0.95rem" oninput="render()">
+    </div>
+    <div class="field-card">
+      <span class="field-name">Culoare & opacitate</span>
+      <div style="display:flex;gap:10px;align-items:center">
+        <input type="color" class="color-input" id="in-color" value="#ffffff" oninput="render()">
+        <input type="range" id="in-alpha" min="10" max="100" value="60" style="flex:1;accent-color:var(--accent)" oninput="render()">
+        <span style="font-family:var(--font-mono);font-size:0.7rem;color:var(--accent);width:35px" id="alpha-val">60%</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:var(--content-gap)">
+    <div class="field-label" style="margin-bottom:8px">Poziție</div>
+    <div class="position-grid" id="position-grid"></div>
+  </div>
+
+  <div class="card">
+    <div class="slider-row">
+      <label>Mărime font</label>
+      <input type="range" id="in-fontsize" min="10" max="80" value="28" oninput="render()">
+      <span class="val" id="fontsize-val">28px</span>
+    </div>
+    <div class="slider-row" style="margin-bottom:0">
+      <label>Margine</label>
+      <input type="range" id="in-margin" min="0" max="80" value="20" oninput="render()">
+      <span class="val" id="margin-val">20px</span>
+    </div>
+  </div>
+
+  <button class="download-btn" id="download-btn" onclick="downloadWatermarked()" disabled style="margin-top:var(--content-gap)">⬇ Descarcă imaginea cu watermark</button>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+let originalImg = null;
+let position = 'se'; // nw, n, ne, w, c, e, sw, s, se
+
+const POSITIONS = [
+  ['nw','↖'],['n','↑'],['ne','↗'],
+  ['w','←'],['c','•'],['e','→'],
+  ['sw','↙'],['s','↓'],['se','↘'],
+];
+
+function buildPositionGrid() {
+  const grid = document.getElementById('position-grid');
+  grid.innerHTML = POSITIONS.map(([key,icon]) => `
+    <div class="pos-btn ${key===position?'active':''}" data-pos="${key}" onclick="setPosition('${key}')">${icon}</div>
+  `).join('');
+}
+
+function setPosition(pos) {
+  position = pos;
+  document.querySelectorAll('.pos-btn').forEach(b => b.classList.toggle('active', b.dataset.pos===pos));
+  render();
+}
+
+function handleFile(file) {
+  if (!file || !file.type.startsWith('image/')) {
+    showToast('Te rog selectează un fișier imagine valid');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      originalImg = img;
+      document.getElementById('preview-wrap').classList.add('show');
+      document.getElementById('download-btn').disabled = false;
+      render();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function hexToRgba(hex, alpha) {
+  hex = hex.replace('#','');
+  const num = parseInt(hex,16);
+  const r=(num>>16)&255, g=(num>>8)&255, b=num&255;
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function render() {
+  if (!originalImg) return;
+
+  const text = document.getElementById('in-text').value || '';
+  const color = document.getElementById('in-color').value;
+  const alpha = parseInt(document.getElementById('in-alpha').value)/100;
+  const fontSize = parseInt(document.getElementById('in-fontsize').value);
+  const margin = parseInt(document.getElementById('in-margin').value);
+
+  document.getElementById('alpha-val').textContent = Math.round(alpha*100)+'%';
+  document.getElementById('fontsize-val').textContent = fontSize+'px';
+  document.getElementById('margin-val').textContent = margin+'px';
+
+  const canvas = document.getElementById('preview-canvas');
+  canvas.width = originalImg.width;
+  canvas.height = originalImg.height;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(originalImg, 0, 0);
+
+  ctx.font = `700 ${fontSize}px "JetBrains Mono", monospace`;
+  ctx.fillStyle = hexToRgba(color, alpha);
+
+  const metrics = ctx.measureText(text);
+  const textW = metrics.width;
+  const textH = fontSize;
+
+  let x, y;
+  const w = canvas.width, h = canvas.height;
+
+  // Orizontal
+  if (position.includes('w')) { x = margin; ctx.textAlign = 'left'; }
+  else if (position.includes('e')) { x = w - margin; ctx.textAlign = 'right'; }
+  else { x = w/2; ctx.textAlign = 'center'; }
+
+  // Vertical
+  if (position.startsWith('n')) { y = margin + textH; }
+  else if (position.startsWith('s')) { y = h - margin; }
+  else { y = h/2 + textH/3; }
+
+  ctx.fillText(text, x, y);
+}
+
+function downloadWatermarked() {
+  const canvas = document.getElementById('preview-canvas');
+  canvas.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'watermarked.png';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Descărcat!');
+  }, 'image/png');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+const fileInput = document.getElementById('file-input');
+const fileDrop = document.getElementById('file-drop');
+fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+fileDrop.addEventListener('dragover', e => { e.preventDefault(); fileDrop.classList.add('dragover'); });
+fileDrop.addEventListener('dragleave', () => fileDrop.classList.remove('dragover'));
+fileDrop.addEventListener('drop', e => {
+  e.preventDefault();
+  fileDrop.classList.remove('dragover');
+  handleFile(e.dataTransfer.files[0]);
+});
+
+buildPositionGrid();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Watermark imagine</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

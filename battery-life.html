@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculator Autonomie Baterie — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #70d0f0;
+  --accent-dim: rgba(112,208,240,0.10);
+  --accent-border: rgba(112,208,240,0.28);
+}
+
+.input-mode-row { display: flex; gap: 8px; margin-bottom: var(--content-gap); }
+.mode-btn {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.mode-btn.active {
+  background: var(--accent-dim);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+.fields-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--content-gap);
+}
+@media (max-width: 500px) { .fields-grid { grid-template-columns: 1fr; } }
+
+.field-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.field-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.field-name { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text2); font-weight: 500; }
+.field-unit {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--text3);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
+/* ── Load list (multi-component) ── */
+.load-list { display: flex; flex-direction: column; gap: 8px; }
+.load-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+.load-row input.load-name {
+  flex: 1.4;
+  min-width: 0;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text);
+  outline: none;
+}
+.load-row input.load-name:focus { border-color: var(--accent-border); }
+.load-row .load-power { flex: 1; min-width: 0; }
+.load-row-unit { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text3); width: 24px; flex-shrink: 0; }
+.load-remove {
+  background: none; border: none; cursor: pointer;
+  color: var(--text3); padding: 4px 8px; border-radius: 5px;
+  font-family: var(--font-mono); font-size: 0.85rem;
+  transition: color 0.12s, background 0.12s; flex-shrink: 0;
+}
+.load-remove:hover { color: #f06060; background: var(--bg3); }
+.load-remove:disabled { opacity: 0.25; cursor: default; }
+
+.add-row-btn {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--border2);
+  background: none;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+  text-align: center;
+}
+.add-row-btn:hover { border-color: var(--accent-border); color: var(--accent); background: var(--accent-dim); }
+
+/* ── Result ── */
+.result-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  text-align: center;
+}
+.result-main {
+  font-family: var(--font-mono);
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1.15;
+}
+.result-sub { font-family: var(--font-mono); font-size: 0.75rem; color: var(--text3); margin-top: 4px; }
+
+.info-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+@media (max-width: 500px) { .info-row { grid-template-columns: 1fr; } }
+.info-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  text-align: center;
+}
+.info-val { font-family: var(--font-mono); font-size: 0.95rem; font-weight: 500; color: var(--text); margin-bottom: 2px; }
+.info-key { font-family: var(--font-mono); font-size: 0.58rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; }
+
+/* ── Battery bar visualization ── */
+.battery-bar-wrap { padding: 0.5rem 0 1rem; }
+.battery-shell {
+  position: relative;
+  height: 34px;
+  border: 2px solid var(--border2);
+  border-radius: 6px;
+  background: var(--bg3);
+  overflow: hidden;
+}
+.battery-shell::after {
+  content: '';
+  position: absolute;
+  right: -8px;
+  top: 9px;
+  width: 6px;
+  height: 16px;
+  background: var(--border2);
+  border-radius: 0 3px 3px 0;
+}
+.battery-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 70%, transparent));
+  transition: width 0.3s ease;
+}
+.battery-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text);
+  mix-blend-mode: difference;
+}
+
+.eff-note {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text3);
+  margin-top: 6px;
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Calculator autonomie baterie</h1>
+    <p>Capacitate, consum, eficiență → ore estimate de funcționare</p>
+  </div>
+
+  <!-- Baterie -->
+  <div class="fields-grid" style="margin-bottom:var(--content-gap)">
+    <div class="field-card">
+      <div class="field-top"><span class="field-name">Capacitate baterie</span><span class="field-unit">mAh</span></div>
+      <input class="input-calc" id="in-mah" type="number" min="0" step="any" value="10000"
+             style="--input-color:var(--accent);font-size:1.05rem" oninput="compute()">
+    </div>
+    <div class="field-card">
+      <div class="field-top"><span class="field-name">Tensiune nominală</span><span class="field-unit">V</span></div>
+      <input class="input-calc" id="in-voltage" type="number" min="0" step="any" value="3.7"
+             style="--input-color:var(--accent);font-size:1.05rem" oninput="compute()">
+    </div>
+  </div>
+
+  <div class="fields-grid" style="margin-bottom:var(--content-gap)">
+    <div class="field-card">
+      <div class="field-top"><span class="field-name">Eficiență convertor DC-DC</span><span class="field-unit">%</span></div>
+      <input class="input-calc" id="in-efficiency" type="number" min="1" max="100" step="any" value="85"
+             style="--input-color:var(--accent);font-size:1.05rem" oninput="compute()">
+    </div>
+    <div class="field-card">
+      <div class="field-top"><span class="field-name">Adâncime descărcare (DoD)</span><span class="field-unit">%</span></div>
+      <input class="input-calc" id="in-dod" type="number" min="1" max="100" step="any" value="90"
+             style="--input-color:var(--accent);font-size:1.05rem" oninput="compute()">
+    </div>
+  </div>
+
+  <!-- Consumatori -->
+  <div class="card" style="margin-bottom:var(--content-gap)">
+    <div class="field-name" style="margin-bottom:10px">Componente și consum (W)</div>
+    <div class="load-list" id="load-list"></div>
+    <button class="add-row-btn" style="margin-top:8px" onclick="addLoad()">+ adaugă componentă</button>
+  </div>
+
+  <!-- Rezultat -->
+  <div class="result-card" style="margin-bottom:var(--content-gap)">
+    <div class="result-main" id="result-main">—</div>
+    <div class="result-sub" id="result-sub"></div>
+    <div class="battery-bar-wrap">
+      <div class="battery-shell">
+        <div class="battery-fill" id="battery-fill" style="width:100%"></div>
+        <div class="battery-label" id="battery-label"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Info -->
+  <div class="info-row">
+    <div class="info-card"><div class="info-val" id="info-wh">—</div><div class="info-key">energie utilizabilă</div></div>
+    <div class="info-card"><div class="info-val" id="info-power">—</div><div class="info-key">consum total</div></div>
+    <div class="info-card"><div class="info-val" id="info-current">—</div><div class="info-key">curent estimat</div></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+let loads = [
+  { name: 'Radxa Dragon Q6A', power: 4.5 },
+  { name: 'RealSense D455', power: 1.5 },
+  { name: 'Difuzor + audio', power: 0.8 },
+  { name: 'Modem 4G', power: 1.2 },
+];
+
+function trim(n) { return parseFloat(n.toPrecision(4)).toString(); }
+
+function fmtHours(h) {
+  if (!isFinite(h) || h <= 0) return '—';
+  if (h < 1) return Math.round(h * 60) + ' min';
+  const whole = Math.floor(h);
+  const mins = Math.round((h - whole) * 60);
+  if (whole >= 24) {
+    const days = Math.floor(whole / 24);
+    const remH = whole % 24;
+    return `${days}z ${remH}h`;
+  }
+  return mins > 0 ? `${whole}h ${mins}min` : `${whole}h`;
+}
+
+function renderLoadList() {
+  const list = document.getElementById('load-list');
+  list.innerHTML = '';
+  loads.forEach((load, i) => {
+    const row = document.createElement('div');
+    row.className = 'load-row';
+    row.innerHTML = `
+      <input class="load-name" type="text" value="${load.name}" placeholder="Nume componentă" data-idx="${i}">
+      <input class="input-calc load-power" type="number" min="0" step="any" value="${load.power}"
+             style="--input-color:var(--accent);font-size:0.9rem;padding:6px 10px" data-idx="${i}">
+      <span class="load-row-unit">W</span>
+      <button class="load-remove" ${loads.length <= 1 ? 'disabled' : ''} title="Șterge">✕</button>
+    `;
+    const nameInput = row.querySelector('.load-name');
+    const powerInput = row.querySelector('.load-power');
+    nameInput.addEventListener('input', () => { loads[i].name = nameInput.value; });
+    powerInput.addEventListener('input', () => {
+      const v = parseFloat(powerInput.value);
+      loads[i].power = isNaN(v) ? 0 : v;
+      compute();
+    });
+    row.querySelector('.load-remove').addEventListener('click', () => {
+      if (loads.length <= 1) return;
+      loads.splice(i, 1);
+      render();
+    });
+    list.appendChild(row);
+  });
+}
+
+function addLoad() {
+  loads.push({ name: 'Componentă nouă', power: 1.0 });
+  render();
+}
+
+function compute() {
+  const mah = parseFloat(document.getElementById('in-mah').value);
+  const voltage = parseFloat(document.getElementById('in-voltage').value);
+  const efficiency = parseFloat(document.getElementById('in-efficiency').value);
+  const dod = parseFloat(document.getElementById('in-dod').value);
+
+  const main = document.getElementById('result-main');
+  const sub = document.getElementById('result-sub');
+
+  const totalPower = loads.reduce((sum, l) => sum + (l.power || 0), 0);
+
+  if (isNaN(mah) || isNaN(voltage) || isNaN(efficiency) || isNaN(dod) ||
+      mah <= 0 || voltage <= 0 || efficiency <= 0 || dod <= 0 || totalPower <= 0) {
+    main.textContent = '—';
+    sub.textContent = 'Completează toate câmpurile și adaugă cel puțin o componentă';
+    document.getElementById('info-wh').textContent = '—';
+    document.getElementById('info-power').textContent = totalPower > 0 ? trim(totalPower) + ' W' : '—';
+    document.getElementById('info-current').textContent = '—';
+    document.getElementById('battery-fill').style.width = '0%';
+    document.getElementById('battery-label').textContent = '';
+    return;
+  }
+
+  const whGross = (mah / 1000) * voltage;
+  const whUsable = whGross * (dod / 100) * (efficiency / 100);
+  const hours = whUsable / totalPower;
+  const currentA = totalPower / voltage;
+
+  main.textContent = fmtHours(hours);
+  sub.textContent = `${trim(whUsable)} Wh utilizabili / ${trim(totalPower)} W consum`;
+
+  document.getElementById('info-wh').textContent = trim(whUsable) + ' Wh';
+  document.getElementById('info-power').textContent = trim(totalPower) + ' W';
+  document.getElementById('info-current').textContent = trim(currentA) + ' A';
+
+  document.getElementById('battery-fill').style.width = '100%';
+  document.getElementById('battery-label').textContent = `${trim(whGross)} Wh brut (${dod}% DoD, ${efficiency}% eficiență)`;
+}
+
+function render() {
+  renderLoadList();
+  compute();
+}
+
+document.getElementById('in-mah').addEventListener('input', compute);
+document.getElementById('in-voltage').addEventListener('input', compute);
+document.getElementById('in-efficiency').addEventListener('input', compute);
+document.getElementById('in-dod').addEventListener('input', compute);
+
+render();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Calculator autonomie baterie</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

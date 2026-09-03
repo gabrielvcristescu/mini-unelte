@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resize Imagine — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #f08060;
+  --accent-dim: rgba(240,128,96,0.10);
+  --accent-border: rgba(240,128,96,0.28);
+}
+
+.file-drop {
+  border: 2px dashed var(--border2);
+  border-radius: var(--radius);
+  padding: 40px 20px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text3);
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: var(--content-gap);
+}
+.file-drop:hover, .file-drop.dragover { border-color: var(--accent-border); color: var(--accent); background: var(--accent-dim); }
+
+.preview-wrap {
+  display: none;
+  background: var(--bg3);
+  border-radius: var(--radius);
+  padding: 16px;
+  text-align: center;
+  margin-bottom: var(--content-gap);
+}
+.preview-wrap.show { display: block; }
+.preview-wrap img { max-width: 100%; max-height: 300px; border-radius: 6px; }
+
+.fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--content-gap); margin-bottom: var(--content-gap); }
+.field-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+.field-name { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text2); font-weight: 500; margin-bottom: 8px; display: block; }
+
+.lock-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text2);
+  cursor: pointer;
+  margin-bottom: var(--content-gap);
+}
+
+.info-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: var(--content-gap); }
+.info-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; text-align: center; }
+.info-val { font-family: var(--font-mono); font-size: 0.9rem; font-weight: 600; color: var(--text); }
+.info-key { font-family: var(--font-mono); font-size: 0.58rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+
+.download-btn {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.download-btn:hover { filter: brightness(1.15); }
+.download-btn:disabled { opacity: 0.4; cursor: default; }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Resize imagine</h1>
+    <p>Redimensionare locală, fără upload — Canvas API</p>
+  </div>
+
+  <div class="file-drop" id="file-drop" onclick="document.getElementById('file-input').click()">
+    Trage o imagine aici sau click pentru a o încărca
+    <input type="file" id="file-input" accept="image/*" style="display:none">
+  </div>
+
+  <div class="preview-wrap" id="preview-wrap">
+    <img id="preview-img" src="">
+  </div>
+
+  <div class="fields-grid">
+    <div class="field-card">
+      <span class="field-name">Lățime (px)</span>
+      <input class="input-calc" id="in-width" type="number" min="1" style="--input-color:var(--accent);font-size:1rem" oninput="onWidthChange()">
+    </div>
+    <div class="field-card">
+      <span class="field-name">Înălțime (px)</span>
+      <input class="input-calc" id="in-height" type="number" min="1" style="--input-color:var(--accent);font-size:1rem" oninput="onHeightChange()">
+    </div>
+  </div>
+
+  <label class="lock-row">
+    <input type="checkbox" id="lock-ratio" checked>
+    Păstrează proporția (aspect ratio)
+  </label>
+
+  <div class="info-row">
+    <div class="info-card"><div class="info-val" id="info-original">—</div><div class="info-key">dimensiune originală</div></div>
+    <div class="info-card"><div class="info-val" id="info-newsize">—</div><div class="info-key">dimensiune estimată</div></div>
+  </div>
+
+  <div class="fields-grid" id="export-fields-grid">
+    <div class="field-card">
+      <span class="field-name">Format ieșire</span>
+      <select class="unit-select" id="format-select" onchange="onFormatChange()" style="width:100%;padding:8px">
+        <option value="auto">Auto (păstrează originalul)</option>
+        <option value="image/png">PNG</option>
+        <option value="image/jpeg">JPEG</option>
+        <option value="image/webp">WebP</option>
+      </select>
+    </div>
+    <div class="field-card" id="quality-card" style="display:none">
+      <span class="field-name">Calitate</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <input type="range" id="quality-slider" min="10" max="100" value="90" style="flex:1;accent-color:var(--accent)" oninput="onQualityChange()">
+        <span style="font-family:var(--font-mono);font-size:0.78rem;color:var(--accent);width:40px;text-align:right" id="quality-val">90%</span>
+      </div>
+    </div>
+  </div>
+
+  <button class="download-btn" id="download-btn" onclick="downloadResized()" disabled>⬇ Descarcă imagine redimensionată</button>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+let originalImg = null;
+let originalW = 0, originalH = 0;
+let aspectRatio = 1;
+let originalMimeType = 'image/png';
+
+const fileInput = document.getElementById('file-input');
+const fileDrop = document.getElementById('file-drop');
+
+function handleFile(file) {
+  if (!file || !file.type.startsWith('image/')) {
+    showToast('Te rog selectează un fișier imagine valid');
+    return;
+  }
+
+  originalMimeType = file.type;
+  document.getElementById('format-select').value = 'auto';
+  onFormatChange();
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      originalImg = img;
+      originalW = img.width;
+      originalH = img.height;
+      aspectRatio = originalW / originalH;
+
+      document.getElementById('preview-img').src = e.target.result;
+      document.getElementById('preview-wrap').classList.add('show');
+      document.getElementById('in-width').value = originalW;
+      document.getElementById('in-height').value = originalH;
+      document.getElementById('info-original').textContent = `${originalW} × ${originalH}px`;
+      document.getElementById('download-btn').disabled = false;
+      updateEstimate();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function onWidthChange() {
+  const w = parseInt(document.getElementById('in-width').value);
+  if (document.getElementById('lock-ratio').checked && w > 0) {
+    document.getElementById('in-height').value = Math.round(w / aspectRatio);
+  }
+  updateEstimate();
+}
+
+function onHeightChange() {
+  const h = parseInt(document.getElementById('in-height').value);
+  if (document.getElementById('lock-ratio').checked && h > 0) {
+    document.getElementById('in-width').value = Math.round(h * aspectRatio);
+  }
+  updateEstimate();
+}
+
+function updateEstimate() {
+  const w = parseInt(document.getElementById('in-width').value) || 0;
+  const h = parseInt(document.getElementById('in-height').value) || 0;
+  // Estimare foarte aproximativă (necomprimat raw RGBA / 3 ca aprox JPEG)
+  const estimatedBytes = (w * h * 3) / 3;
+  document.getElementById('info-newsize').textContent =
+    w && h ? `${w} × ${h}px (~${fmtBytes(estimatedBytes)})` : '—';
+}
+
+function fmtBytes(bytes) {
+  if (bytes < 1024) return bytes.toFixed(0) + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(0) + ' KB';
+  return (bytes/(1024*1024)).toFixed(1) + ' MB';
+}
+
+function getEffectiveMimeType() {
+  const sel = document.getElementById('format-select').value;
+  if (sel === 'auto') {
+    // PNG nu are pierderi și e mereu suportat; JPEG/WebP originale rămân în formatul lor
+    return (originalMimeType === 'image/jpeg' || originalMimeType === 'image/webp')
+      ? originalMimeType : 'image/png';
+  }
+  return sel;
+}
+
+function onFormatChange() {
+  const mime = getEffectiveMimeType();
+  const needsQuality = mime === 'image/jpeg' || mime === 'image/webp';
+  const qualityCard = document.getElementById('quality-card');
+  const grid = document.getElementById('export-fields-grid');
+  qualityCard.style.display = needsQuality ? 'block' : 'none';
+  grid.style.gridTemplateColumns = needsQuality ? '1fr 1fr' : '1fr';
+}
+
+function onQualityChange() {
+  const val = document.getElementById('quality-slider').value;
+  document.getElementById('quality-val').textContent = val + '%';
+}
+
+function extForMime(mime) {
+  if (mime === 'image/jpeg') return 'jpg';
+  if (mime === 'image/webp') return 'webp';
+  return 'png';
+}
+
+function downloadResized() {
+  if (!originalImg) return;
+  const w = parseInt(document.getElementById('in-width').value);
+  const h = parseInt(document.getElementById('in-height').value);
+  if (!w || !h || w<=0 || h<=0) { showToast('Introdu dimensiuni valide'); return; }
+
+  const mime = getEffectiveMimeType();
+  const quality = mime === 'image/png' ? undefined : parseInt(document.getElementById('quality-slider').value)/100;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+
+  // JPEG nu suportă transparență — umplem cu alb ca fundal, altfel ar deveni negru
+  if (mime === 'image/jpeg') {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  ctx.drawImage(originalImg, 0, 0, w, h);
+
+  canvas.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `resized-${w}x${h}.${extForMime(mime)}`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Descărcat!');
+  }, mime, quality);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+fileDrop.addEventListener('dragover', e => { e.preventDefault(); fileDrop.classList.add('dragover'); });
+fileDrop.addEventListener('dragleave', () => fileDrop.classList.remove('dragover'));
+fileDrop.addEventListener('drop', e => {
+  e.preventDefault();
+  fileDrop.classList.remove('dragover');
+  handleFile(e.dataTransfer.files[0]);
+});
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Resize imagine</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

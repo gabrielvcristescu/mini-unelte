@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Convertor Culori — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #f0c040;
+  --accent-dim: rgba(240,192,64,0.10);
+  --accent-border: rgba(240,192,64,0.28);
+}
+
+.preview-box {
+  height: 140px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  margin-bottom: var(--content-gap);
+  transition: background 0.15s;
+}
+
+.picker-row { display: flex; gap: 10px; align-items: center; margin-bottom: var(--content-gap); }
+.color-picker-input {
+  width: 60px; height: 44px;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  background: none;
+  padding: 2px;
+}
+
+.formats-grid { display: flex; flex-direction: column; gap: 8px; margin-bottom: var(--content-gap); }
+.format-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+}
+.format-label { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; width: 50px; flex-shrink: 0; }
+.format-input {
+  flex: 1;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text);
+  outline: none;
+}
+.format-input:focus { border-color: var(--accent-border); }
+.copy-mini {
+  background: none; border: none; cursor: pointer;
+  color: var(--text3); padding: 4px 8px; border-radius: 4px;
+  font-family: var(--font-mono); font-size: 0.62rem;
+  transition: color 0.12s, background 0.12s; flex-shrink: 0;
+}
+.copy-mini:hover { color: var(--accent); background: var(--bg3); }
+
+.slider-group { display: flex; flex-direction: column; gap: 14px; }
+.slider-row { display: flex; align-items: center; gap: 12px; }
+.slider-label { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; width: 34px; flex-shrink: 0; }
+.slider-val { font-family: var(--font-mono); font-size: 0.75rem; color: var(--text2); width: 46px; text-align: right; flex-shrink: 0; }
+
+.big-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 30px;
+  border-radius: 15px;
+  outline: none;
+  cursor: pointer;
+  background: var(--bg3); /* fallback, suprascris inline per slider */
+}
+.big-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--bg);
+  box-shadow: 0 0 0 1.5px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.3);
+  cursor: pointer;
+  margin-top: 0;
+}
+.big-slider::-moz-range-thumb {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--bg);
+  box-shadow: 0 0 0 1.5px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.3);
+  cursor: pointer;
+}
+.big-slider::-moz-range-track { background: transparent; }
+
+.mode-tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+.mode-tab {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 99px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.mode-tab.active { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+
+.swatch-row { display: flex; gap: 14px; align-items: center; margin-bottom: 16px; }
+.big-swatch {
+  width: 84px; height: 84px;
+  border-radius: 16px;
+  border: 1px solid var(--border2);
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  flex-shrink: 0;
+  transition: transform 0.12s;
+}
+.big-swatch:hover { transform: scale(1.03); }
+.swatch-hint { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text3); line-height: 1.5; }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Convertor culori</h1>
+    <p>HEX ↔ RGB ↔ HSL ↔ CMYK, cu preview live</p>
+  </div>
+
+  <div class="preview-box" id="preview-box"></div>
+
+  <input type="color" id="color-picker" value="#f0c040" oninput="fromPicker()" style="position:absolute;opacity:0;pointer-events:none;width:0;height:0">
+
+  <div class="formats-grid">
+    <div class="format-row">
+      <span class="format-label">HEX</span>
+      <input class="format-input" id="in-hex" value="#F0C040" oninput="fromHex()">
+      <button class="copy-mini" onclick="copyVal('in-hex')">Copiază</button>
+    </div>
+    <div class="format-row">
+      <span class="format-label">RGB</span>
+      <input class="format-input" id="in-rgb" value="rgb(240, 192, 64)" oninput="fromRgb()">
+      <button class="copy-mini" onclick="copyVal('in-rgb')">Copiază</button>
+    </div>
+    <div class="format-row">
+      <span class="format-label">HSL</span>
+      <input class="format-input" id="in-hsl" value="hsl(45, 82%, 60%)" oninput="fromHsl()">
+      <button class="copy-mini" onclick="copyVal('in-hsl')">Copiază</button>
+    </div>
+    <div class="format-row">
+      <span class="format-label">CMYK</span>
+      <input class="format-input" id="in-cmyk" value="cmyk(0%, 20%, 73%, 6%)" readonly>
+      <button class="copy-mini" onclick="copyVal('in-cmyk')">Copiază</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="field-label" style="margin-bottom:12px">Selector rapid</div>
+
+    <div class="swatch-row">
+      <div class="big-swatch" id="big-swatch" onclick="document.getElementById('color-picker').click()"></div>
+      <div class="swatch-hint">Click pe pătrat pentru selectorul<br>nativ al sistemului de operare</div>
+    </div>
+
+    <div class="mode-tabs" id="mode-tabs"></div>
+
+    <div class="slider-group" id="slider-group"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+let updating = false;
+let currentMode = 'hsl';
+
+const MODES = {
+  rgb: { label: 'RGB', sliders: [
+    { key:'r', label:'R', min:0, max:255, unit:'' },
+    { key:'g', label:'G', min:0, max:255, unit:'' },
+    { key:'b', label:'B', min:0, max:255, unit:'' },
+  ]},
+  hsl: { label: 'HSL', sliders: [
+    { key:'h', label:'H', min:0, max:360, unit:'°' },
+    { key:'s', label:'S', min:0, max:100, unit:'%' },
+    { key:'l', label:'L', min:0, max:100, unit:'%' },
+  ]},
+  hsv: { label: 'HSV', sliders: [
+    { key:'h', label:'H', min:0, max:360, unit:'°' },
+    { key:'s', label:'S', min:0, max:100, unit:'%' },
+    { key:'v', label:'V', min:0, max:100, unit:'%' },
+  ]},
+  hwb: { label: 'HWB', sliders: [
+    { key:'h', label:'H', min:0, max:360, unit:'°' },
+    { key:'w', label:'W', min:0, max:100, unit:'%' },
+    { key:'b', label:'B', min:0, max:100, unit:'%' },
+  ]},
+};
+
+const RAINBOW = 'linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)';
+
+function buildModeTabs() {
+  const wrap = document.getElementById('mode-tabs');
+  wrap.innerHTML = '';
+  Object.entries(MODES).forEach(([key, m]) => {
+    const btn = document.createElement('div');
+    btn.className = 'mode-tab' + (key===currentMode ? ' active' : '');
+    btn.textContent = m.label;
+    btn.onclick = () => { currentMode = key; buildModeTabs(); buildSliders(); refreshSliderValues(); };
+    wrap.appendChild(btn);
+  });
+}
+
+function buildSliders() {
+  const wrap = document.getElementById('slider-group');
+  wrap.innerHTML = MODES[currentMode].sliders.map(s => `
+    <div class="slider-row">
+      <span class="slider-label">${s.label}</span>
+      <input type="range" class="big-slider" id="slider-${s.key}" min="${s.min}" max="${s.max}" value="0"
+             oninput="fromModeSliders()">
+      <span class="slider-val" id="slider-${s.key}-val">0${s.unit}</span>
+    </div>
+  `).join('');
+}
+
+// Citește valorile RGB curente și populează sliderele modului activ + gradientele lor
+function refreshSliderValues(updateValues = true) {
+  const hex = document.getElementById('in-hex').value;
+  const { r, g, b } = hexToRgb(hex);
+  const hsl = rgbToHsl(r,g,b);
+  const hsv = rgbToHsv(r,g,b);
+  const hwb = rgbToHwb(r,g,b);
+
+  const sliders = MODES[currentMode].sliders;
+  let values;
+  if (currentMode==='rgb') values = { r, g, b };
+  else if (currentMode==='hsl') values = hsl;
+  else if (currentMode==='hsv') values = hsv;
+  else values = hwb;
+
+  sliders.forEach(s => {
+    const el = document.getElementById('slider-'+s.key);
+    if (!el) return;
+    if (updateValues) el.value = values[s.key];
+    document.getElementById('slider-'+s.key+'-val').textContent = values[s.key] + s.unit;
+  });
+
+  // Gradiente per mod
+  if (currentMode === 'rgb') {
+    document.getElementById('slider-r').style.background = `linear-gradient(to right, rgb(0,${g},${b}), rgb(255,${g},${b}))`;
+    document.getElementById('slider-g').style.background = `linear-gradient(to right, rgb(${r},0,${b}), rgb(${r},255,${b}))`;
+    document.getElementById('slider-b').style.background = `linear-gradient(to right, rgb(${r},${g},0), rgb(${r},${g},255))`;
+  } else if (currentMode === 'hsl') {
+    document.getElementById('slider-h').style.background = RAINBOW;
+    document.getElementById('slider-s').style.background = `linear-gradient(to right, hsl(${hsl.h},0%,${hsl.l}%), hsl(${hsl.h},100%,${hsl.l}%))`;
+    document.getElementById('slider-l').style.background = `linear-gradient(to right, #000, hsl(${hsl.h},${hsl.s}%,50%), #fff)`;
+  } else if (currentMode === 'hsv') {
+    document.getElementById('slider-h').style.background = RAINBOW;
+    document.getElementById('slider-s').style.background = `linear-gradient(to right, hsl(${hsv.h},0%,${50+hsv.v/2}%), hsl(${hsv.h},100%,${hsv.v/2}%))`;
+    document.getElementById('slider-v').style.background = `linear-gradient(to right, #000, hsl(${hsv.h},${hsv.s}%,50%))`;
+  } else if (currentMode === 'hwb') {
+    document.getElementById('slider-h').style.background = RAINBOW;
+    // W (whiteness): de la culoare pură (w=0) la alb (w=100), la negrul curent fixat
+    document.getElementById('slider-w').style.background = `linear-gradient(to right, ${rgbToHexStr(hwbToRgb(hwb.h,0,hwb.b))}, #fff)`;
+    // B (negrime): de la culoare pură (b=0) la negru (b=100), la albul curent fixat
+    document.getElementById('slider-b').style.background = `linear-gradient(to right, ${rgbToHexStr(hwbToRgb(hwb.h,hwb.w,0))}, #000)`;
+  }
+}
+
+function rgbToHexStr(rgbObj) {
+  return rgbToHex(rgbObj.r, rgbObj.g, rgbObj.b);
+}
+
+function fromModeSliders() {
+  const sliders = MODES[currentMode].sliders;
+  const values = {};
+  sliders.forEach(s => { values[s.key] = +document.getElementById('slider-'+s.key).value; });
+
+  let r,g,b;
+  if (currentMode==='rgb') { r=values.r; g=values.g; b=values.b; }
+  else if (currentMode==='hsl') ({r,g,b} = hslToRgb(values.h, values.s, values.l));
+  else if (currentMode==='hsv') ({r,g,b} = hsvToRgb(values.h, values.s, values.v));
+  else ({r,g,b} = hwbToRgb(values.h, values.w, values.b));
+
+  updateAll(r, g, b, 'modeSliders');
+}
+
+function hexToRgb(hex) {
+  hex = hex.replace('#','');
+  if (hex.length === 3) hex = [...hex].map(c=>c+c).join('');
+  const num = parseInt(hex, 16);
+  return { r: (num>>16)&255, g: (num>>8)&255, b: num&255 };
+}
+
+function rgbToHex(r,g,b) {
+  return '#' + [r,g,b].map(v => Math.round(v).toString(16).padStart(2,'0')).join('').toUpperCase();
+}
+
+function rgbToHsl(r,g,b) {
+  r/=255; g/=255; b/=255;
+  const max=Math.max(r,g,b), min=Math.min(r,g,b);
+  let h,s,l=(max+min)/2;
+  if (max===min) { h=s=0; }
+  else {
+    const d = max-min;
+    s = l>0.5 ? d/(2-max-min) : d/(max+min);
+    switch(max) {
+      case r: h=(g-b)/d+(g<b?6:0); break;
+      case g: h=(b-r)/d+2; break;
+      case b: h=(r-g)/d+4; break;
+    }
+    h/=6;
+  }
+  return { h:Math.round(h*360), s:Math.round(s*100), l:Math.round(l*100) };
+}
+
+function hslToRgb(h,s,l) {
+  h/=360; s/=100; l/=100;
+  let r,g,b;
+  if (s===0) { r=g=b=l; }
+  else {
+    const hue2rgb = (p,q,t) => {
+      if (t<0) t+=1;
+      if (t>1) t-=1;
+      if (t<1/6) return p+(q-p)*6*t;
+      if (t<1/2) return q;
+      if (t<2/3) return p+(q-p)*(2/3-t)*6;
+      return p;
+    };
+    const q = l<0.5 ? l*(1+s) : l+s-l*s;
+    const p = 2*l-q;
+    r = hue2rgb(p,q,h+1/3);
+    g = hue2rgb(p,q,h);
+    b = hue2rgb(p,q,h-1/3);
+  }
+  return { r:Math.round(r*255), g:Math.round(g*255), b:Math.round(b*255) };
+}
+
+function rgbToHsv(r,g,b) {
+  r/=255; g/=255; b/=255;
+  const max=Math.max(r,g,b), min=Math.min(r,g,b);
+  const d = max-min;
+  let h;
+  if (d===0) h=0;
+  else if (max===r) h=((g-b)/d)%6;
+  else if (max===g) h=(b-r)/d+2;
+  else h=(r-g)/d+4;
+  h = Math.round(h*60);
+  if (h<0) h+=360;
+  const s = max===0 ? 0 : d/max;
+  const v = max;
+  return { h, s:Math.round(s*100), v:Math.round(v*100) };
+}
+
+function hsvToRgb(h,s,v) {
+  h = ((h%360)+360)%360;
+  s/=100; v/=100;
+  const c = v*s;
+  const x = c*(1-Math.abs((h/60)%2-1));
+  const m = v-c;
+  let r,g,b;
+  if (h<60) [r,g,b]=[c,x,0];
+  else if (h<120) [r,g,b]=[x,c,0];
+  else if (h<180) [r,g,b]=[0,c,x];
+  else if (h<240) [r,g,b]=[0,x,c];
+  else if (h<300) [r,g,b]=[x,0,c];
+  else [r,g,b]=[c,0,x];
+  return { r:Math.round((r+m)*255), g:Math.round((g+m)*255), b:Math.round((b+m)*255) };
+}
+
+function rgbToHwb(r,g,b) {
+  const { h, s, v } = rgbToHsv(r,g,b);
+  const w = (1-s/100)*v;
+  const bk = 100-v;
+  return { h, w:Math.round(w), b:Math.round(bk) };
+}
+
+function hwbToRgb(h,w,bk) {
+  w/=100; bk/=100;
+  if (w+bk >= 1) {
+    const gray = Math.round((w/(w+bk))*255);
+    return { r:gray, g:gray, b:gray };
+  }
+  const v = 1-bk;
+  const s = v===0 ? 0 : 1-w/v;
+  return hsvToRgb(h, s*100, v*100);
+}
+
+function rgbToCmyk(r,g,b) {
+  r/=255; g/=255; b/=255;
+  const k = 1 - Math.max(r,g,b);
+  if (k === 1) return { c:0, m:0, y:0, k:100 };
+  const c = (1-r-k)/(1-k);
+  const m = (1-g-k)/(1-k);
+  const y = (1-b-k)/(1-k);
+  return { c:Math.round(c*100), m:Math.round(m*100), y:Math.round(y*100), k:Math.round(k*100) };
+}
+
+function updateAll(r, g, b, source) {
+  if (updating) return;
+  updating = true;
+
+  r = Math.max(0, Math.min(255, Math.round(r)));
+  g = Math.max(0, Math.min(255, Math.round(g)));
+  b = Math.max(0, Math.min(255, Math.round(b)));
+
+  const hex = rgbToHex(r,g,b);
+  const hsl = rgbToHsl(r,g,b);
+  const cmyk = rgbToCmyk(r,g,b);
+
+  if (source !== 'hex') document.getElementById('in-hex').value = hex;
+  if (source !== 'rgb') document.getElementById('in-rgb').value = `rgb(${r}, ${g}, ${b})`;
+  if (source !== 'hsl') document.getElementById('in-hsl').value = `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`;
+  document.getElementById('in-cmyk').value = `cmyk(${cmyk.c}%, ${cmyk.m}%, ${cmyk.y}%, ${cmyk.k}%)`;
+
+  document.getElementById('color-picker').value = hex;
+  document.getElementById('preview-box').style.background = hex;
+  document.getElementById('big-swatch').style.background = hex;
+
+  if (source === 'modeSliders') refreshSliderValues(false);
+  else refreshSliderValues(true);
+
+  updating = false;
+}
+
+function fromHex() {
+  const val = document.getElementById('in-hex').value.trim();
+  if (!/^#?[0-9a-fA-F]{3}$|^#?[0-9a-fA-F]{6}$/.test(val)) return;
+  const { r, g, b } = hexToRgb(val);
+  updateAll(r, g, b, 'hex');
+}
+
+function fromRgb() {
+  const val = document.getElementById('in-rgb').value;
+  const m = val.match(/(\d+)[,\s]+(\d+)[,\s]+(\d+)/);
+  if (!m) return;
+  updateAll(+m[1], +m[2], +m[3], 'rgb');
+}
+
+function fromHsl() {
+  const val = document.getElementById('in-hsl').value;
+  const m = val.match(/(\d+)[,\s]+(\d+)%?[,\s]+(\d+)%?/);
+  if (!m) return;
+  const { r, g, b } = hslToRgb(+m[1], +m[2], +m[3]);
+  updateAll(r, g, b, 'hsl');
+}
+
+function fromPicker() {
+  const hex = document.getElementById('color-picker').value;
+  const { r, g, b } = hexToRgb(hex);
+  updateAll(r, g, b);
+}
+
+function copyVal(id) {
+  const val = document.getElementById(id).value;
+  navigator.clipboard.writeText(val).then(() => showToast('Copiat: ' + val));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+buildModeTabs();
+buildSliders();
+updateAll(240, 192, 64);
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Convertor culori</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

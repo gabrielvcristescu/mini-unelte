@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anagrame — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #f0a040;
+  --accent-dim: rgba(240,160,64,0.10);
+  --accent-border: rgba(240,160,64,0.28);
+}
+
+.stats-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--content-gap);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+.stat-item { display: flex; gap: 6px; align-items: center; }
+.stat-label { color: var(--text3); }
+.stat-val { color: var(--accent); font-weight: 700; }
+
+.anagram-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 30px 24px;
+  text-align: center;
+  margin-bottom: var(--content-gap);
+}
+.anagram-label { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px; }
+.anagram-letters { display: flex; justify-content: center; gap: 6px; flex-wrap: wrap; }
+.letter-tile {
+  width: 42px; height: 42px;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-border);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+.anagram-hint { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text3); margin-top: 14px; }
+
+.input-row { display: flex; gap: 8px; margin-bottom: var(--content-gap); }
+.input-row input { flex: 1; font-size: 1.1rem !important; text-transform: uppercase; }
+.submit-btn {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0 20px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+}
+.submit-btn:hover { filter: brightness(1.15); }
+
+.status-msg { text-align: center; font-family: var(--font-mono); font-size: 0.85rem; font-weight: 600; margin-bottom: var(--content-gap); min-height: 1.5em; }
+.status-msg.win { color: #4af0b0; }
+.status-msg.wrong { color: #f06060; }
+
+.action-row { display: flex; gap: 8px; }
+.action-btn {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.action-btn:hover { border-color: var(--accent-border); color: var(--accent); }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Anagrame</h1>
+    <p>Rearanjează literele pentru a forma cuvântul corect</p>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat-item"><span class="stat-label">Scor</span> <span class="stat-val" id="stat-score">0</span></div>
+    <div class="stat-item"><span class="stat-label">Rezolvate</span> <span class="stat-val" id="stat-solved">0</span></div>
+  </div>
+
+  <div class="anagram-card">
+    <div class="anagram-label">Litere amestecate</div>
+    <div class="anagram-letters" id="anagram-letters"></div>
+    <div class="anagram-hint" id="anagram-hint"></div>
+  </div>
+
+  <div class="input-row">
+    <input class="input-calc" id="in-guess" type="text" placeholder="Scrie cuvântul..."
+           style="--input-color:var(--accent)" onkeydown="if(event.key==='Enter')checkAnswer()">
+    <button class="submit-btn" onclick="checkAnswer()">Verifică</button>
+  </div>
+
+  <div class="status-msg" id="status-msg"></div>
+
+  <div class="action-row">
+    <button class="action-btn" onclick="shuffleLetters()">🔀 Amestecă din nou</button>
+    <button class="action-btn" onclick="showHint()">💡 Indiciu</button>
+    <button class="action-btn" onclick="nextWord()">⏭ Sări peste</button>
+  </div>
+</div>
+
+<script>
+const WORDS = [
+  'CASA','MASA','CARTE','FLOARE','SOARE','APA','FOC','PAINE','LAPTE','MIERE',
+  'PRIETEN','FAMILIE','SCOALA','ORAS','SAT','MUNTE','MARE','RAU','PADURE','GRADINA',
+  'CALCULATOR','TELEFON','MASINA','BICICLETA','AVION','TREN','VAPOR','DRUM','POD','CASTEL',
+  'ALBASTRU','VERDE','GALBEN','ROSU','ALB','NEGRU','MARO','ROZ','GRI','PORTOCALIU',
+  'CAINE','PISICA','PASARE','PESTE','CAL','VACA','OAIE','IEPURE','URS','LUP',
+];
+
+let currentWord = '';
+let currentLetters = [];
+let score = 0;
+let solved = 0;
+let hintUsed = false;
+
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+function nextWord() {
+  currentWord = WORDS[Math.floor(Math.random()*WORDS.length)];
+  hintUsed = false;
+  document.getElementById('anagram-hint').textContent = '';
+  document.getElementById('in-guess').value = '';
+  document.getElementById('status-msg').textContent = '';
+  document.getElementById('status-msg').className = 'status-msg';
+  shuffleLetters();
+}
+
+function shuffleLetters() {
+  let letters;
+  do {
+    letters = shuffleArray([...currentWord]);
+  } while (letters.join('') === currentWord && currentWord.length > 1);
+  currentLetters = letters;
+  renderLetters();
+}
+
+function renderLetters() {
+  const wrap = document.getElementById('anagram-letters');
+  wrap.innerHTML = currentLetters.map(l => `<div class="letter-tile">${l}</div>`).join('');
+}
+
+function showHint() {
+  hintUsed = true;
+  document.getElementById('anagram-hint').textContent =
+    `Indiciu: începe cu "${currentWord[0]}" și are ${currentWord.length} litere`;
+}
+
+function checkAnswer() {
+  const guess = document.getElementById('in-guess').value.trim().toUpperCase();
+  const statusEl = document.getElementById('status-msg');
+
+  if (!guess) return;
+
+  if (guess === currentWord) {
+    const points = hintUsed ? 5 : 10;
+    score += points;
+    solved++;
+    document.getElementById('stat-score').textContent = score;
+    document.getElementById('stat-solved').textContent = solved;
+    statusEl.textContent = `✓ Corect! +${points} puncte`;
+    statusEl.className = 'status-msg win';
+    setTimeout(nextWord, 1200);
+  } else {
+    statusEl.textContent = '✕ Greșit, mai încearcă';
+    statusEl.className = 'status-msg wrong';
+  }
+}
+
+nextWord();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Anagrame</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

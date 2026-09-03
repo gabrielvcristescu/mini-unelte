@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Extrage Culori Dominante — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #f08060;
+  --accent-dim: rgba(240,128,96,0.10);
+  --accent-border: rgba(240,128,96,0.28);
+}
+
+.file-drop {
+  border: 2px dashed var(--border2);
+  border-radius: var(--radius);
+  padding: 40px 20px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text3);
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: var(--content-gap);
+}
+.file-drop:hover, .file-drop.dragover { border-color: var(--accent-border); color: var(--accent); background: var(--accent-dim); }
+
+.preview-wrap {
+  display: none;
+  justify-content: center;
+  background: var(--bg3);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-bottom: var(--content-gap);
+}
+.preview-wrap.show { display: flex; }
+.preview-wrap img { max-width: 100%; max-height: 260px; border-radius: 6px; }
+
+.slider-row { display: flex; align-items: center; gap: 10px; margin-bottom: var(--content-gap); }
+.slider-row input[type=range] { flex: 1; accent-color: var(--accent); }
+.slider-val { font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent); font-weight: 700; width: 30px; text-align: right; }
+
+.status-msg { text-align: center; font-family: var(--font-mono); font-size: 0.75rem; color: var(--text3); margin-bottom: var(--content-gap); }
+
+.palette-row { display: flex; gap: 8px; margin-bottom: var(--content-gap); flex-wrap: wrap; }
+.palette-swatch {
+  flex: 1;
+  min-width: 90px;
+  aspect-ratio: 1;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 8px;
+  cursor: pointer;
+  transition: transform 0.12s;
+  position: relative;
+}
+.palette-swatch:hover { transform: scale(1.03); }
+.swatch-hex {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+  width: fit-content;
+}
+.swatch-pct {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  padding: 1px 6px;
+  border-radius: 3px;
+  display: inline-block;
+  width: fit-content;
+  margin-top: 3px;
+  opacity: 0.85;
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Extrage culori dominante</h1>
+    <p>K-means simplu în browser — paleta principală a unei imagini</p>
+  </div>
+
+  <div class="file-drop" id="file-drop" onclick="document.getElementById('file-input').click()">
+    Trage o imagine aici sau click pentru a o încărca
+    <input type="file" id="file-input" accept="image/*" style="display:none">
+  </div>
+
+  <div class="preview-wrap" id="preview-wrap">
+    <img id="preview-img" src="">
+  </div>
+
+  <div class="slider-row">
+    <span style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text3)">Nr. culori</span>
+    <input type="range" id="s-count" min="2" max="10" value="6" oninput="onCountChange()">
+    <span class="slider-val" id="v-count">6</span>
+  </div>
+
+  <div class="status-msg" id="status-msg"></div>
+
+  <div class="palette-row" id="palette-row"></div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+let originalImg = null;
+let debounceTimer = null;
+
+function handleFile(file) {
+  if (!file || !file.type.startsWith('image/')) {
+    showToast('Te rog selectează un fișier imagine valid');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      originalImg = img;
+      document.getElementById('preview-img').src = e.target.result;
+      document.getElementById('preview-wrap').classList.add('show');
+      extractColors();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function onCountChange() {
+  document.getElementById('v-count').textContent = document.getElementById('s-count').value;
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(extractColors, 200);
+}
+
+function rgbToHex(r,g,b) {
+  return '#' + [r,g,b].map(v=>Math.round(v).toString(16).padStart(2,'0')).join('').toUpperCase();
+}
+
+// K-means simplu pe pixeli RGB (spațiu 3D), inițializare k-means++, câteva iterații
+function kMeans(pixels, k, iterations = 8) {
+  // Inițializare k-means++: primul centru random, restul cu probabilitate proporțională cu distanța²
+  const centers = [pixels[Math.floor(Math.random()*pixels.length)]];
+  while (centers.length < k) {
+    const dists = pixels.map(p => Math.min(...centers.map(c => distSq(p,c))));
+    const sum = dists.reduce((a,b)=>a+b, 0);
+    let r = Math.random() * sum;
+    let idx = 0;
+    for (; idx < dists.length; idx++) {
+      r -= dists[idx];
+      if (r <= 0) break;
+    }
+    centers.push(pixels[Math.min(idx, pixels.length-1)]);
+  }
+
+  let assignments = new Array(pixels.length).fill(0);
+
+  for (let iter = 0; iter < iterations; iter++) {
+    // Asignare: fiecare pixel la cel mai apropiat centru
+    for (let i = 0; i < pixels.length; i++) {
+      let best = 0, bestDist = Infinity;
+      for (let c = 0; c < k; c++) {
+        const d = distSq(pixels[i], centers[c]);
+        if (d < bestDist) { bestDist = d; best = c; }
+      }
+      assignments[i] = best;
+    }
+
+    // Actualizare: fiecare centru = media pixelilor asignați lui
+    const sums = Array.from({length:k}, () => [0,0,0,0]); // r,g,b,count
+    for (let i = 0; i < pixels.length; i++) {
+      const c = assignments[i];
+      sums[c][0] += pixels[i][0];
+      sums[c][1] += pixels[i][1];
+      sums[c][2] += pixels[i][2];
+      sums[c][3]++;
+    }
+    for (let c = 0; c < k; c++) {
+      if (sums[c][3] > 0) {
+        centers[c] = [sums[c][0]/sums[c][3], sums[c][1]/sums[c][3], sums[c][2]/sums[c][3]];
+      }
+    }
+  }
+
+  // Calculăm procentul fiecărui cluster
+  const counts = new Array(k).fill(0);
+  assignments.forEach(a => counts[a]++);
+
+  return centers.map((c, i) => ({ color: c, pct: counts[i]/pixels.length }));
+}
+
+function distSq(a, b) {
+  return (a[0]-b[0])**2 + (a[1]-b[1])**2 + (a[2]-b[2])**2;
+}
+
+function extractColors() {
+  if (!originalImg) return;
+
+  const statusEl = document.getElementById('status-msg');
+  statusEl.textContent = 'Se procesează...';
+
+  // Facem asta async (setTimeout) ca UI-ul să apuce să arate mesajul înainte de calculul greu
+  setTimeout(() => {
+    const k = parseInt(document.getElementById('s-count').value);
+
+    // Reducem imaginea la o dimensiune mică pentru viteză (eșantionare, nu toți pixelii)
+    const sampleSize = 80;
+    const canvas = document.createElement('canvas');
+    canvas.width = sampleSize;
+    canvas.height = sampleSize;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(originalImg, 0, 0, sampleSize, sampleSize);
+    const data = ctx.getImageData(0, 0, sampleSize, sampleSize).data;
+
+    const pixels = [];
+    for (let i = 0; i < data.length; i += 4) {
+      // ignorăm pixelii complet transparenți
+      if (data[i+3] > 10) pixels.push([data[i], data[i+1], data[i+2]]);
+    }
+
+    if (pixels.length === 0) {
+      statusEl.textContent = 'Imagine invalidă sau complet transparentă';
+      return;
+    }
+
+    const clusters = kMeans(pixels, k);
+    clusters.sort((a,b) => b.pct - a.pct);
+
+    renderPalette(clusters);
+    statusEl.textContent = `${k} culori extrase din ${pixels.length} pixeli eșantionați`;
+  }, 10);
+}
+
+function renderPalette(clusters) {
+  const row = document.getElementById('palette-row');
+  row.innerHTML = clusters.map(cl => {
+    const hex = rgbToHex(...cl.color);
+    const lum = (0.299*cl.color[0] + 0.587*cl.color[1] + 0.114*cl.color[2]) / 255;
+    const textColor = lum > 0.6 ? '#000' : '#fff';
+    const bgAlpha = lum > 0.6 ? '0,0,0,0.08' : '255,255,255,0.15';
+    return `
+      <div class="palette-swatch" style="background:${hex}" onclick="copyHex('${hex}')">
+        <span class="swatch-hex" style="background:rgba(${bgAlpha});color:${textColor}">${hex}</span>
+        <span class="swatch-pct" style="background:rgba(${bgAlpha});color:${textColor}">${(cl.pct*100).toFixed(1)}%</span>
+      </div>
+    `;
+  }).join('');
+}
+
+function copyHex(hex) {
+  navigator.clipboard.writeText(hex).then(() => showToast('Copiat: ' + hex));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+const fileInput = document.getElementById('file-input');
+const fileDrop = document.getElementById('file-drop');
+fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+fileDrop.addEventListener('dragover', e => { e.preventDefault(); fileDrop.classList.add('dragover'); });
+fileDrop.addEventListener('dragleave', () => fileDrop.classList.remove('dragover'));
+fileDrop.addEventListener('drop', e => {
+  e.preventDefault();
+  fileDrop.classList.remove('dragover');
+  handleFile(e.dataTransfer.files[0]);
+});
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Extrage culori dominante</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

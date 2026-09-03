@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Box-Shadow Generator — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #f0c040;
+  --accent-dim: rgba(240,192,64,0.10);
+  --accent-border: rgba(240,192,64,0.28);
+}
+
+.preview-wrap {
+  background: var(--bg3);
+  border-radius: var(--radius);
+  padding: 50px 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: var(--content-gap);
+  min-height: 200px;
+}
+.preview-shape {
+  width: 140px;
+  height: 140px;
+  background: var(--bg2);
+  border-radius: 12px;
+}
+
+.sliders-grid { display: flex; flex-direction: column; gap: 12px; margin-bottom: var(--content-gap); }
+.slider-item { display: flex; align-items: center; gap: 12px; }
+.slider-item label { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text2); width: 80px; flex-shrink: 0; }
+.slider-item input[type=range] { flex: 1; accent-color: var(--accent); }
+.slider-item .val { font-family: var(--font-mono); font-size: 0.72rem; color: var(--accent); width: 50px; text-align: right; }
+
+.options-row { display: flex; gap: 16px; margin-bottom: var(--content-gap); align-items: center; flex-wrap: wrap; }
+.option-item { display: flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 0.72rem; color: var(--text2); }
+.color-input { width: 40px; height: 32px; border: 1px solid var(--border2); border-radius: 6px; cursor: pointer; background: none; padding: 2px; }
+
+.code-box {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text2);
+  word-break: break-all;
+  position: relative;
+}
+.copy-btn {
+  position: absolute;
+  top: 10px; right: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  padding: 4px 10px;
+  border-radius: 5px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text2);
+  cursor: pointer;
+}
+.copy-btn:hover { border-color: var(--accent-border); color: var(--accent); }
+
+.preset-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.preset-btn {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  padding: 4px 10px;
+  border-radius: 99px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text2);
+  cursor: pointer;
+}
+.preset-btn:hover { border-color: var(--accent-border); color: var(--accent); }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Box-Shadow Generator</h1>
+    <p>Parametri vizuali → cod CSS box-shadow instant</p>
+  </div>
+
+  <div class="preview-wrap">
+    <div class="preview-shape" id="preview-shape"></div>
+  </div>
+
+  <div class="sliders-grid">
+    <div class="slider-item">
+      <label>Offset X</label>
+      <input type="range" id="s-x" min="-50" max="50" value="0" oninput="update()">
+      <span class="val" id="v-x">0px</span>
+    </div>
+    <div class="slider-item">
+      <label>Offset Y</label>
+      <input type="range" id="s-y" min="-50" max="50" value="10" oninput="update()">
+      <span class="val" id="v-y">10px</span>
+    </div>
+    <div class="slider-item">
+      <label>Blur</label>
+      <input type="range" id="s-blur" min="0" max="100" value="20" oninput="update()">
+      <span class="val" id="v-blur">20px</span>
+    </div>
+    <div class="slider-item">
+      <label>Spread</label>
+      <input type="range" id="s-spread" min="-30" max="30" value="0" oninput="update()">
+      <span class="val" id="v-spread">0px</span>
+    </div>
+    <div class="slider-item">
+      <label>Opacitate</label>
+      <input type="range" id="s-opacity" min="0" max="100" value="25" oninput="update()">
+      <span class="val" id="v-opacity">25%</span>
+    </div>
+  </div>
+
+  <div class="options-row">
+    <div class="option-item">
+      <input type="color" class="color-input" id="s-color" value="#000000" oninput="update()">
+      <span>Culoare umbră</span>
+    </div>
+    <label class="option-item">
+      <input type="checkbox" id="s-inset" onchange="update()">
+      Inset (interioară)
+    </label>
+  </div>
+
+  <div class="card" style="margin-bottom:var(--content-gap)">
+    <div class="field-label" style="margin-bottom:8px">Presetări comune</div>
+    <div class="preset-row" id="preset-row"></div>
+  </div>
+
+  <div class="code-box">
+    <button class="copy-btn" onclick="copyCss()">Copiază</button>
+    <div id="css-output">—</div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+const PRESETS = [
+  { name: 'Subtil', x:0, y:1, blur:3, spread:0, opacity:12 },
+  { name: 'Card standard', x:0, y:4, blur:12, spread:0, opacity:15 },
+  { name: 'Ridicat', x:0, y:10, blur:30, spread:-5, opacity:25 },
+  { name: 'Flotant', x:0, y:20, blur:40, spread:-10, opacity:30 },
+  { name: 'Neon glow', x:0, y:0, blur:20, spread:5, opacity:60 },
+  { name: 'Inset adânc', x:0, y:2, blur:8, spread:0, opacity:30, inset:true },
+];
+
+function hexToRgb(hex) {
+  hex = hex.replace('#','');
+  const num = parseInt(hex,16);
+  return { r:(num>>16)&255, g:(num>>8)&255, b:num&255 };
+}
+
+function update() {
+  const x = document.getElementById('s-x').value;
+  const y = document.getElementById('s-y').value;
+  const blur = document.getElementById('s-blur').value;
+  const spread = document.getElementById('s-spread').value;
+  const opacity = document.getElementById('s-opacity').value;
+  const colorHex = document.getElementById('s-color').value;
+  const inset = document.getElementById('s-inset').checked;
+
+  document.getElementById('v-x').textContent = x+'px';
+  document.getElementById('v-y').textContent = y+'px';
+  document.getElementById('v-blur').textContent = blur+'px';
+  document.getElementById('v-spread').textContent = spread+'px';
+  document.getElementById('v-opacity').textContent = opacity+'%';
+
+  const { r, g, b } = hexToRgb(colorHex);
+  const rgba = `rgba(${r}, ${g}, ${b}, ${opacity/100})`;
+  const insetStr = inset ? 'inset ' : '';
+  const shadowCss = `${insetStr}${x}px ${y}px ${blur}px ${spread}px ${rgba}`;
+
+  document.getElementById('preview-shape').style.boxShadow = shadowCss;
+  document.getElementById('css-output').textContent = `box-shadow: ${shadowCss};`;
+}
+
+function applyPreset(p) {
+  document.getElementById('s-x').value = p.x;
+  document.getElementById('s-y').value = p.y;
+  document.getElementById('s-blur').value = p.blur;
+  document.getElementById('s-spread').value = p.spread;
+  document.getElementById('s-opacity').value = p.opacity;
+  document.getElementById('s-inset').checked = !!p.inset;
+  update();
+}
+
+function buildPresets() {
+  const wrap = document.getElementById('preset-row');
+  PRESETS.forEach(p => {
+    const btn = document.createElement('div');
+    btn.className = 'preset-btn';
+    btn.textContent = p.name;
+    btn.onclick = () => applyPreset(p);
+    wrap.appendChild(btn);
+  });
+}
+
+function copyCss() {
+  const css = document.getElementById('css-output').textContent;
+  navigator.clipboard.writeText(css).then(() => showToast('Copiat!'));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+buildPresets();
+update();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Box-shadow generator</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulator profunzime de câmp — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root{
+  --accent:#f08060;
+  --accent-dim:rgba(111,169,221,.10);
+  --accent-border:rgba(111,169,221,.30);
+}
+.dof-layout{
+  display:grid;
+  grid-template-columns:290px minmax(0,1fr);
+  gap:12px;
+}
+.panel{
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:14px 16px;
+  margin-bottom:var(--content-gap);
+}
+.section-label{
+  font-family:var(--font-mono);
+  font-size:.64rem;
+  font-weight:700;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--text2);
+  margin-bottom:10px;
+}
+.control-label{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  gap:10px;
+  font-family:var(--font-mono);
+  font-size:.63rem;
+  color:var(--text2);
+  margin-bottom:4px;
+}
+.control-value{color:var(--text);font-weight:700}
+.control-note{
+  font-family:var(--font-mono);
+  font-size:.54rem;
+  line-height:1.45;
+  color:var(--text3);
+  margin:3px 0 10px;
+}
+select{width:100%;margin-bottom:5px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.file-drop{
+  border:2px dashed var(--border2);
+  border-radius:var(--radius);
+  padding:22px 16px;
+  text-align:center;
+  font-family:var(--font-mono);
+  font-size:.72rem;
+  color:var(--text3);
+  cursor:pointer;
+  transition:.15s;
+  margin-bottom:8px;
+}
+.file-drop:hover,.file-drop.dragover,.file-drop.loaded{
+  border-color:var(--accent-border);
+  color:var(--accent);
+  background:var(--accent-dim);
+}
+.file-name{
+  display:block;
+  margin-top:6px;
+  font-size:.56rem;
+  color:var(--text2);
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.preview-shell{
+  position:relative;
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  overflow:hidden;
+  background:var(--bg3);
+  min-height:330px;
+}
+#preview{
+  width:100%;
+  height:330px;
+  display:block;
+  cursor:crosshair;
+}
+.preview-empty{
+  position:absolute;
+  inset:0;
+  display:grid;
+  place-items:center;
+  text-align:center;
+  padding:30px;
+  pointer-events:none;
+  font-family:var(--font-mono);
+  font-size:.65rem;
+  line-height:1.55;
+  color:var(--text3);
+}
+.preview-caption{
+  position:absolute;
+  left:0;right:0;bottom:0;
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  padding:7px 10px;
+  background:rgba(0,0,0,.52);
+  color:#fff;
+  font-family:var(--font-mono);
+  font-size:.58rem;
+}
+.focus-chip{
+  position:absolute;
+  top:10px;
+  right:10px;
+  padding:4px 7px;
+  border-radius:99px;
+  background:rgba(0,0,0,.48);
+  color:#fff;
+  font-family:var(--font-mono);
+  font-size:.54rem;
+  pointer-events:none;
+}
+.diagram-wrap{
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  overflow:hidden;
+  background:var(--bg3);
+  margin-top:10px;
+}
+#diagram{width:100%;height:116px;display:block}
+.result-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:10px;
+}
+.result-card{
+  background:var(--bg3);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  padding:10px 12px;
+}
+.result-title{
+  font-family:var(--font-mono);
+  font-size:.58rem;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:var(--text3);
+  margin-bottom:5px;
+}
+.result-row{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  padding:4px 0;
+  border-bottom:1px solid var(--border);
+  font-family:var(--font-mono);
+  font-size:.59rem;
+}
+.result-row:last-child{border-bottom:0}
+.result-key{color:var(--text3)}
+.result-val{color:var(--text);font-weight:700;text-align:right}
+.result-val.accent{color:var(--accent)}
+.info-box{
+  margin-top:10px;
+  padding:9px 11px;
+  background:var(--bg3);
+  border-left:2px solid var(--accent);
+  border-radius:var(--radius-sm);
+  font-family:var(--font-mono);
+  font-size:.56rem;
+  line-height:1.55;
+  color:var(--text3);
+}
+@media(max-width:800px){
+  .dof-layout{grid-template-columns:1fr}
+}
+@media(max-width:560px){
+  .result-grid{grid-template-columns:1fr}
+  #preview{height:260px}
+  .preview-shell{min-height:260px}
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Simulator profunzime de câmp</h1>
+    <p>Calculează profunzimea de câmp și previzualizează aproximativ separarea subiectului de fundal.</p>
+  </div>
+
+  <div class="dof-layout">
+    <div>
+      <div class="panel">
+        <div class="section-label">Fotografie</div>
+        <div class="file-drop" id="file-drop" tabindex="0">
+          Trage o fotografie aici sau click pentru selecție
+          <span class="file-name" id="file-name">JPG, PNG, WEBP și alte formate acceptate de browser</span>
+          <input type="file" id="file-input" accept="image/*" hidden>
+        </div>
+        <div class="control-note" style="margin-bottom:0">
+          După încărcare, click pe fotografie pentru a muta zona considerată în planul de focalizare.
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="section-label">Cameră</div>
+        <div class="control-label"><span>Senzor</span></div>
+        <select id="sensorSel"></select>
+        <div class="control-note" id="sensorInfo"></div>
+      </div>
+
+      <div class="panel">
+        <div class="section-label">Obiectiv</div>
+
+        <div class="control-label">
+          <span>Distanță focală</span><span class="control-value" id="focalVal">50 mm</span>
+        </div>
+        <input type="range" id="focalSlider" min="8" max="600" step="1" value="50">
+        <div class="control-note" id="focalEq"></div>
+
+        <div class="control-label">
+          <span>Diafragmă</span><span class="control-value" id="apertVal">f/2.8</span>
+        </div>
+        <input type="range" id="apertSlider" min="0" max="13" step="1" value="6">
+        <div class="control-note" id="apertEq" style="margin-bottom:0"></div>
+      </div>
+
+      <div class="panel">
+        <div class="section-label">Distanțe</div>
+
+        <div class="control-label">
+          <span>Plan focalizare</span><span class="control-value" id="focusVal">3.00 m</span>
+        </div>
+        <input type="range" id="focusSlider" min="3" max="1000" step="1" value="30">
+
+        <div class="control-label" style="margin-top:10px">
+          <span>Fundal</span><span class="control-value" id="bgVal">15.0 m</span>
+        </div>
+        <input type="range" id="bgSlider" min="3" max="3000" step="5" value="150">
+      </div>
+    </div>
+
+    <div>
+      <div class="panel">
+        <div class="section-label">Previzualizare</div>
+        <div class="preview-shell">
+          <canvas id="preview" width="900" height="500" role="img" aria-label="Previzualizare aproximativă a profunzimii de câmp"></canvas>
+          <div class="preview-empty" id="preview-empty">
+            Încarcă o fotografie pentru previzualizare.<br>
+            Calculele de profunzime de câmp funcționează și fără imagine.
+          </div>
+          <div class="focus-chip" id="focus-chip">punct focal: centru</div>
+          <div class="preview-caption">
+            <span id="captBlur">Blur fundal: —</span>
+            <span id="captPct">— % din diagonala senzorului</span>
+          </div>
+        </div>
+
+        <div class="diagram-wrap">
+          <canvas id="diagram" width="900" height="116" role="img" aria-label="Diagramă cu limitele profunzimii de câmp"></canvas>
+        </div>
+
+        <div class="result-grid">
+          <div class="result-card">
+            <div class="result-title">Profunzime de câmp</div>
+            <div class="result-row"><span class="result-key">Limită apropiată</span><span class="result-val" id="rNear">—</span></div>
+            <div class="result-row"><span class="result-key">Limită îndepărtată</span><span class="result-val" id="rFar">—</span></div>
+            <div class="result-row"><span class="result-key">DOF total</span><span class="result-val accent" id="rTotal">—</span></div>
+            <div class="result-row"><span class="result-key">În față</span><span class="result-val" id="rFront">—</span></div>
+            <div class="result-row"><span class="result-key">În spate</span><span class="result-val" id="rBehind">—</span></div>
+            <div class="result-row"><span class="result-key">Hiperfocală</span><span class="result-val accent" id="rHyper">—</span></div>
+          </div>
+
+          <div class="result-card">
+            <div class="result-title">Blur și difracție</div>
+            <div class="result-row"><span class="result-key">Blur fundal</span><span class="result-val" id="rBgBlur">—</span></div>
+            <div class="result-row"><span class="result-key">Difracție</span><span class="result-val" id="rDiff">—</span></div>
+            <div class="result-row"><span class="result-key">Blur total</span><span class="result-val accent" id="rTotBlur">—</span></div>
+            <div class="result-row"><span class="result-key">% senzor</span><span class="result-val" id="rBlurPct">—</span></div>
+            <div class="result-row"><span class="result-key">Cercul de confuzie</span><span class="result-val" id="rCoC">—</span></div>
+            <div class="result-row"><span class="result-key">Diafragmă optimă</span><span class="result-val accent" id="rOptF">—</span></div>
+          </div>
+        </div>
+
+        <div class="info-box">
+          Previzualizarea fotografică este intenționat aproximativă: o fotografie 2D nu conține informație de adâncime.
+          Simulatorul păstrează o zonă în jurul punctului ales ca plan focal și aplică fundalului un blur proporțional cu
+          cercul de defocalizare calculat. Valorile numerice DOF sunt independente de această aproximare vizuală.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SENSORS=[
+  {n:'Large Format 4×5"',w:127,h:102},
+  {n:'Medium Format 53×40 mm',w:53.4,h:40},
+  {n:'Full Frame 35 mm',w:36,h:24},
+  {n:'APS-C Nikon/Sony (1.5×)',w:23.6,h:15.7},
+  {n:'APS-C Canon (1.6×)',w:22.4,h:15},
+  {n:'Micro 4/3 (2.0×)',w:17.3,h:13},
+  {n:'1" sensor (2.7×)',w:13.2,h:8.8},
+  {n:'1/1.7" (4.6×)',w:7.6,h:5.7},
+  {n:'1/2.3" (5.6×)',w:6.17,h:4.55},
+  {n:'1/3" (7.2×)',w:4.8,h:3.6}
+];
+const APERT=[1,1.2,1.4,1.8,2,2.5,2.8,3.5,4,5.6,8,11,16,22];
+
+let sIdx=2, aIdx=6, focal=50, focusM=3, bgM=15;
+let sourceImg=null;
+let focusX=.5, focusY=.52;
+
+const $=id=>document.getElementById(id);
+const sensorSel=$('sensorSel');
+
+SENSORS.forEach((s,i)=>{
+  const o=document.createElement('option');
+  o.value=i;
+  o.textContent=s.n;
+  sensorSel.appendChild(o);
+});
+sensorSel.value=2;
+sensorSel.onchange=()=>{sIdx=+sensorSel.value;update();};
+
+$('focalSlider').oninput=e=>{focal=+e.target.value;update();};
+$('apertSlider').oninput=e=>{aIdx=+e.target.value;update();};
+$('focusSlider').oninput=e=>{
+  focusM=+e.target.value/10;
+  if(bgM<focusM+.5){
+    bgM=+(focusM+.5).toFixed(1);
+    $('bgSlider').value=Math.round(bgM*10);
+  }
+  update();
+};
+$('bgSlider').oninput=e=>{
+  bgM=+e.target.value/10;
+  if(bgM<focusM+.5){
+    bgM=+(focusM+.5).toFixed(1);
+    $('bgSlider').value=Math.round(bgM*10);
+  }
+  update();
+};
+
+const fileDrop=$('file-drop');
+const fileInput=$('file-input');
+fileDrop.addEventListener('click',()=>fileInput.click());
+fileDrop.addEventListener('keydown',e=>{
+  if(e.key==='Enter'||e.key===' '){e.preventDefault();fileInput.click();}
+});
+fileDrop.addEventListener('dragover',e=>{e.preventDefault();fileDrop.classList.add('dragover');});
+fileDrop.addEventListener('dragleave',()=>fileDrop.classList.remove('dragover'));
+fileDrop.addEventListener('drop',e=>{
+  e.preventDefault();
+  fileDrop.classList.remove('dragover');
+  handleImage(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change',e=>handleImage(e.target.files[0]));
+
+function handleImage(file){
+  if(!file || !file.type.startsWith('image/')){
+    $('file-name').textContent='Selectează un fișier imagine valid';
+    return;
+  }
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const img=new Image();
+    img.onload=()=>{
+      sourceImg=img;
+      focusX=.5;focusY=.52;
+      $('file-name').textContent=file.name;
+      fileDrop.classList.add('loaded');
+      $('preview-empty').style.display='none';
+      update();
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+$('preview').addEventListener('click',e=>{
+  if(!sourceImg)return;
+  const r=e.currentTarget.getBoundingClientRect();
+  focusX=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));
+  focusY=Math.max(0,Math.min(1,(e.clientY-r.top)/r.height));
+  $('focus-chip').textContent='punct focal: '+Math.round(focusX*100)+'%, '+Math.round(focusY*100)+'%';
+  update();
+});
+
+function diag(s){return Math.sqrt(s.w*s.w+s.h*s.h);}
+function getCoC(s){return diag(s)/1500;}
+function crop(s){return 43.27/diag(s);}
+function hyperfocal(f,N,c){return f*f/(N*c)+f;}
+function dofLimits(f,N,c,d){
+  const H=hyperfocal(f,N,c);
+  const near=(H-f)*d/(H+d-2*f);
+  const far=d>=H?Infinity:(H-f)*d/(H-d);
+  return{near,far,H};
+}
+function bgBlur(f,N,d,D){
+  if(d<=f||D<=d)return 0;
+  return f*f*(D-d)/(N*D*(d-f));
+}
+function diffraction(N){return 2.44*0.00055*N;}
+function optN(f,d,D){
+  if(D<=d||d<=f)return null;
+  const v=f*f*(D-d)/(2.44*0.00055*D*(d-f));
+  return v>0?Math.sqrt(v):null;
+}
+function fmtM(mm){
+  if(!isFinite(mm)||mm>9e6)return '∞';
+  if(mm>=1e6)return(mm/1e6).toFixed(1)+' km';
+  if(mm>=1000)return(mm/1000).toFixed(mm>=10000?1:2)+' m';
+  if(mm>=10)return(mm/10).toFixed(1)+' cm';
+  return mm.toFixed(1)+' mm';
+}
+function fmtBl(mm){
+  if(mm<.0005)return '<0.001 mm';
+  return mm.toFixed(3)+' mm';
+}
+
+function update(){
+  const sensor=SENSORS[sIdx];
+  const N=APERT[aIdx];
+  const c=getCoC(sensor);
+  const cr=crop(sensor);
+  const d=focusM*1000;
+  const D=bgM*1000;
+  const {near,far,H}=dofLimits(focal,N,c,d);
+
+  const nearM=near/1000;
+  const farM=isFinite(far)?far/1000:Infinity;
+  const totalDOF=isFinite(farM)?farM-nearM:Infinity;
+  const frontDOF=focusM-nearM;
+  const backDOF=isFinite(farM)?farM-focusM:Infinity;
+  const blur=bgBlur(focal,N,d,D);
+  const diff=diffraction(N);
+  const totalBlur=Math.sqrt(blur*blur+diff*diff);
+  const pct=totalBlur/diag(sensor)*100;
+  const optimal=optN(focal,d,D);
+
+  $('focalVal').textContent=focal+' mm';
+  $('focalEq').textContent='echiv. '+(focal*cr).toFixed(0)+' mm full frame';
+  $('apertVal').textContent='f/'+N;
+  $('apertEq').textContent='echiv. f/'+(N*cr).toFixed(1)+' full frame';
+  $('focusVal').textContent=focusM>=10?focusM.toFixed(1)+' m':focusM.toFixed(2)+' m';
+  $('bgVal').textContent=bgM>=10?bgM.toFixed(1)+' m':bgM.toFixed(2)+' m';
+  $('sensorInfo').textContent='Diagonală '+diag(sensor).toFixed(1)+' mm · crop '+cr.toFixed(2)+'× · CoC '+c.toFixed(4)+' mm';
+
+  $('rNear').textContent=fmtM(near);
+  $('rFar').textContent=fmtM(far);
+  $('rTotal').textContent=fmtM(isFinite(totalDOF)?totalDOF*1000:Infinity);
+  $('rFront').textContent=fmtM(frontDOF*1000);
+  $('rBehind').textContent=fmtM(isFinite(backDOF)?backDOF*1000:Infinity);
+  $('rHyper').textContent=fmtM(H);
+
+  $('rBgBlur').textContent=fmtBl(blur);
+  $('rDiff').textContent=fmtBl(diff);
+  $('rTotBlur').textContent=fmtBl(totalBlur);
+  $('rBlurPct').textContent=pct.toFixed(3)+' %';
+  $('rCoC').textContent=c.toFixed(4)+' mm';
+  $('rOptF').textContent=optimal?'f/'+optimal.toFixed(1):'—';
+
+  $('captBlur').textContent='Blur fundal: '+fmtBl(blur);
+  $('captPct').textContent=pct.toFixed(2)+' % din diagonala senzorului';
+
+  drawPreview(blur,sensor.w,nearM,farM);
+  drawDiagram(focusM,bgM,H/1000,nearM,farM);
+}
+
+function drawImageCover(ctx,img,W,H){
+  const scale=Math.max(W/img.width,H/img.height);
+  const dw=img.width*scale,dh=img.height*scale;
+  const x=(W-dw)/2,y=(H-dh)/2;
+  ctx.drawImage(img,x,y,dw,dh);
+}
+
+function drawPreview(blurMm,sensorW,nearM,farM){
+  const cv=$('preview');
+  const W=cv.width,H=cv.height;
+  const ctx=cv.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+
+  if(!sourceImg){
+    ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--bg3').trim() || '#15171b';
+    ctx.fillRect(0,0,W,H);
+    return;
+  }
+
+  // Blur calculat transpus într-un interval vizual rezonabil.
+  const physicalRatio=Math.max(0,blurMm/sensorW);
+  const blurPx=Math.min(32,Math.sqrt(physicalRatio)*115);
+
+  const blurred=document.createElement('canvas');
+  blurred.width=W;blurred.height=H;
+  const bg=blurred.getContext('2d');
+  if(blurPx>.15){
+    bg.filter=`blur(${blurPx.toFixed(2)}px)`;
+    const pad=blurPx*2.2;
+    bg.save();
+    bg.translate(-pad,-pad);
+    bg.scale((W+2*pad)/W,(H+2*pad)/H);
+    drawImageCover(bg,sourceImg,W,H);
+    bg.restore();
+    bg.filter='none';
+  }else{
+    drawImageCover(bg,sourceImg,W,H);
+  }
+  ctx.drawImage(blurred,0,0);
+
+  // Zona clară nu pretinde segmentare/depth. Dimensiunea ei este doar o
+  // metaforă vizuală derivată din DOF: DOF mare => zonă clară mai largă.
+  let span;
+  if(!isFinite(farM)){
+    span=.48;
+  }else{
+    const dof=Math.max(.01,farM-nearM);
+    span=Math.min(.46,.14+.12*Math.log10(1+dof*4));
+  }
+  const rx=W*span;
+  const ry=H*Math.min(.48,span*1.35);
+  const cx=focusX*W,cy=focusY*H;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);
+  ctx.clip();
+  drawImageCover(ctx,sourceImg,W,H);
+  ctx.restore();
+
+  // Feather discret, ca marginea să nu pară un decupaj dur.
+  const feather=Math.max(8,Math.min(38,blurPx*1.5+10));
+  const overlay=document.createElement('canvas');
+  overlay.width=W;overlay.height=H;
+  const og=overlay.getContext('2d');
+  drawImageCover(og,sourceImg,W,H);
+  og.globalCompositeOperation='destination-in';
+  const grd=og.createRadialGradient(cx,cy,Math.max(1,rx-feather),cx,cy,rx+feather);
+  grd.addColorStop(0,'rgba(0,0,0,1)');
+  grd.addColorStop(.72,'rgba(0,0,0,.95)');
+  grd.addColorStop(1,'rgba(0,0,0,0)');
+  og.fillStyle=grd;
+  og.fillRect(0,0,W,H);
+  ctx.drawImage(overlay,0,0);
+
+  ctx.strokeStyle='rgba(255,255,255,.75)';
+  ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.arc(cx,cy,7,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx-12,cy);ctx.lineTo(cx+12,cy);ctx.moveTo(cx,cy-12);ctx.lineTo(cx,cy+12);ctx.stroke();
+}
+
+function drawDiagram(focusDist,bgDist,hyperM,nearM,farM){
+  const cv=$('diagram');
+  const W=cv.width,H=cv.height;
+  const ctx=cv.getContext('2d');
+  const cs=getComputedStyle(document.documentElement);
+  const bg=cs.getPropertyValue('--bg3').trim() || '#15171b';
+  const text=cs.getPropertyValue('--text3').trim() || '#888';
+  const border=cs.getPropertyValue('--border').trim() || '#333';
+
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+
+  const farPlot=isFinite(farM)?farM:focusDist*3.5;
+  const maxD=Math.max(bgDist*1.15,farPlot*1.1,focusDist*2.5,.1);
+  const L=54,R=20,cy=54;
+  const toX=d=>L+(d/maxD)*(W-L-R);
+
+  ctx.strokeStyle=border;
+  ctx.lineWidth=1;
+  for(let i=0;i<=8;i++){
+    const x=L+i*(W-L-R)/8;
+    ctx.beginPath();ctx.moveTo(x,10);ctx.lineTo(x,H-20);ctx.stroke();
+  }
+
+  const nearX=toX(nearM);
+  const farX=isFinite(farM)?toX(farM):W-R;
+  ctx.fillStyle='rgba(29,158,117,.18)';
+  ctx.fillRect(nearX,cy-18,Math.max(1,farX-nearX),36);
+  ctx.strokeStyle='rgba(29,158,117,.82)';
+  ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(nearX,cy-24);ctx.lineTo(nearX,cy+24);ctx.stroke();
+  if(isFinite(farM)){
+    ctx.beginPath();ctx.moveTo(farX,cy-24);ctx.lineTo(farX,cy+24);ctx.stroke();
+  }
+
+  const fx=toX(focusDist);
+  ctx.fillStyle='#ba7517';
+  ctx.beginPath();ctx.arc(fx,cy,7,0,Math.PI*2);ctx.fill();
+
+  const bx=toX(bgDist);
+  ctx.strokeStyle='#378add';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(bx,cy-23);ctx.lineTo(bx,cy+23);ctx.stroke();
+
+  if(hyperM<maxD){
+    const hx=toX(hyperM);
+    ctx.strokeStyle='rgba(186,117,23,.55)';
+    ctx.setLineDash([3,4]);
+    ctx.beginPath();ctx.moveTo(hx,8);ctx.lineTo(hx,H-20);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#ba7517';
+    ctx.font='10px JetBrains Mono, monospace';
+    ctx.textAlign='center';
+    ctx.fillText('H',hx,13);
+  }
+
+  ctx.font='10px JetBrains Mono, monospace';
+  ctx.fillStyle=text;
+  ctx.textAlign='left';
+  ctx.fillText('camera',6,H-7);
+  ctx.textAlign='center';
+  ctx.fillStyle='#ba7517';ctx.fillText('focalizare',fx,H-7);
+  ctx.fillStyle='#378add';ctx.fillText('fundal',bx,H-7);
+  ctx.fillStyle='rgba(29,158,117,.95)';
+  ctx.fillText('DOF',(nearX+Math.min(farX,W-25))/2,cy-25);
+
+  ctx.fillStyle=text;
+  for(let i=0;i<=4;i++){
+    const d=maxD*i/4;
+    const x=toX(d);
+    const label=d>=1000?(d/1000).toFixed(0)+' km':d>=10?d.toFixed(0)+' m':d.toFixed(1)+' m';
+    ctx.fillText(label,x,H-7);
+  }
+}
+
+update();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Simulator profunzime de câmp</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

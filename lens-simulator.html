@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulator Lentilă — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #f07090;
+  --accent-dim: rgba(240,112,144,0.10);
+  --accent-border: rgba(240,112,144,0.28);
+}
+
+.mode-row { display: flex; gap: 8px; margin-bottom: var(--content-gap); }
+.mode-btn {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.mode-btn.active { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+
+.fields-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--content-gap); margin-bottom: var(--content-gap); }
+@media (max-width: 500px) { .fields-grid { grid-template-columns: 1fr; } }
+.field-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+.field-name { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text2); font-weight: 500; margin-bottom: 8px; display: block; }
+
+.lens-wrap { display: flex; justify-content: center; padding: 1rem 0; overflow-x: auto; }
+.lens-svg text { font-family: var(--font-mono); font-size: 10px; fill: var(--text2); }
+.lens-axis { stroke: var(--text3); stroke-width: 1; stroke-dasharray: 4,3; }
+.lens-body { stroke: var(--accent); stroke-width: 2.5; fill: none; }
+.lens-object { stroke: #f0c040; stroke-width: 2.5; }
+.lens-image-real { stroke: #4af0b0; stroke-width: 2.5; }
+.lens-image-virtual { stroke: #4af0b0; stroke-width: 2; stroke-dasharray: 4,3; }
+.ray { stroke: #60a0f0; stroke-width: 1.3; fill: none; }
+.ray-virtual { stroke: #60a0f0; stroke-width: 1; stroke-dasharray: 3,3; opacity: 0.6; }
+.focal-point { fill: var(--text3); }
+
+.result-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: var(--content-gap); }
+@media (max-width: 500px) { .result-row { grid-template-columns: 1fr; } }
+.result-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; text-align: center; }
+.result-card.highlight { border-color: var(--accent-border); background: var(--accent-dim); }
+.result-val { font-family: var(--font-mono); font-size: 1rem; font-weight: 700; color: var(--text); }
+.result-card.highlight .result-val { color: var(--accent); }
+.result-key { font-family: var(--font-mono); font-size: 0.6rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 3px; }
+
+.info-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+.badge { font-family: var(--font-mono); font-size: 0.68rem; padding: 4px 10px; border-radius: 99px; border: 1px solid var(--border2); background: var(--bg3); color: var(--text2); }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Simulator lentilă</h1>
+    <p>Convergentă/divergentă — diagramă de raze, poziție și tip imagine</p>
+  </div>
+
+  <div class="mode-row">
+    <button class="mode-btn active" id="btn-conv" onclick="setType('conv')">Convergentă</button>
+    <button class="mode-btn" id="btn-div" onclick="setType('div')">Divergentă</button>
+  </div>
+
+  <div class="fields-grid">
+    <div class="field-card">
+      <span class="field-name">Distanță focală |f|</span>
+      <input class="input-calc" id="in-f" type="number" min="0.1" step="any" value="10"
+             style="--input-color:var(--accent);font-size:1rem" oninput="compute()">
+      <span style="font-family:var(--font-mono);font-size:0.6rem;color:var(--text3)">cm</span>
+    </div>
+    <div class="field-card">
+      <span class="field-name">Distanță obiect (do)</span>
+      <input class="input-calc" id="in-do" type="number" min="0.1" step="any" value="20"
+             style="--input-color:var(--accent);font-size:1rem" oninput="compute()">
+      <span style="font-family:var(--font-mono);font-size:0.6rem;color:var(--text3)">cm</span>
+    </div>
+    <div class="field-card">
+      <span class="field-name">Înălțime obiect</span>
+      <input class="input-calc" id="in-ho" type="number" step="any" value="5"
+             style="--input-color:var(--accent);font-size:1rem" oninput="compute()">
+      <span style="font-family:var(--font-mono);font-size:0.6rem;color:var(--text3)">cm</span>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:var(--content-gap)">
+    <div class="lens-wrap" id="lens-wrap"></div>
+  </div>
+
+  <div class="result-row">
+    <div class="result-card highlight"><div class="result-val" id="res-di">—</div><div class="result-key">distanță imagine (di)</div></div>
+    <div class="result-card highlight"><div class="result-val" id="res-m">—</div><div class="result-key">mărire (m)</div></div>
+  </div>
+
+  <div class="card">
+    <div class="info-badges" id="info-badges"></div>
+  </div>
+</div>
+
+<script>
+let lensType = 'conv';
+
+function trim(n) {
+  if (!isFinite(n)) return '∞';
+  return parseFloat(n.toPrecision(5)).toString();
+}
+
+function setType(t) {
+  lensType = t;
+  document.getElementById('btn-conv').classList.toggle('active', t==='conv');
+  document.getElementById('btn-div').classList.toggle('active', t==='div');
+  compute();
+}
+
+function compute() {
+  const fAbs = parseFloat(document.getElementById('in-f').value);
+  const doVal = parseFloat(document.getElementById('in-do').value);
+  const ho = parseFloat(document.getElementById('in-ho').value);
+
+  if (isNaN(fAbs) || isNaN(doVal) || isNaN(ho) || fAbs<=0 || doVal<=0) {
+    document.getElementById('res-di').textContent = '—';
+    document.getElementById('res-m').textContent = '—';
+    document.getElementById('info-badges').innerHTML = '';
+    renderLens(null);
+    return;
+  }
+
+  const f = lensType === 'conv' ? fAbs : -fAbs;
+
+  // Formula lentilei subțiri: 1/f = 1/do + 1/di  =>  di = (f*do)/(do-f)
+  const denom = doVal - f;
+  let di, m, hi;
+
+  if (Math.abs(denom) < 1e-9) {
+    di = Infinity;
+  } else {
+    di = (f * doVal) / denom;
+  }
+
+  m = isFinite(di) ? -di/doVal : NaN;
+  hi = isFinite(m) ? m*ho : NaN;
+
+  document.getElementById('res-di').textContent = isFinite(di) ? trim(di)+' cm' : '∞ (raze paralele)';
+  document.getElementById('res-m').textContent = isFinite(m) ? trim(m)+'×' : '—';
+
+  const badges = [];
+  if (isFinite(di)) {
+    badges.push(di > 0 ? 'Imagine reală' : 'Imagine virtuală');
+    badges.push(m < 0 ? 'Răsturnată' : 'Dreaptă');
+    badges.push(Math.abs(m) > 1 ? 'Mărită' : (Math.abs(m) < 1 ? 'Micșorată' : 'Aceeași mărime'));
+  }
+  document.getElementById('info-badges').innerHTML = badges.map(b => `<span class="badge">${b}</span>`).join('');
+
+  renderLens({ f, doVal, di, ho, hi, m });
+}
+
+function renderLens(data) {
+  const wrap = document.getElementById('lens-wrap');
+  const w = 480, h = 280;
+  const cx = w/2, cy = h/2;
+
+  let svg = `<svg class="lens-svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`;
+
+  if (!data) {
+    svg += `<text x="${cx}" y="${cy}" text-anchor="middle">Completează valorile</text></svg>`;
+    wrap.innerHTML = svg;
+    return;
+  }
+
+  const { f, doVal, di, ho, hi } = data;
+  const fAbs = Math.abs(f);
+
+  // Scală: alegem astfel încât toate distanțele relevante să încapă confortabil
+  const maxDist = Math.max(doVal, isFinite(di) ? Math.abs(di) : doVal, fAbs) * 1.2;
+  const scale = (w/2 - 40) / maxDist;
+
+  // Axă optică
+  svg += `<line class="lens-axis" x1="10" y1="${cy}" x2="${w-10}" y2="${cy}"/>`;
+
+  // ── Simbolul lentilei (linie centrală + capace săgeată) ──
+  const lensTop = cy - 65, lensBot = cy + 65;
+  svg += `<line class="lens-body" x1="${cx}" y1="${lensTop}" x2="${cx}" y2="${lensBot}"/>`;
+  if (lensType === 'conv') {
+    // Săgeți spre exterior (caracteristică lentilă convergentă)
+    svg += `<path class="lens-body" d="M ${cx-8} ${lensTop+12} L ${cx} ${lensTop} L ${cx+8} ${lensTop+12}"/>`;
+    svg += `<path class="lens-body" d="M ${cx-8} ${lensBot-12} L ${cx} ${lensBot} L ${cx+8} ${lensBot-12}"/>`;
+  } else {
+    // Săgeți spre interior (caracteristică lentilă divergentă)
+    svg += `<path class="lens-body" d="M ${cx-8} ${lensTop} L ${cx} ${lensTop+12} L ${cx+8} ${lensTop}"/>`;
+    svg += `<path class="lens-body" d="M ${cx-8} ${lensBot} L ${cx} ${lensBot-12} L ${cx+8} ${lensBot}"/>`;
+  }
+
+  // Puncte focale (simetrice față de centrul lentilei)
+  const F1x = cx - fAbs*scale, F2x = cx + fAbs*scale;
+  svg += `<circle class="focal-point" cx="${F1x}" cy="${cy}" r="2.5"/>`;
+  svg += `<circle class="focal-point" cx="${F2x}" cy="${cy}" r="2.5"/>`;
+  svg += `<text x="${F1x}" y="${cy+16}" text-anchor="middle">F</text>`;
+  svg += `<text x="${F2x}" y="${cy+16}" text-anchor="middle">F'</text>`;
+
+  // ── Obiect (săgeată galbenă) ──
+  const Ox = cx - doVal*scale, Oy = cy - ho*scale;
+  svg += `<line class="lens-object" x1="${Ox}" y1="${cy}" x2="${Ox}" y2="${Oy}"/>`;
+  const objArrowDir = ho >= 0 ? 1 : -1;
+  svg += `<polygon points="${Ox-4},${Oy+objArrowDir*8} ${Ox+4},${Oy+objArrowDir*8} ${Ox},${Oy}" fill="#f0c040"/>`;
+
+  if (!isFinite(di)) {
+    // Raze paralele — cazul special do = f (obiect exact la focar)
+    svg += `<line class="ray" x1="${Ox}" y1="${Oy}" x2="${cx}" y2="${Oy}"/>`;
+    svg += `<line class="ray" x1="${cx}" y1="${Oy}" x2="${w-10}" y2="${Oy}"/>`;
+    svg += `<text x="${cx}" y="${Oy-8}" text-anchor="middle">raze paralele (imagine la infinit)</text>`;
+    svg += `</svg>`;
+    wrap.innerHTML = svg;
+    return;
+  }
+
+  const Ix = cx + di*scale, Iy = cy - hi*scale;
+  const isReal = di > 0;
+
+  // ── Raza A: paralelă cu axa până la lentilă, apoi refractată ──
+  const P_A = { x: cx, y: Oy };
+  svg += `<line class="ray" x1="${Ox}" y1="${Oy}" x2="${P_A.x}" y2="${P_A.y}"/>`;
+
+  let dirA;
+  if (lensType === 'conv') {
+    // După lentilă, raza trece prin F' — direcție de la P_A către F2
+    dirA = { x: F2x - P_A.x, y: cy - P_A.y };
+  } else {
+    // Raza pare să vină din F — direcție de la F1 către P_A (se îndepărtează de F1)
+    dirA = { x: P_A.x - F1x, y: P_A.y - cy };
+  }
+  svg += drawRay(P_A, dirA, Ix, isReal);
+
+  // ── Raza B: prin centrul lentilei, nedeviată ──
+  const dirB = { x: cx - Ox, y: cy - Oy };
+  svg += drawRay({x: Ox, y: Oy}, dirB, Ix, isReal, true);
+
+  // ── Imagine (verde) ──
+  const imgClass = isReal ? 'lens-image-real' : 'lens-image-virtual';
+  svg += `<line class="${imgClass}" x1="${Ix}" y1="${cy}" x2="${Ix}" y2="${Iy}"/>`;
+  const imgArrowDir = hi >= 0 ? 1 : -1;
+  svg += `<polygon points="${Ix-4},${Iy+imgArrowDir*8} ${Ix+4},${Iy+imgArrowDir*8} ${Ix},${Iy}" fill="${isReal ? '#4af0b0' : 'none'}" stroke="#4af0b0" stroke-width="2"/>`;
+
+  svg += `</svg>`;
+  wrap.innerHTML = svg;
+}
+
+// Desenează o rază de la punctul de start, în direcția dată, până la coordonata X a imaginii.
+// Dacă imaginea e reală, raza e solidă până acolo. Dacă e virtuală, raza solidă continuă
+// înainte (departe de imagine) iar extensia punctată se întoarce până la punctul imaginii.
+function drawRay(start, dir, targetX, isReal, throughLens) {
+  let out = '';
+  const ux = dir.x / (Math.hypot(dir.x, dir.y) || 1);
+  const uy = dir.y / (Math.hypot(dir.x, dir.y) || 1);
+
+  if (isReal) {
+    // Linie solidă de la start până la X-ul imaginii (mereu înainte, spre dreapta)
+    const t = (targetX - start.x) / ux;
+    out += `<line class="ray" x1="${start.x}" y1="${start.y}" x2="${start.x+ux*t}" y2="${start.y+uy*t}"/>`;
+  } else {
+    // Linie solidă continuă înainte (spre dreapta, departe de imagine)
+    const forwardT = (460 - start.x) / ux;
+    out += `<line class="ray" x1="${start.x}" y1="${start.y}" x2="${start.x+ux*forwardT}" y2="${start.y+uy*forwardT}"/>`;
+    // Extensie punctată înapoi până la X-ul imaginii (situat în spate, spre stânga)
+    const backT = (targetX - start.x) / ux;
+    out += `<line class="ray-virtual" x1="${start.x}" y1="${start.y}" x2="${start.x+ux*backT}" y2="${start.y+uy*backT}"/>`;
+  }
+  return out;
+}
+
+compute();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Simulator lentilă</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

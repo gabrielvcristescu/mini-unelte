@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compresie Imagine — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #f08060;
+  --accent-dim: rgba(240,128,96,0.10);
+  --accent-border: rgba(240,128,96,0.28);
+}
+
+.file-drop {
+  border: 2px dashed var(--border2);
+  border-radius: var(--radius);
+  padding: 40px 20px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text3);
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: var(--content-gap);
+}
+.file-drop:hover, .file-drop.dragover { border-color: var(--accent-border); color: var(--accent); background: var(--accent-dim); }
+
+.compare-wrap {
+  display: none;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: var(--content-gap);
+}
+.compare-wrap.show { display: grid; }
+@media (max-width: 600px) { .compare-wrap { grid-template-columns: 1fr; } }
+.compare-col { background: var(--bg3); border-radius: var(--radius); padding: 10px; text-align: center; }
+.compare-col img { max-width: 100%; max-height: 220px; border-radius: 6px; }
+.compare-label { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text3); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.06em; }
+.compare-size { font-family: var(--font-mono); font-size: 0.85rem; font-weight: 700; color: var(--text); margin-top: 8px; }
+.compare-size.small { color: #4af0b0; }
+
+.fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--content-gap); margin-bottom: var(--content-gap); }
+.field-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+.field-name { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text2); font-weight: 500; margin-bottom: 8px; display: block; }
+
+.quality-slider-row { display: flex; align-items: center; gap: 10px; margin-bottom: var(--content-gap); }
+.quality-slider-row input[type=range] { flex: 1; accent-color: var(--accent); }
+.quality-val { font-family: var(--font-mono); font-size: 0.9rem; color: var(--accent); font-weight: 700; width: 50px; text-align: right; }
+
+.savings-card {
+  background: var(--bg2);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  text-align: center;
+  margin-bottom: var(--content-gap);
+}
+.savings-val { font-family: var(--font-mono); font-size: 1.8rem; font-weight: 700; color: var(--accent); }
+.savings-label { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text3); margin-top: 4px; }
+
+.download-btn {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.download-btn:hover { filter: brightness(1.15); }
+.download-btn:disabled { opacity: 0.4; cursor: default; }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Compresie JPEG/WebP</h1>
+    <p>Reduce dimensiunea fișierului, calitate configurabilă, comparație live</p>
+  </div>
+
+  <div class="file-drop" id="file-drop" onclick="document.getElementById('file-input').click()">
+    Trage o imagine aici sau click pentru a o încărca
+    <input type="file" id="file-input" accept="image/*" style="display:none">
+  </div>
+
+  <div class="compare-wrap" id="compare-wrap">
+    <div class="compare-col">
+      <div class="compare-label">Original</div>
+      <img id="img-original" src="">
+      <div class="compare-size" id="size-original">—</div>
+    </div>
+    <div class="compare-col">
+      <div class="compare-label">Comprimat</div>
+      <img id="img-compressed" src="">
+      <div class="compare-size small" id="size-compressed">—</div>
+    </div>
+  </div>
+
+  <div class="fields-grid">
+    <div class="field-card">
+      <span class="field-name">Format</span>
+      <select class="unit-select" id="format-select" onchange="compress()" style="width:100%;padding:8px">
+        <option value="image/jpeg">JPEG</option>
+        <option value="image/webp">WebP</option>
+      </select>
+    </div>
+    <div class="field-card">
+      <span class="field-name">Redimensionare max (opțional)</span>
+      <select class="unit-select" id="maxsize-select" onchange="compress()" style="width:100%;padding:8px">
+        <option value="0">Păstrează originalul</option>
+        <option value="1920">Max 1920px</option>
+        <option value="1280">Max 1280px</option>
+        <option value="800">Max 800px</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="quality-slider-row">
+    <span style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text3)">Calitate</span>
+    <input type="range" id="quality-slider" min="1" max="100" value="80" oninput="compress()">
+    <span class="quality-val" id="quality-val">80%</span>
+  </div>
+
+  <div class="savings-card">
+    <div class="savings-val" id="savings-val">—</div>
+    <div class="savings-label" id="savings-label">reducere dimensiune</div>
+  </div>
+
+  <button class="download-btn" id="download-btn" onclick="downloadCompressed()" disabled>⬇ Descarcă imaginea comprimată</button>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+let originalImg = null;
+let originalBytes = 0;
+let compressedBlob = null;
+
+function fmtBytes(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/(1024*1024)).toFixed(2) + ' MB';
+}
+
+function handleFile(file) {
+  if (!file || !file.type.startsWith('image/')) {
+    showToast('Te rog selectează un fișier imagine valid');
+    return;
+  }
+
+  originalBytes = file.size;
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      originalImg = img;
+      document.getElementById('img-original').src = e.target.result;
+      document.getElementById('size-original').textContent = fmtBytes(originalBytes);
+      document.getElementById('compare-wrap').classList.add('show');
+      document.getElementById('download-btn').disabled = false;
+      compress();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function compress() {
+  if (!originalImg) return;
+
+  const format = document.getElementById('format-select').value;
+  const quality = parseInt(document.getElementById('quality-slider').value) / 100;
+  const maxSize = parseInt(document.getElementById('maxsize-select').value);
+
+  document.getElementById('quality-val').textContent = Math.round(quality*100) + '%';
+
+  let w = originalImg.width, h = originalImg.height;
+  if (maxSize > 0 && (w > maxSize || h > maxSize)) {
+    const scale = maxSize / Math.max(w, h);
+    w = Math.round(w * scale);
+    h = Math.round(h * scale);
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+
+  if (format === 'image/jpeg') {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, w, h);
+  }
+  ctx.drawImage(originalImg, 0, 0, w, h);
+
+  canvas.toBlob(blob => {
+    compressedBlob = blob;
+    const url = URL.createObjectURL(blob);
+    document.getElementById('img-compressed').src = url;
+    document.getElementById('size-compressed').textContent = fmtBytes(blob.size);
+
+    const savingsPct = Math.round((1 - blob.size/originalBytes) * 100);
+    const savingsEl = document.getElementById('savings-val');
+    const labelEl = document.getElementById('savings-label');
+
+    if (savingsPct > 0) {
+      savingsEl.textContent = '−' + savingsPct + '%';
+      savingsEl.style.color = 'var(--accent)';
+      labelEl.textContent = `${fmtBytes(originalBytes)} → ${fmtBytes(blob.size)}`;
+    } else {
+      savingsEl.textContent = '+' + Math.abs(savingsPct) + '%';
+      savingsEl.style.color = '#f06060';
+      labelEl.textContent = 'fișierul a devenit mai mare — încearcă calitate mai mică';
+    }
+  }, format, quality);
+}
+
+function downloadCompressed() {
+  if (!compressedBlob) return;
+  const format = document.getElementById('format-select').value;
+  const ext = format === 'image/webp' ? 'webp' : 'jpg';
+
+  const url = URL.createObjectURL(compressedBlob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `compressed.${ext}`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Descărcat!');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+const fileInput = document.getElementById('file-input');
+const fileDrop = document.getElementById('file-drop');
+fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+fileDrop.addEventListener('dragover', e => { e.preventDefault(); fileDrop.classList.add('dragover'); });
+fileDrop.addEventListener('dragleave', () => fileDrop.classList.remove('dragover'));
+fileDrop.addEventListener('drop', e => {
+  e.preventDefault();
+  fileDrop.classList.remove('dragover');
+  handleFile(e.dataTransfer.files[0]);
+});
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Compresie JPEG/WebP</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

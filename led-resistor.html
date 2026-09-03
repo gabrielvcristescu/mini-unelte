@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculator LED + Rezistor — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #70d0f0;
+  --accent-dim: rgba(240,96,96,0.10);
+  --accent-border: rgba(240,96,96,0.28);
+}
+
+.fields-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--content-gap);
+}
+@media (max-width: 700px) { .fields-grid { grid-template-columns: 1fr; } }
+
+.field-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 14px 12px;
+}
+.field-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.field-name {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text2);
+  font-weight: 500;
+}
+.field-unit {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--text3);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
+/* ── LED color presets ── */
+.led-presets {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.led-preset {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 99px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.led-preset:hover { border-color: var(--accent-border); }
+.led-preset.active { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+.led-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── Circuit visual ── */
+.circuit-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1.75rem 1rem;
+}
+.circuit-svg text { font-family: var(--font-mono); font-size: 11px; fill: var(--text2); }
+.circuit-svg .wire { stroke: var(--text3); stroke-width: 2; fill: none; }
+.circuit-svg .r-box { fill: var(--bg3); stroke: var(--accent); stroke-width: 1.5; }
+.circuit-svg .r-label { fill: var(--accent); font-weight: 700; font-size: 10px; }
+.circuit-svg .led-shape { fill: none; stroke-width: 2; }
+.circuit-svg .led-glow { opacity: 0.35; }
+
+/* ── Result ── */
+.result-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+}
+.result-main {
+  font-family: var(--font-mono);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+.result-formula { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text3); }
+
+.info-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+@media (max-width: 500px) { .info-row { grid-template-columns: 1fr; } }
+.info-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  text-align: center;
+}
+.info-val { font-family: var(--font-mono); font-size: 0.95rem; font-weight: 500; color: var(--text); margin-bottom: 2px; }
+.info-key { font-family: var(--font-mono); font-size: 0.58rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; }
+
+.warn-box {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  margin-top: 8px;
+  line-height: 1.5;
+}
+.warn-box.error {
+  background: rgba(240,96,96,0.08);
+  border: 1px solid rgba(240,96,96,0.25);
+  color: #e07070;
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Calculator LED + rezistor</h1>
+    <p>Tensiune alimentare, tensiune LED, curent dorit → rezistor limitator</p>
+  </div>
+
+  <!-- Câmpuri -->
+  <div class="fields-grid" style="margin-bottom:var(--content-gap)">
+    <div class="field-card">
+      <div class="field-top">
+        <span class="field-name">Tensiune alimentare (Vcc)</span>
+        <span class="field-unit">V</span>
+      </div>
+      <input class="input-calc" id="in-vcc" type="number" min="0" step="any" value="9"
+             style="--input-color:var(--accent);font-size:1.1rem">
+    </div>
+    <div class="field-card">
+      <div class="field-top">
+        <span class="field-name">Tensiune LED (Vf)</span>
+        <span class="field-unit">V</span>
+      </div>
+      <input class="input-calc" id="in-vf" type="number" min="0" step="any" value="2.0"
+             style="--input-color:var(--accent);font-size:1.1rem">
+      <div class="led-presets" id="led-presets"></div>
+    </div>
+    <div class="field-card">
+      <div class="field-top">
+        <span class="field-name">Curent dorit (If)</span>
+        <span class="field-unit">mA</span>
+      </div>
+      <input class="input-calc" id="in-if" type="number" min="0" step="any" value="20"
+             style="--input-color:var(--accent);font-size:1.1rem">
+    </div>
+  </div>
+
+  <!-- Circuit vizual -->
+  <div class="card" style="margin-bottom:var(--content-gap)">
+    <div class="circuit-wrap" id="circuit-wrap"></div>
+  </div>
+
+  <!-- Rezultat -->
+  <div class="result-card" style="margin-bottom:var(--content-gap)">
+    <div class="result-main" id="result-main">—</div>
+    <div class="result-formula" id="result-formula"></div>
+    <div id="warn-container"></div>
+  </div>
+
+  <!-- Info -->
+  <div class="info-row">
+    <div class="info-card"><div class="info-val" id="info-power">—</div><div class="info-key">putere disipată R</div></div>
+    <div class="info-card"><div class="info-val" id="info-nearest">—</div><div class="info-key">valoare E24 apropiată</div></div>
+    <div class="info-card"><div class="info-val" id="info-realI">—</div><div class="info-key">curent real cu E24</div></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+const LED_PRESETS = [
+  { name:'Roșu',    vf:2.0,  color:'#e04040' },
+  { name:'Verde',   vf:2.2,  color:'#40c060' },
+  { name:'Galben',  vf:2.1,  color:'#d4c020' },
+  { name:'Albastru',vf:3.2,  color:'#4070e0' },
+  { name:'Alb',     vf:3.2,  color:'#e8e8e8' },
+  { name:'UV',      vf:3.4,  color:'#8040c0' },
+  { name:'IR',      vf:1.4,  color:'#802020' },
+];
+
+const E24 = [1.0,1.1,1.2,1.3,1.5,1.6,1.8,2.0,2.2,2.4,2.7,3.0,3.3,3.6,3.9,4.3,4.7,5.1,5.6,6.2,6.8,7.5,8.2,9.1];
+
+function fmtOhm(v) {
+  if (!isFinite(v) || v <= 0) return '—';
+  if (v >= 1e6) return trim(v/1e6) + ' MΩ';
+  if (v >= 1e3) return trim(v/1e3) + ' kΩ';
+  return trim(v) + ' Ω';
+}
+function trim(n) { return parseFloat(n.toPrecision(4)).toString(); }
+
+function nearestE24(value) {
+  if (value <= 0) return null;
+  const exp = Math.floor(Math.log10(value));
+  const baseVal = value / Math.pow(10, exp);
+  const nearest = E24.reduce((best, s) => Math.abs(s - baseVal) < Math.abs(best - baseVal) ? s : best);
+  return nearest * Math.pow(10, exp);
+}
+
+function renderPresets() {
+  const container = document.getElementById('led-presets');
+  container.innerHTML = '';
+  LED_PRESETS.forEach(p => {
+    const btn = document.createElement('div');
+    btn.className = 'led-preset';
+    btn.innerHTML = `<span class="led-dot" style="background:${p.color}"></span>${p.name}`;
+    btn.onclick = () => {
+      document.getElementById('in-vf').value = p.vf;
+      compute();
+    };
+    container.appendChild(btn);
+  });
+}
+
+function compute() {
+  const vcc = parseFloat(document.getElementById('in-vcc').value);
+  const vf = parseFloat(document.getElementById('in-vf').value);
+  const ifMa = parseFloat(document.getElementById('in-if').value);
+
+  const main = document.getElementById('result-main');
+  const formula = document.getElementById('result-formula');
+  const warnContainer = document.getElementById('warn-container');
+  warnContainer.innerHTML = '';
+
+  if (isNaN(vcc) || isNaN(vf) || isNaN(ifMa) || vcc <= 0 || vf < 0 || ifMa <= 0) {
+    main.textContent = '—';
+    formula.textContent = 'Completează toate câmpurile';
+    document.getElementById('info-power').textContent = '—';
+    document.getElementById('info-nearest').textContent = '—';
+    document.getElementById('info-realI').textContent = '—';
+    renderCircuit(null);
+    return;
+  }
+
+  if (vf >= vcc) {
+    main.textContent = '—';
+    formula.textContent = '';
+    warnContainer.innerHTML = `<div class="warn-box error">⚠ Tensiunea LED (${vf}V) trebuie să fie mai mică decât tensiunea de alimentare (${vcc}V). LED-ul nu se va aprinde corect — verifică valorile.</div>`;
+    document.getElementById('info-power').textContent = '—';
+    document.getElementById('info-nearest').textContent = '—';
+    document.getElementById('info-realI').textContent = '—';
+    renderCircuit(null);
+    return;
+  }
+
+  const ifA = ifMa / 1000;
+  const r = (vcc - vf) / ifA;
+  main.textContent = fmtOhm(r);
+  formula.textContent = `R = (Vcc − Vf) / If = (${vcc}V − ${vf}V) / ${ifMa}mA`;
+
+  const power = (vcc - vf) * ifA;
+  document.getElementById('info-power').textContent = trim(power) + ' W';
+
+  const nearest = nearestE24(r);
+  document.getElementById('info-nearest').textContent = fmtOhm(nearest);
+
+  const realI = (vcc - vf) / nearest * 1000;
+  document.getElementById('info-realI').textContent = trim(realI) + ' mA';
+
+  // Avertisment dacă puterea depășește 0.25W (rezistor standard 1/4W)
+  if (power > 0.25) {
+    warnContainer.innerHTML = `<div class="warn-box error">⚠ Puterea disipată (${trim(power)}W) depășește un rezistor standard de 1/4W. Folosește un rezistor de minim ${power > 0.5 ? '1W' : '1/2W'}.</div>`;
+  }
+
+  renderCircuit({ vcc, vf, ifMa, r, ledColor: getSelectedColor(vf) });
+}
+
+function getSelectedColor(vf) {
+  const match = LED_PRESETS.reduce((best, p) => Math.abs(p.vf - vf) < Math.abs(best.vf - vf) ? p : best, LED_PRESETS[0]);
+  return Math.abs(match.vf - vf) < 0.15 ? match.color : '#e04040';
+}
+
+function renderCircuit(data) {
+  const wrap = document.getElementById('circuit-wrap');
+  const w = 340, h = 160;
+  let svg = `<svg class="circuit-svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`;
+
+  // Layout: rectangular loop, R și LED aliniate pe același centru X.
+  const leftX = 50, rightX = 290;
+  const topY = 40, botY = 120;
+  const midY = (topY + botY) / 2;
+  const centerX = (leftX + rightX) / 2;
+
+  const rBoxW = 60, rBoxH = 26;
+  const rBoxX = centerX - rBoxW/2;
+
+  const ledCx = centerX;
+  const ledHalfW = 13, ledHalfH = 15;
+
+  // ── Top wire + resistor (centrat) ──
+  svg += `<line class="wire" x1="${leftX}" y1="${topY}" x2="${rBoxX}" y2="${topY}"/>`;
+  svg += `<rect class="r-box" x="${rBoxX}" y="${topY-rBoxH/2}" width="${rBoxW}" height="${rBoxH}" rx="4"/>`;
+  svg += `<text class="r-label" x="${rBoxX+rBoxW/2}" y="${topY+4}" text-anchor="middle">R</text>`;
+  svg += `<line class="wire" x1="${rBoxX+rBoxW}" y1="${topY}" x2="${rightX}" y2="${topY}"/>`;
+
+  // ── Right wire ──
+  svg += `<line class="wire" x1="${rightX}" y1="${topY}" x2="${rightX}" y2="${botY}"/>`;
+
+  // ── Bottom wire + LED (centrat pe același X ca R) ──
+  const ledColor = data ? data.ledColor : 'var(--text3)';
+  svg += `<line class="wire" x1="${rightX}" y1="${botY}" x2="${ledCx+ledHalfH}" y2="${botY}"/>`;
+  svg += `<g class="led-shape" stroke="${ledColor}">
+    <polygon points="${ledCx-ledHalfW},${botY-ledHalfH} ${ledCx-ledHalfW},${botY+ledHalfH} ${ledCx+ledHalfW-4},${botY}"
+             fill="${data?ledColor+'22':'none'}"/>
+    <line x1="${ledCx+ledHalfW-4}" y1="${botY-ledHalfH}" x2="${ledCx+ledHalfW-4}" y2="${botY+ledHalfH}"/>
+  </g>`;
+  if (data) {
+    svg += `<line x1="${ledCx-4}" y1="${botY-ledHalfH-4}" x2="${ledCx+4}" y2="${botY-ledHalfH-14}" stroke="${ledColor}" stroke-width="1.5"/>`;
+    svg += `<line x1="${ledCx+4}" y1="${botY-ledHalfH-2}" x2="${ledCx+12}" y2="${botY-ledHalfH-12}" stroke="${ledColor}" stroke-width="1.5"/>`;
+  }
+  svg += `<line class="wire" x1="${ledCx-ledHalfW}" y1="${botY}" x2="${leftX}" y2="${botY}"/>`;
+
+  // ── Left wire + baterie (simbol compact, lipit de fire) ──
+  const battGap = 5; // distanța dintre cele două plăci
+  svg += `<line class="wire" x1="${leftX}" y1="${topY}" x2="${leftX}" y2="${midY-battGap}"/>`;
+  svg += `<line class="wire" x1="${leftX}" y1="${midY+battGap}" x2="${leftX}" y2="${botY}"/>`;
+  // placă lungă/subțire (+) sus, placă scurtă/groasă (−) jos — lipite direct de capetele firului
+  svg += `<line x1="${leftX-9}" y1="${midY-battGap}" x2="${leftX+9}" y2="${midY-battGap}" stroke="var(--text2)" stroke-width="2"/>`;
+  svg += `<line x1="${leftX-5}" y1="${midY+battGap}" x2="${leftX+5}" y2="${midY+battGap}" stroke="var(--text2)" stroke-width="4"/>`;
+
+  // ── Etichete ──
+  svg += `<text x="${rBoxX+rBoxW/2}" y="${topY-rBoxH/2-8}" text-anchor="middle">${data?fmtOhm(data.r):'—'}</text>`;
+  svg += `<text x="${leftX-22}" y="${midY+4}" text-anchor="middle">${data?data.vcc+'V':'—'}</text>`;
+  svg += `<text x="${ledCx}" y="${botY+22}" text-anchor="middle">${data?data.vf+'V / '+data.ifMa+'mA':'—'}</text>`;
+
+  svg += `</svg>`;
+  wrap.innerHTML = svg;
+}
+
+document.getElementById('in-vcc').addEventListener('input', compute);
+document.getElementById('in-vf').addEventListener('input', compute);
+document.getElementById('in-if').addEventListener('input', compute);
+
+renderPresets();
+compute();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Calculator LED + rezistor</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

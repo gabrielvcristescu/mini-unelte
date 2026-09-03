@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Surse, credite și proveniență pentru colecția Mini Unelte.">
+<title>Surse & credite — Mini Unelte</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<script src="theme.js"></script>
+
+<style>
+.credits-page{
+  width:min(92vw,920px);
+  margin:0 auto;
+  padding:24px 22px 64px;
+}
+
+.credits-head{
+  margin:26px 0 30px;
+}
+
+.credits-head h1{
+  margin:.25rem 0 .75rem;
+  font-size:clamp(2rem,5vw,3.5rem);
+  letter-spacing:-.05em;
+}
+
+.credits-head p{
+  margin:.45rem 0;
+  max-width:760px;
+  color:var(--text2);
+  line-height:1.65;
+}
+
+.credits-section{
+  margin-top:34px;
+  padding-top:24px;
+  border-top:1px solid var(--border);
+}
+
+.credits-section h2{
+  margin:0 0 14px;
+  font-size:1.3rem;
+}
+
+.credits-section h3{
+  margin:1.4rem 0 .4rem;
+  font-size:1rem;
+}
+
+.credits-section p,
+.credits-section li{
+  color:var(--text2);
+  line-height:1.68;
+}
+
+.credits-section ul{
+  padding-left:1.25rem;
+}
+
+.credits-section code{
+  font-family:var(--font-mono);
+  font-size:.88em;
+}
+
+.credit-card{
+  margin-top:14px;
+  padding:14px 16px;
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  background:var(--bg2);
+}
+
+.credit-card h3{
+  margin-top:0;
+}
+
+.credit-card p:last-child{
+  margin-bottom:0;
+}
+
+.inline-links{
+  display:flex;
+  flex-wrap:wrap;
+  gap:9px;
+  margin-top:20px;
+}
+
+.inline-links a{
+  display:inline-flex;
+  align-items:center;
+  padding:8px 12px;
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  background:var(--bg2);
+  color:var(--text2);
+  text-decoration:none;
+  font-family:var(--font-mono);
+  font-size:.72rem;
+}
+
+.inline-links a:hover{
+  color:var(--text);
+  background:var(--bg3);
+  border-color:var(--border2);
+}
+
+.small-note{
+  margin-top:18px;
+  padding:14px 16px;
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  background:var(--bg2);
+  color:var(--text3);
+  font-family:var(--font-mono);
+  font-size:.72rem;
+  line-height:1.55;
+}
+</style>
+</head>
+
+<body>
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<main class="credits-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+  </div>
+
+  <header class="credits-head">
+    <div class="eyebrow">Mini Unelte / surse & credite</div>
+    <h1>Surse, credite și proveniență</h1>
+    <p><strong>Mini Unelte</strong> este o colecție publică de <strong>145 de unelte interactive</strong> și experimente web.</p>
+    <p>Selecție, direcție, testare și integrare: <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu <strong>asistență AI</strong>.</p>
+    <p>Versiunea publică este disponibilă la <a href="https://www.agassante.com/tools/" target="_blank" rel="noopener">agassante.com/tools</a>.</p>
+  </header>
+
+  <section class="credits-section">
+    <h2>Proiecte evidențiate</h2>
+
+    <div class="credit-card">
+      <h3>Frequency Compression Lab</h3>
+      <p>Experiment de procesare audio dezvoltat și testat de Gabriel Valentin Cristescu cu asistență AI. Explorează metode cunoscute de compresie spectrală și transformare a frecvenței, într-un context legat de accesibilitatea auditivă.</p>
+    </div>
+
+    <div class="credit-card">
+      <h3>Time Stretch Comparison</h3>
+      <p>Experiment comparativ dezvoltat și testat de Gabriel Valentin Cristescu cu asistență AI. Prezintă și compară mai multe familii de algoritmi pentru modificarea duratei unui semnal audio fără simpla schimbare a vitezei de redare.</p>
+    </div>
+
+    <div class="credit-card">
+      <h3>Simulator calculator grafic</h3>
+      <p>Simulator interactiv de calculator grafic realizat pentru browser.</p>
+    </div>
+
+    <div class="credit-card">
+      <h3>Șah</h3>
+      <p>Implementare interactivă a unui joc de șah în browser, cu piese grafice provenite din setul Cburnett menționat mai jos.</p>
+    </div>
+  </section>
+
+  <section class="credits-section">
+    <h2>Biblioteci și componente terțe</h2>
+
+    <h3>PrismJS</h3>
+    <p>Folosit pentru evidențierea sintaxei în panourile de cod sursă afișate în paginile colecției.</p>
+    <p>Versiune distribuită: <strong>PrismJS 1.30.0</strong> · Licență: <strong>MIT</strong></p>
+    <p>
+      <a href="https://prismjs.com/" target="_blank" rel="noopener">prismjs.com</a><br>
+      <a href="https://github.com/PrismJS/prism" target="_blank" rel="noopener">GitHub / PrismJS</a>
+    </p>
+
+    <h3>Tone.js</h3>
+    <p>Folosit de unele dintre instrumentele și experimentele audio.</p>
+    <p>Licență: <strong>MIT</strong></p>
+    <p><a href="https://github.com/Tonejs/Tone.js" target="_blank" rel="noopener">GitHub / Tone.js</a></p>
+
+    <h3>Piese de șah Cburnett</h3>
+    <p>Autor: <strong>Colin M. L. Burnett</strong>.</p>
+    <p>Fișierele folosite sunt cele din folderul <code>pieces/</code>, pentru piesele albe și negre.</p>
+    <p>Setul este utilizat și de Lichess. Repository-ul Lichess indică pentru setul <code>cburnett</code> licența <strong>GPLv2+</strong>.</p>
+    <p><a href="https://github.com/lichess-org/lila/tree/master/public/piece/cburnett" target="_blank" rel="noopener">Lichess / Cburnett pieces</a></p>
+
+    <h3>Google Fonts</h3>
+    <p>Mai multe pagini folosesc <strong>IBM Plex Sans</strong> și <strong>JetBrains Mono</strong>. Fonturile sunt încărcate prin Google Fonts și nu sunt redistribuite în repository.</p>
+    <p><a href="https://fonts.google.com/" target="_blank" rel="noopener">Google Fonts</a></p>
+  </section>
+
+  <section class="credits-section">
+    <h2>Date publice și servicii externe</h2>
+
+    <h3>OpenStreetMap / Nominatim</h3>
+    <p>Folosit pentru geocodare, geocodare inversă și unele funcții geografice.</p>
+    <p>Datele OpenStreetMap sunt licențiate sub <strong>ODbL 1.0</strong>. Serviciul public Nominatim are propria politică de utilizare.</p>
+    <p>
+      <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap copyright</a><br>
+      <a href="https://operations.osmfoundation.org/policies/nominatim/" target="_blank" rel="noopener">Nominatim usage policy</a>
+    </p>
+
+    <h3>Open-Meteo</h3>
+    <p>Folosit pentru vreme, prognoză și elevație. Open-Meteo publică datele API sub <strong>CC BY 4.0</strong>, cu cerință de atribuire.</p>
+    <p><a href="https://open-meteo.com/en/license" target="_blank" rel="noopener">Open-Meteo license</a></p>
+
+    <h3>USGS Earthquake Hazards Program</h3>
+    <p><code>earthquakes.html</code> folosește fluxurile publice GeoJSON ale USGS pentru cutremure recente.</p>
+    <p><a href="https://earthquake.usgs.gov/" target="_blank" rel="noopener">USGS Earthquake Hazards Program</a></p>
+
+    <h3>WhereTheISS.at</h3>
+    <p><code>iss.html</code> folosește API-ul public WhereTheISS.at pentru poziția curentă a Stației Spațiale Internaționale.</p>
+    <p><a href="https://wheretheiss.at/" target="_blank" rel="noopener">WhereTheISS.at</a></p>
+
+    <h3>Wikimedia Commons</h3>
+    <p><code>iss.html</code> folosește o hartă equirectangulară a lumii provenită din Wikimedia Commons. Atribuirea și legătura către sursă sunt afișate în pagina uneltei.</p>
+    <p><a href="https://commons.wikimedia.org/" target="_blank" rel="noopener">Wikimedia Commons</a></p>
+
+    <h3>mledoze/countries</h3>
+    <p><code>countries.html</code> utilizează date din proiectul <strong>mledoze/countries</strong>.</p>
+    <p>Licență: <strong>ODbL-1.0</strong></p>
+    <p><a href="https://github.com/mledoze/countries" target="_blank" rel="noopener">GitHub / mledoze/countries</a></p>
+
+    <h3>Open Food Facts</h3>
+    <p><code>food-facts.html</code> folosește API-ul public Open Food Facts. Datele și conținutul rămân supuse condițiilor și licențelor proiectului.</p>
+    <p><a href="https://world.openfoodfacts.org/" target="_blank" rel="noopener">Open Food Facts</a></p>
+
+    <h3>Wikipedia / Wikimedia</h3>
+    <p><code>wikipedia.html</code> folosește API-uri Wikipedia pentru căutare și rezumate. Conținutul rămâne supus licențelor și cerințelor de atribuire ale proiectelor Wikimedia și ale paginilor sursă.</p>
+    <p><a href="https://www.wikipedia.org/" target="_blank" rel="noopener">Wikipedia</a></p>
+
+    <h3>FlagCDN / Flagpedia</h3>
+    <p><code>quiz-flags.html</code> poate încărca imagini cu steaguri prin infrastructura FlagCDN / Flagpedia.</p>
+    <p><a href="https://flagpedia.net/" target="_blank" rel="noopener">Flagpedia</a></p>
+  </section>
+
+  <section class="credits-section">
+    <h2>Despre algoritmi și formule</h2>
+    <p>Numeroase unelte implementează formule, metode sau algoritmi standard, între care:</p>
+    <ul>
+      <li>legea lui Ohm;</li>
+      <li>formula lui Heron;</li>
+      <li>ecuația de gradul al doilea;</li>
+      <li>distanța Haversine;</li>
+      <li>codarea Huffman;</li>
+      <li>Base64 și conversii numerice;</li>
+      <li>Unicode și UTF-8;</li>
+      <li>transformări audio și spectrale;</li>
+      <li>optică geometrică;</li>
+      <li>formule pentru electronică, energie și acustică.</li>
+    </ul>
+    <p>În aceste cazuri, ideile matematice și algoritmice sunt cunoștințe publice sau standarde cunoscute. Implementarea concretă a fost adaptată pentru colecția Mini Unelte.</p>
+  </section>
+
+  <section class="credits-section">
+    <h2>Asistență AI</h2>
+    <p>O parte importantă a implementării a fost realizată cu <strong>asistență AI</strong>.</p>
+    <p>AI-ul a fost folosit ca instrument de dezvoltare pentru generarea și reformularea codului, explorarea variantelor de implementare, depanare, refactorizare, adaptarea interfețelor, documentare tehnică și verificări iterative.</p>
+    <p>Selecția ideilor, direcția proiectului, evaluarea rezultatelor, testarea, alegerea variantelor și integrarea finală aparțin lui <strong>Gabriel Valentin Cristescu</strong>.</p>
+  </section>
+
+  <section class="credits-section">
+    <h2>Agassante</h2>
+    <p>Mini Unelte este un proiect separat de <strong>Agassante</strong>, un proiect experimental de asistență pentru persoane nevăzătoare și cu deficiențe de vedere.</p>
+    <p><a href="https://www.agassante.com/" target="_blank" rel="noopener">www.agassante.com</a></p>
+    <p>Instrumentele, prototipurile și experimentele interne direct legate de Agassante nu sunt incluse în repository-ul public Mini Unelte.</p>
+  </section>
+
+  <section class="credits-section">
+    <h2>Notă privind licențele</h2>
+    <p>Codul original al colecției este publicat sub licența indicată în fișierul <code>LICENSE</code>.</p>
+    <p>Bibliotecile, seturile de date, fonturile, imaginile, API-urile și celelalte componente terțe își păstrează propriile licențe și condiții de utilizare.</p>
+    <div class="small-note">Acest document urmărește să consemneze proveniența cunoscută a componentelor și serviciilor folosite. Dacă o resursă externă este actualizată, mutată sau își schimbă licența, trebuie consultată sursa oficială corespunzătoare.</div>
+
+    <div class="inline-links">
+      <a href="index.html">← Înapoi la unelte</a>
+      <a href="about.html">Despre proiect</a>
+      <a href="CREDITS.md">CREDITS.md</a>
+    </div>
+  </section>
+
+</main>
+
+</body>
+</html>

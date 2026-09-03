@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Glassmorphism Generator — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #f0c040;
+  --accent-dim: rgba(240,192,64,0.10);
+  --accent-border: rgba(240,192,64,0.28);
+}
+
+.preview-wrap {
+  position: relative;
+  height: 260px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: var(--content-gap);
+  background: linear-gradient(135deg, #8a5cf6, #f0608a, #40c0a0, #f0c040);
+  background-size: 300% 300%;
+  animation: gradientShift 8s ease infinite;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+@keyframes gradientShift {
+  0%,100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.glass-card {
+  width: 220px;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+  text-align: center;
+  padding: 16px;
+}
+
+.sliders-grid { display: flex; flex-direction: column; gap: 12px; margin-bottom: var(--content-gap); }
+.slider-item { display: flex; align-items: center; gap: 12px; }
+.slider-item label { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text2); width: 100px; flex-shrink: 0; }
+.slider-item input[type=range] { flex: 1; accent-color: var(--accent); }
+.slider-item .val { font-family: var(--font-mono); font-size: 0.72rem; color: var(--accent); width: 50px; text-align: right; }
+
+.options-row { display: flex; gap: 16px; margin-bottom: var(--content-gap); align-items: center; flex-wrap: wrap; }
+.color-input { width: 40px; height: 32px; border: 1px solid var(--border2); border-radius: 6px; cursor: pointer; background: none; padding: 2px; }
+.option-item { display: flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 0.72rem; color: var(--text2); }
+
+.code-box {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  color: var(--text2);
+  white-space: pre-wrap;
+  word-break: break-all;
+  position: relative;
+  line-height: 1.7;
+}
+.copy-btn {
+  position: absolute;
+  top: 10px; right: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  padding: 4px 10px;
+  border-radius: 5px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text2);
+  cursor: pointer;
+}
+.copy-btn:hover { border-color: var(--accent-border); color: var(--accent); }
+
+.browser-note {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text3);
+  margin-top: 8px;
+  line-height: 1.5;
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Glassmorphism Generator</h1>
+    <p>Blur, transparență, border → efect sticlă mată în CSS</p>
+  </div>
+
+  <div class="preview-wrap">
+    <div class="glass-card" id="glass-card">Conținut peste fundal</div>
+  </div>
+
+  <div class="sliders-grid">
+    <div class="slider-item">
+      <label>Blur</label>
+      <input type="range" id="s-blur" min="0" max="40" value="12" oninput="update()">
+      <span class="val" id="v-blur">12px</span>
+    </div>
+    <div class="slider-item">
+      <label>Opacitate fundal</label>
+      <input type="range" id="s-opacity" min="0" max="100" value="18" oninput="update()">
+      <span class="val" id="v-opacity">18%</span>
+    </div>
+    <div class="slider-item">
+      <label>Grosime bordură</label>
+      <input type="range" id="s-borderw" min="0" max="5" value="1" oninput="update()">
+      <span class="val" id="v-borderw">1px</span>
+    </div>
+    <div class="slider-item">
+      <label>Opacitate bordură</label>
+      <input type="range" id="s-borderop" min="0" max="100" value="25" oninput="update()">
+      <span class="val" id="v-borderop">25%</span>
+    </div>
+    <div class="slider-item">
+      <label>Rotunjire</label>
+      <input type="range" id="s-radius" min="0" max="40" value="16" oninput="update()">
+      <span class="val" id="v-radius">16px</span>
+    </div>
+  </div>
+
+  <div class="options-row">
+    <div class="option-item">
+      <input type="color" class="color-input" id="s-tint" value="#ffffff" oninput="update()">
+      <span>Nuanță sticlă</span>
+    </div>
+  </div>
+
+  <div class="code-box">
+    <button class="copy-btn" onclick="copyCss()">Copiază</button>
+    <div id="css-output">—</div>
+  </div>
+
+  <p class="browser-note">Notă: backdrop-filter necesită Safari 9+, Chrome 76+, Firefox 103+. Verifică suportul dacă țintești browsere mai vechi.</p>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+function hexToRgb(hex) {
+  hex = hex.replace('#','');
+  const num = parseInt(hex,16);
+  return { r:(num>>16)&255, g:(num>>8)&255, b:num&255 };
+}
+
+function update() {
+  const blur = document.getElementById('s-blur').value;
+  const opacity = document.getElementById('s-opacity').value;
+  const borderW = document.getElementById('s-borderw').value;
+  const borderOp = document.getElementById('s-borderop').value;
+  const radius = document.getElementById('s-radius').value;
+  const tint = document.getElementById('s-tint').value;
+
+  document.getElementById('v-blur').textContent = blur+'px';
+  document.getElementById('v-opacity').textContent = opacity+'%';
+  document.getElementById('v-borderw').textContent = borderW+'px';
+  document.getElementById('v-borderop').textContent = borderOp+'%';
+  document.getElementById('v-radius').textContent = radius+'px';
+
+  const { r, g, b } = hexToRgb(tint);
+  const bgRgba = `rgba(${r}, ${g}, ${b}, ${opacity/100})`;
+  const borderRgba = `rgba(${r}, ${g}, ${b}, ${borderOp/100})`;
+
+  const card = document.getElementById('glass-card');
+  card.style.background = bgRgba;
+  card.style.backdropFilter = `blur(${blur}px)`;
+  card.style.webkitBackdropFilter = `blur(${blur}px)`;
+  card.style.border = `${borderW}px solid ${borderRgba}`;
+  card.style.borderRadius = radius+'px';
+
+  const css = `background: ${bgRgba};
+backdrop-filter: blur(${blur}px);
+-webkit-backdrop-filter: blur(${blur}px);
+border: ${borderW}px solid ${borderRgba};
+border-radius: ${radius}px;`;
+
+  document.getElementById('css-output').textContent = css;
+}
+
+function copyCss() {
+  const css = document.getElementById('css-output').textContent;
+  navigator.clipboard.writeText(css).then(() => showToast('Copiat!'));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+update();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Glassmorphism generator</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

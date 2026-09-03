@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comparator Înainte/După — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #f08060;
+  --accent-dim: rgba(240,128,96,0.10);
+  --accent-border: rgba(240,128,96,0.28);
+}
+
+.drops-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: var(--content-gap); }
+@media (max-width: 500px) { .drops-grid { grid-template-columns: 1fr; } }
+.file-drop {
+  border: 2px dashed var(--border2);
+  border-radius: var(--radius);
+  padding: 24px 12px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text3);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.file-drop:hover, .file-drop.dragover { border-color: var(--accent-border); color: var(--accent); background: var(--accent-dim); }
+.file-drop.loaded { border-style: solid; border-color: #4af0b0; color: #4af0b0; }
+
+.compare-outer { display: flex; justify-content: center; margin-bottom: var(--content-gap); }
+.compare-wrap {
+  display: none;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius);
+  user-select: none;
+  touch-action: none;
+}
+.compare-wrap.show { display: block; }
+.compare-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+.compare-img.after {
+  position: absolute;
+  top: 0; left: 0;
+  clip-path: inset(0 0 0 50%);
+}
+.compare-handle {
+  position: absolute;
+  top: 0; bottom: 0;
+  left: 50%;
+  width: 3px;
+  background: #fff;
+  cursor: ew-resize;
+  transform: translateX(-50%);
+  box-shadow: 0 0 8px rgba(0,0,0,0.4);
+}
+.compare-handle::after {
+  content: '⇔';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  width: 36px; height: 36px;
+  background: #fff;
+  color: #333;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+.compare-label {
+  position: absolute;
+  top: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(0,0,0,0.5);
+  padding: 4px 10px;
+  border-radius: 99px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.compare-label.before { left: 10px; }
+.compare-label.after { right: 10px; }
+
+.status-msg { text-align: center; font-family: var(--font-mono); font-size: 0.75rem; color: var(--text3); }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Comparator înainte/după</h1>
+    <p>Slider glisant între două imagini — trage sau click oriunde</p>
+  </div>
+
+  <div class="drops-grid">
+    <div class="file-drop" id="drop-before" onclick="document.getElementById('input-before').click()">
+      Imagine "Înainte"
+      <input type="file" id="input-before" accept="image/*" style="display:none">
+    </div>
+    <div class="file-drop" id="drop-after" onclick="document.getElementById('input-after').click()">
+      Imagine "După"
+      <input type="file" id="input-after" accept="image/*" style="display:none">
+    </div>
+  </div>
+
+  <div class="compare-outer">
+    <div class="compare-wrap" id="compare-wrap">
+      <img class="compare-img before" id="img-before" src="">
+      <img class="compare-img after" id="img-after" src="">
+      <div class="compare-label before">Înainte</div>
+      <div class="compare-label after">După</div>
+      <div class="compare-handle" id="compare-handle"></div>
+    </div>
+  </div>
+
+  <div class="status-msg" id="status-msg">Încarcă ambele imagini pentru a compara</div>
+</div>
+
+<script>
+let beforeLoaded = false, afterLoaded = false;
+let beforeImg = null;
+
+function loadImage(inputId, dropId, imgId, isBefore) {
+  document.getElementById(inputId).addEventListener('change', e => handleFile(e.target.files[0]));
+
+  const drop = document.getElementById(dropId);
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('dragover'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
+  drop.addEventListener('drop', e => {
+    e.preventDefault();
+    drop.classList.remove('dragover');
+    handleFile(e.dataTransfer.files[0]);
+  });
+
+  function handleFile(file) {
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        document.getElementById(imgId).src = e.target.result;
+        drop.classList.add('loaded');
+        drop.textContent = '✓ ' + file.name;
+
+        if (isBefore) { beforeLoaded = true; beforeImg = img; }
+        else { afterLoaded = true; }
+
+        checkBothLoaded();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+function checkBothLoaded() {
+  if (beforeLoaded && afterLoaded) {
+    const wrap = document.getElementById('compare-wrap');
+    // Setăm dimensiunea comparatorului pe baza aspect ratio-ului imaginii "înainte"
+    const maxWidth = document.querySelector('.tool-page').clientWidth;
+    const displayW = Math.min(beforeImg.width, maxWidth);
+    const displayH = displayW * (beforeImg.height / beforeImg.width);
+    wrap.style.width = displayW + 'px';
+    wrap.style.height = displayH + 'px';
+    wrap.classList.add('show');
+    document.getElementById('status-msg').textContent = 'Trage linia sau dă click oriunde pentru a compara';
+    setSliderPosition(50);
+  }
+}
+
+function setSliderPosition(pct) {
+  pct = Math.max(0, Math.min(100, pct));
+  document.getElementById('img-after').style.clipPath = `inset(0 0 0 ${pct}%)`;
+  document.getElementById('compare-handle').style.left = pct + '%';
+}
+
+function getPctFromEvent(e) {
+  const wrap = document.getElementById('compare-wrap');
+  const rect = wrap.getBoundingClientRect();
+  const point = e.touches ? e.touches[0] : e;
+  const x = point.clientX - rect.left;
+  return (x / rect.width) * 100;
+}
+
+let dragging = false;
+
+document.getElementById('compare-handle').addEventListener('mousedown', () => dragging = true);
+document.getElementById('compare-handle').addEventListener('touchstart', () => dragging = true, {passive:true});
+document.getElementById('compare-wrap').addEventListener('click', e => {
+  if (!beforeLoaded || !afterLoaded) return;
+  setSliderPosition(getPctFromEvent(e));
+});
+
+document.addEventListener('mousemove', e => {
+  if (dragging) setSliderPosition(getPctFromEvent(e));
+});
+document.addEventListener('touchmove', e => {
+  if (dragging) setSliderPosition(getPctFromEvent(e));
+});
+document.addEventListener('mouseup', () => dragging = false);
+document.addEventListener('touchend', () => dragging = false);
+
+loadImage('input-before', 'drop-before', 'img-before', true);
+loadImage('input-after', 'drop-after', 'img-after', false);
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Comparator înainte/după</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

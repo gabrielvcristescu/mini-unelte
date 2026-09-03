@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Favicon din Emoji — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #f0c040;
+  --accent-dim: rgba(240,192,64,0.10);
+  --accent-border: rgba(240,192,64,0.28);
+}
+
+.input-row { margin-bottom: var(--content-gap); }
+.emoji-input {
+  width: 100%;
+  font-size: 2.5rem;
+  text-align: center;
+  padding: 20px;
+}
+
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+  gap: 6px;
+  margin-bottom: var(--content-gap);
+  max-height: 200px;
+  overflow-y: auto;
+}
+.emoji-btn {
+  aspect-ratio: 1;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.emoji-btn:hover { border-color: var(--accent-border); background: var(--accent-dim); transform: scale(1.05); }
+
+.options-row { display: flex; gap: 16px; margin-bottom: var(--content-gap); align-items: center; flex-wrap: wrap; }
+.option-item { display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 0.72rem; color: var(--text2); }
+.color-input { width: 40px; height: 32px; border: 1px solid var(--border2); border-radius: 6px; cursor: pointer; background: none; padding: 2px; }
+.size-select {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 5px 10px;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  color: var(--text2);
+  outline: none;
+  cursor: pointer;
+}
+
+.preview-row { display: flex; gap: 20px; align-items: center; justify-content: center; margin-bottom: var(--content-gap); flex-wrap: wrap; }
+.preview-item { text-align: center; }
+.preview-canvas-wrap {
+  background: var(--bg3);
+  border-radius: 8px;
+  padding: 8px;
+  display: inline-block;
+}
+.preview-label { font-family: var(--font-mono); font-size: 0.6rem; color: var(--text3); margin-top: 6px; }
+.mini-dl-btn {
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  padding: 5px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.12s;
+  font-weight: 600;
+}
+.mini-dl-btn:hover { filter: brightness(1.15); }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Favicon din emoji</h1>
+    <p>Orice emoji → favicon.png descărcabil, generat local</p>
+  </div>
+
+  <div class="input-row">
+    <input class="input-calc emoji-input" id="emoji-input" type="text" value="⚡" maxlength="4"
+           style="--input-color:var(--accent)" oninput="renderPreview()">
+  </div>
+
+  <div class="emoji-grid" id="emoji-grid"></div>
+
+  <div class="options-row">
+    <div class="option-item">
+      <input type="color" class="color-input" id="bg-color" value="#0d0f12" oninput="renderPreview()">
+      <span>Fundal</span>
+    </div>
+    <label class="option-item">
+      <input type="checkbox" id="transparent-bg" onchange="renderPreview()">
+      Fundal transparent
+    </label>
+    <select class="size-select" id="radius-select" onchange="renderPreview()">
+      <option value="0">Colțuri drepte</option>
+      <option value="0.5" selected>Rotunjit</option>
+      <option value="1">Cerc complet</option>
+    </select>
+  </div>
+
+  <div class="preview-row" id="preview-row"></div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+const COMMON_EMOJI = ['⚡','🚀','🎯','💡','🔥','⭐','🎨','🎮','📱','💻','🔧','⚙️','🌟','✨','🎪','🦄','🐱','🐶','🌈','☀️','🌙','❤️','💚','💙','🟣','🎵','📷','🔒','✅','❌'];
+
+const SIZES = [16, 32, 48, 64];
+
+function buildEmojiGrid() {
+  const grid = document.getElementById('emoji-grid');
+  COMMON_EMOJI.forEach(e => {
+    const btn = document.createElement('div');
+    btn.className = 'emoji-btn';
+    btn.textContent = e;
+    btn.onclick = () => {
+      document.getElementById('emoji-input').value = e;
+      renderPreview();
+    };
+    grid.appendChild(btn);
+  });
+}
+
+function drawFavicon(canvas, size, emoji, bgColor, transparent, radiusRatio) {
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, size, size);
+
+  if (!transparent) {
+    const r = (radiusRatio * size) / 2;
+    ctx.fillStyle = bgColor;
+    ctx.beginPath();
+    if (radiusRatio >= 1) {
+      ctx.arc(size/2, size/2, size/2, 0, Math.PI*2);
+    } else {
+      ctx.moveTo(r, 0);
+      ctx.arcTo(size, 0, size, size, r);
+      ctx.arcTo(size, size, 0, size, r);
+      ctx.arcTo(0, size, 0, 0, r);
+      ctx.arcTo(0, 0, size, 0, r);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  ctx.font = `${size*0.65}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(emoji, size/2, size/2 + size*0.05);
+}
+
+function renderPreview() {
+  const emoji = document.getElementById('emoji-input').value || '⚡';
+  const bgColor = document.getElementById('bg-color').value;
+  const transparent = document.getElementById('transparent-bg').checked;
+  const radiusRatio = parseFloat(document.getElementById('radius-select').value);
+
+  const row = document.getElementById('preview-row');
+  row.innerHTML = '';
+
+  SIZES.forEach(size => {
+    const wrap = document.createElement('div');
+    wrap.className = 'preview-item';
+    const canvasWrap = document.createElement('div');
+    canvasWrap.className = 'preview-canvas-wrap';
+    const canvas = document.createElement('canvas');
+    canvas.style.width = Math.min(size, 48)+'px';
+    canvas.style.height = Math.min(size, 48)+'px';
+    canvas.style.imageRendering = size <= 32 ? 'auto' : 'auto';
+    drawFavicon(canvas, size, emoji, bgColor, transparent, radiusRatio);
+    canvasWrap.appendChild(canvas);
+    wrap.appendChild(canvasWrap);
+    const label = document.createElement('div');
+    label.className = 'preview-label';
+    label.textContent = size+'×'+size;
+    wrap.appendChild(label);
+
+    const dlBtn = document.createElement('button');
+    dlBtn.className = 'mini-dl-btn';
+    dlBtn.textContent = '⬇';
+    dlBtn.title = `Descarcă ${size}×${size}`;
+    dlBtn.onclick = () => downloadFavicon(size);
+    wrap.appendChild(dlBtn);
+
+    row.appendChild(wrap);
+  });
+}
+
+function downloadFavicon(size = 32) {
+  const emoji = document.getElementById('emoji-input').value || '⚡';
+  const bgColor = document.getElementById('bg-color').value;
+  const transparent = document.getElementById('transparent-bg').checked;
+  const radiusRatio = parseFloat(document.getElementById('radius-select').value);
+
+  const canvas = document.createElement('canvas');
+  drawFavicon(canvas, size, emoji, bgColor, transparent, radiusRatio);
+
+  canvas.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `favicon-${size}x${size}.png`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(`Descărcat: favicon-${size}x${size}.png`);
+  });
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+buildEmojiGrid();
+renderPreview();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Favicon din emoji</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

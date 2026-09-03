@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generator DTMF — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #e070a0;
+  --accent-dim: rgba(224,112,160,0.10);
+  --accent-border: rgba(224,112,160,0.28);
+}
+
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  max-width: 380px;
+  margin: 0 auto var(--content-gap);
+}
+.key-btn {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.1s;
+  user-select: none;
+}
+.key-btn:active, .key-btn.pressed { background: var(--accent-dim); border-color: var(--accent); transform: scale(0.95); }
+.key-main { font-family: var(--font-mono); font-size: 1.6rem; font-weight: 700; color: var(--text); }
+.key-freq { font-family: var(--font-mono); font-size: 0.5rem; color: var(--text3); margin-top: 2px; }
+
+.sequence-row { display: flex; gap: 8px; margin-bottom: var(--content-gap); }
+.sequence-input { flex: 1; font-family: var(--font-mono); font-size: 1.1rem !important; letter-spacing: 2px; }
+.action-btn {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+}
+.action-btn:hover { filter: brightness(1.15); }
+
+.freq-table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.72rem; margin-top: var(--content-gap); }
+.freq-table th { background: var(--bg3); color: var(--text3); font-size: 0.58rem; text-transform: uppercase; padding: 5px 8px; text-align: center; }
+.freq-table td { padding: 4px 8px; text-align: center; border: 1px solid var(--border); color: var(--text2); }
+.freq-table td.key-cell { font-weight: 700; color: var(--accent); cursor: pointer; }
+.freq-table td.key-cell:hover { background: var(--accent-dim); }
+
+.info-note {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text3);
+  text-align: center;
+  line-height: 1.6;
+  margin-top: var(--content-gap);
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Generator DTMF</h1>
+    <p>Tonuri telefonice — dual-tone multi-frequency, apasă sau redă o secvență</p>
+  </div>
+
+  <div class="keypad" id="keypad"></div>
+
+  <div class="sequence-row">
+    <input class="input-calc sequence-input" id="in-sequence" type="text" placeholder="ex: 0721234567" maxlength="30">
+    <button class="action-btn" onclick="playSequence()">▶ Redă secvența</button>
+  </div>
+
+  <table class="freq-table" id="freq-table"></table>
+
+  <p class="info-note">
+    DTMF (Dual-Tone Multi-Frequency) e sistemul de tonuri folosit de telefoanele cu tastatură — fiecare tastă e o combinație unică de 2 frecvențe.
+  </p>
+</div>
+
+<script>
+// Frecvențele standard DTMF (Bell System / ITU-T Q.23)
+const ROW_FREQ = [697, 770, 852, 941];
+const COL_FREQ = [1209, 1336, 1477, 1633];
+const KEYS = [
+  ['1','2','3','A'],
+  ['4','5','6','B'],
+  ['7','8','9','C'],
+  ['*','0','#','D'],
+];
+
+let audioCtx = null;
+
+function getFreqPair(key) {
+  for (let r = 0; r < 4; r++) {
+    for (let c = 0; c < 4; c++) {
+      if (KEYS[r][c] === key) return [ROW_FREQ[r], COL_FREQ[c]];
+    }
+  }
+  return null;
+}
+
+function playTone(key, duration = 0.15) {
+  const pair = getFreqPair(key);
+  if (!pair) return;
+
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const [f1, f2] = pair;
+
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(0, audioCtx.currentTime);
+  gain.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime+0.01);
+  gain.gain.setValueAtTime(0.2, audioCtx.currentTime+duration-0.01);
+  gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime+duration);
+  gain.connect(audioCtx.destination);
+
+  [f1, f2].forEach(freq => {
+    const osc = audioCtx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    osc.connect(gain);
+    osc.start();
+    osc.stop(audioCtx.currentTime+duration);
+  });
+}
+
+function pressKey(key, el) {
+  playTone(key);
+  if (el) {
+    el.classList.add('pressed');
+    setTimeout(() => el.classList.remove('pressed'), 120);
+  }
+  const input = document.getElementById('in-sequence');
+  input.value += key;
+}
+
+function buildKeypad() {
+  const wrap = document.getElementById('keypad');
+  KEYS.flat().forEach(key => {
+    const pair = getFreqPair(key);
+    const btn = document.createElement('div');
+    btn.className = 'key-btn';
+    btn.innerHTML = `<div class="key-main">${key}</div><div class="key-freq">${pair[0]}/${pair[1]}Hz</div>`;
+    btn.onclick = () => pressKey(key, btn);
+    wrap.appendChild(btn);
+  });
+}
+
+function playSequence() {
+  const seq = document.getElementById('in-sequence').value;
+  if (!seq) return;
+
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  let delay = 0;
+  [...seq].forEach(ch => {
+    const pair = getFreqPair(ch.toUpperCase());
+    if (!pair) return;
+    setTimeout(() => playTone(ch.toUpperCase(), 0.15), delay*1000);
+    delay += 0.2; // 150ms ton + 50ms pauză
+  });
+}
+
+function buildFreqTable() {
+  const table = document.getElementById('freq-table');
+  let html = '<thead><tr><th></th>';
+  COL_FREQ.forEach(f => html += `<th>${f}Hz</th>`);
+  html += '</tr></thead><tbody>';
+  ROW_FREQ.forEach((rf, r) => {
+    html += `<tr><th>${rf}Hz</th>`;
+    COL_FREQ.forEach((cf, c) => {
+      const key = KEYS[r][c];
+      html += `<td class="key-cell" onclick="playTone('${key}')">${key}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody>';
+  table.innerHTML = html;
+}
+
+buildKeypad();
+buildFreqTable();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>DTMF generator</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Geocoding — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #90d060;
+  --accent-dim: rgba(144,208,96,0.10);
+  --accent-border: rgba(144,208,96,0.28);
+}
+
+.search-row { display: flex; gap: 8px; margin-bottom: var(--content-gap); }
+.search-row input { flex: 1; }
+.btn-primary {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.btn-primary:hover { filter: brightness(1.15); }
+.btn-primary:disabled { opacity: 0.5; cursor: default; }
+
+.status-msg { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text3); margin-bottom: var(--content-gap); }
+.status-msg.error { color: #f06060; }
+
+.result-list { display: flex; flex-direction: column; gap: 8px; }
+.result-row {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.result-row:hover { border-color: var(--accent-border); background: var(--accent-dim); }
+.result-name { font-family: var(--font-mono); font-size: 0.85rem; color: var(--text); font-weight: 500; }
+.result-coords { font-family: var(--font-mono); font-size: 0.7rem; color: var(--accent); margin-top: 4px; }
+.result-type { font-family: var(--font-mono); font-size: 0.62rem; color: var(--text3); margin-top: 2px; }
+
+.attribution { font-family: var(--font-mono); font-size: 0.6rem; color: var(--text3); text-align: center; margin-top: var(--content-gap); }
+.attribution a { color: var(--text2); }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Geocoding — Oraș → Coordonate</h1>
+    <p>Caută orice loc, primești coordonatele GPS — date live OpenStreetMap</p>
+  </div>
+
+  <div class="search-row">
+    <input class="input-calc" id="in-query" type="text" placeholder="ex: Cluj-Napoca, sau Turnul Eiffel"
+           style="--input-color:var(--accent);font-size:0.95rem" value="Sibiu, România">
+    <button class="btn-primary" id="search-btn" onclick="search()">Caută</button>
+  </div>
+
+  <div class="status-msg" id="status-msg"></div>
+
+  <div class="result-list" id="result-list"></div>
+
+  <div class="attribution">Date furnizate de <a href="https://www.openstreetmap.org" target="_blank" rel="noopener">OpenStreetMap</a> / Nominatim</div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+async function search() {
+  const query = document.getElementById('in-query').value.trim();
+  const statusMsg = document.getElementById('status-msg');
+  const resultList = document.getElementById('result-list');
+  const btn = document.getElementById('search-btn');
+
+  if (!query) {
+    statusMsg.textContent = 'Introdu un nume de loc';
+    statusMsg.className = 'status-msg error';
+    return;
+  }
+
+  btn.disabled = true;
+  statusMsg.className = 'status-msg';
+  statusMsg.textContent = 'Se caută...';
+  resultList.innerHTML = '';
+
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=6&addressdetails=1`;
+    const response = await fetch(url, {
+      headers: { 'Accept-Language': 'ro' }
+    });
+    if (!response.ok) throw new Error('Răspuns invalid de la server');
+    const data = await response.json();
+
+    if (data.length === 0) {
+      statusMsg.textContent = 'Niciun rezultat găsit';
+      return;
+    }
+
+    statusMsg.textContent = `${data.length} rezultate găsite`;
+    resultList.innerHTML = data.map(item => `
+      <div class="result-row" onclick="copyCoords(${item.lat}, ${item.lon}, '${item.display_name.replace(/'/g,"\\'")}')">
+        <div class="result-name">${item.display_name}</div>
+        <div class="result-coords">${parseFloat(item.lat).toFixed(6)}, ${parseFloat(item.lon).toFixed(6)}</div>
+        <div class="result-type">${item.type || ''} ${item.class ? '· '+item.class : ''}</div>
+      </div>
+    `).join('');
+  } catch (err) {
+    statusMsg.textContent = 'Eroare: ' + err.message;
+    statusMsg.className = 'status-msg error';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function copyCoords(lat, lon, name) {
+  const text = `${lat}, ${lon}`;
+  navigator.clipboard.writeText(text).then(() => showToast('Copiat: ' + text));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+document.getElementById('in-query').addEventListener('keydown', e => {
+  if (e.key === 'Enter') search();
+});
+
+search();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Geocoding oraș</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

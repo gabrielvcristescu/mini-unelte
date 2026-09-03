@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Despre colecția Mini Unelte, Gabriel Valentin Cristescu și proiectul Agassante.">
+<title>Despre — Mini Unelte</title>
+<link rel="stylesheet" href="shared.css">
+<script src="theme.js"></script>
+<style>
+.about-wrap{width:min(92vw,860px);margin:0 auto;padding:18px 22px 60px}.about-head{margin:30px 0 28px}.about-head h1{font-size:clamp(2rem,5vw,3.6rem);letter-spacing:-.05em;margin:.2rem 0 .7rem}.about-head p{max-width:720px;color:var(--text2);line-height:1.65}.about-section{margin-top:34px;padding-top:22px;border-top:1px solid var(--border)}.about-section h2{font-size:1.25rem;margin:0 0 10px}.about-section p{color:var(--text2);line-height:1.7;margin:.5rem 0}.note{border:1px solid var(--border);background:var(--bg2);border-radius:var(--radius-lg);padding:16px 18px;margin-top:18px}.links{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}.links a{border:1px solid var(--border);background:var(--bg2);padding:9px 13px;border-radius:9px;text-decoration:none;color:var(--text)}.links a:hover{border-color:var(--border2);background:var(--bg3)}
+</style>
+</head>
+<body>
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+<main class="about-wrap">
+  <div class="tool-header"><a class="back" href="index.html">← index</a></div>
+  <header class="about-head">
+    <div class="eyebrow">Mini Unelte / despre proiect</div>
+    <h1>Experimente mici, construite ca să fie încercate.</h1>
+    <p>Mini Unelte este o colecție personală de simulatoare, calculatoare, jocuri și experimente interactive realizate pentru browser. Colecția este selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>, cu asistență AI în procesul de implementare.</p>
+  </header>
+
+  <section class="about-section">
+    <h2>Cum a fost construită colecția</h2>
+    <p>Unele pagini sunt demonstrații simple ale unor algoritmi sau formule cunoscute. Altele au fost dezvoltate iterativ, pornind de la o problemă, o observație sau o idee de interacțiune și trecând prin mai multe variante până la o formă utilă sau interesantă.</p>
+    <p>Asistența AI este folosită ca instrument de dezvoltare. Alegerea problemelor, direcția experimentelor, testarea, corectarea și integrarea lor într-o colecție coerentă sunt parte din munca proiectului.</p>
+  </section>
+
+  <section class="about-section">
+    <h2>Experimente selectate</h2>
+    <p><strong>Braille de Bruijn</strong> explorează o idee de comprimare a benzilor mecanice pentru configurații Braille folosind secvențe de Bruijn. <strong>Frequency Compression Lab</strong> și <strong>Time Stretch Comparison</strong> investighează transformări audio cu relevanță pentru accesibilitatea auditivă.</p>
+  </section>
+
+  <section class="about-section">
+    <h2>Agassante</h2>
+    <p>În paralel, Gabriel Valentin Cristescu dezvoltă <strong><a href="https://www.agassante.com" target="_blank" rel="noopener">Agassante</a></strong>, un proiect experimental de asistență pentru persoane nevăzătoare. Proiectul investighează folosirea percepției vizuale, a informației de profunzime, a navigației și a interacțiunii vocale pentru a oferi informații utile despre mediul din jur.</p>
+    <div class="note">Uneltele de cercetare și prototipurile direct legate de Agassante sunt păstrate pentru moment în versiunea internă și nu sunt incluse în repository-ul public Mini Unelte.</div>
+  </section>
+
+  <section class="about-section">
+    <h2>Surse și atribuiri</h2>
+    <p>Colecția folosește, după caz, algoritmi standard, biblioteci open-source, date publice și active grafice externe. Sursele cunoscute și licențele relevante sunt centralizate în fișierul <code>CREDITS.md</code>.</p>
+    <div class="links"><a href="index.html">← Înapoi la unelte</a><a href="credits.html">Surse & credite</a></div>
+  </section>
+</main>
+</body>
+</html>

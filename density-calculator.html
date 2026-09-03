@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculator Densitate — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #4af0b0;
+  --accent-dim: rgba(74,240,176,0.10);
+  --accent-border: rgba(74,240,176,0.28);
+}
+
+.fields-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--content-gap); margin-bottom: var(--content-gap); }
+@media (max-width: 600px) { .fields-grid { grid-template-columns: 1fr; } }
+
+.field-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  position: relative;
+}
+.field-card.derived { border-color: var(--accent-border); }
+.field-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.field-name { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text2); font-weight: 500; }
+.field-unit-select {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  padding: 2px 5px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  color: var(--text2);
+  outline: none;
+  cursor: pointer;
+}
+
+.msg-bar {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text3);
+  margin-bottom: var(--content-gap);
+}
+
+.ref-table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.74rem; }
+.ref-table th { text-align: left; color: var(--text3); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.08em; padding: 5px 10px; border-bottom: 1px solid var(--border); }
+.ref-table td { padding: 4px 10px; border-bottom: 1px solid rgba(128,128,128,0.05); color: var(--text2); cursor: pointer; }
+.ref-table tr:hover td { background: var(--bg3); }
+.ref-name { color: var(--text); }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Calculator densitate</h1>
+    <p>ρ = m / V — introduci oricare doi, calculezi al treilea</p>
+  </div>
+
+  <div class="fields-grid">
+    <div class="field-card" id="card-mass">
+      <div class="field-top">
+        <span class="field-name">Masă (m)</span>
+        <select class="field-unit-select" id="unit-mass" onchange="compute()">
+          <option value="0.001">g</option>
+          <option value="1" selected>kg</option>
+          <option value="1000">t</option>
+        </select>
+      </div>
+      <input class="input-calc" id="in-mass" type="number" min="0" step="any" value="1"
+             style="--input-color:var(--accent);font-size:1.05rem" oninput="onEdit('mass')">
+    </div>
+    <div class="field-card" id="card-volume">
+      <div class="field-top">
+        <span class="field-name">Volum (V)</span>
+        <select class="field-unit-select" id="unit-volume" onchange="compute()">
+          <option value="0.000001">cm³</option>
+          <option value="0.001" selected>litri</option>
+          <option value="1">m³</option>
+        </select>
+      </div>
+      <input class="input-calc" id="in-volume" type="number" min="0" step="any" value="1"
+             style="--input-color:var(--accent);font-size:1.05rem" oninput="onEdit('volume')">
+    </div>
+    <div class="field-card" id="card-density">
+      <div class="field-top">
+        <span class="field-name">Densitate (ρ)</span>
+        <select class="field-unit-select" id="unit-density" onchange="compute()">
+          <option value="1" selected>kg/m³</option>
+          <option value="1000">g/cm³</option>
+          <option value="1000">kg/L</option>
+        </select>
+      </div>
+      <input class="input-calc" id="in-density" type="number" min="0" step="any" placeholder="calculat"
+             style="--input-color:var(--accent);font-size:1.05rem" oninput="onEdit('density')">
+    </div>
+  </div>
+
+  <div class="msg-bar" id="msg-bar"></div>
+
+  <div class="card">
+    <div class="field-label" style="margin-bottom:10px">Densități materiale comune (click pentru a completa)</div>
+    <table class="ref-table" id="ref-table"></table>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+const MATERIALS = [
+  { name: 'Aer (20°C)', density: 1.204 },
+  { name: 'Apă (4°C)', density: 1000 },
+  { name: 'Gheață', density: 917 },
+  { name: 'Ulei de măsline', density: 918 },
+  { name: 'Lemn (stejar)', density: 750 },
+  { name: 'Aluminiu', density: 2700 },
+  { name: 'Sticlă', density: 2500 },
+  { name: 'Beton', density: 2400 },
+  { name: 'Fier', density: 7874 },
+  { name: 'Oțel', density: 7850 },
+  { name: 'Cupru', density: 8960 },
+  { name: 'Argint', density: 10490 },
+  { name: 'Plumb', density: 11340 },
+  { name: 'Aur', density: 19300 },
+  { name: 'Mercur (lichid)', density: 13534 },
+];
+
+let pinned = []; // maxim 2 câmpuri "sursă"
+
+function trim(n) {
+  if (!isFinite(n)) return '—';
+  return parseFloat(n.toPrecision(6)).toString();
+}
+
+function pin(field) {
+  pinned = pinned.filter(f => f !== field);
+  pinned.push(field);
+  if (pinned.length > 2) pinned.shift();
+}
+
+function onEdit(field) {
+  const val = document.getElementById('in-' + field).value;
+  if (val.trim() === '') {
+    pinned = pinned.filter(f => f !== field);
+  } else {
+    pin(field);
+  }
+  compute();
+}
+
+function compute() {
+  const massFactor = parseFloat(document.getElementById('unit-mass').value);
+  const volFactor = parseFloat(document.getElementById('unit-volume').value);
+  const densFactor = parseFloat(document.getElementById('unit-density').value);
+
+  const massRaw = parseFloat(document.getElementById('in-mass').value);
+  const volRaw = parseFloat(document.getElementById('in-volume').value);
+  const densRaw = parseFloat(document.getElementById('in-density').value);
+
+  ['mass','volume','density'].forEach(f => {
+    document.getElementById('card-'+f).classList.remove('derived');
+  });
+
+  const msgBar = document.getElementById('msg-bar');
+
+  if (pinned.length < 2) {
+    msgBar.textContent = 'Introdu oricare 2 din cele 3 valori (masă, volum, densitate).';
+    return;
+  }
+
+  // SI: kg, m³, kg/m³
+  const massSI = pinned.includes('mass') && !isNaN(massRaw) ? massRaw * massFactor : null;
+  const volSI = pinned.includes('volume') && !isNaN(volRaw) ? volRaw * volFactor : null;
+  const densSI = pinned.includes('density') && !isNaN(densRaw) ? densRaw * densFactor : null;
+
+  let resultMassSI = massSI, resultVolSI = volSI, resultDensSI = densSI;
+
+  if (massSI !== null && volSI !== null) {
+    if (volSI === 0) { msgBar.textContent = 'Volumul nu poate fi 0.'; return; }
+    resultDensSI = massSI / volSI;
+  } else if (massSI !== null && densSI !== null) {
+    if (densSI === 0) { msgBar.textContent = 'Densitatea nu poate fi 0.'; return; }
+    resultVolSI = massSI / densSI;
+  } else if (volSI !== null && densSI !== null) {
+    resultMassSI = volSI * densSI;
+  } else {
+    msgBar.textContent = 'Completează valorile pentru cele 2 câmpuri selectate.';
+    return;
+  }
+
+  // Afișăm rezultatele convertite înapoi la unitatea aleasă, doar pt câmpul NEpinned
+  if (!pinned.includes('mass')) {
+    document.getElementById('in-mass').value = trim(resultMassSI / massFactor);
+    document.getElementById('card-mass').classList.add('derived');
+  }
+  if (!pinned.includes('volume')) {
+    document.getElementById('in-volume').value = trim(resultVolSI / volFactor);
+    document.getElementById('card-volume').classList.add('derived');
+  }
+  if (!pinned.includes('density')) {
+    document.getElementById('in-density').value = trim(resultDensSI / densFactor);
+    document.getElementById('card-density').classList.add('derived');
+  }
+
+  msgBar.textContent = `ρ = m/V = ${trim(resultDensSI)} kg/m³ (${trim(resultDensSI/1000)} g/cm³)`;
+}
+
+function buildRefTable() {
+  const table = document.getElementById('ref-table');
+  table.innerHTML = `<thead><tr><th>Material</th><th>Densitate (kg/m³)</th></tr></thead>`;
+  const tbody = document.createElement('tbody');
+  MATERIALS.forEach(m => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="ref-name">${m.name}</td><td>${m.density.toLocaleString('ro-RO')}</td>`;
+    tr.onclick = () => {
+      document.getElementById('unit-density').value = '1';
+      document.getElementById('in-density').value = m.density;
+      pinned = ['density'];
+      onEdit('density');
+      // păstrăm masa ca a 2-a sursă implicit
+      pin('mass');
+      compute();
+    };
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+}
+
+buildRefTable();
+pinned = ['mass', 'volume'];
+compute();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Calculator densitate</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

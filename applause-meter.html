@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aplauzometru — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #d070f0;
+  --accent-dim: rgba(208,112,240,0.10);
+  --accent-border: rgba(208,112,240,0.28);
+}
+
+.status-msg {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text2);
+  margin-bottom: var(--content-gap);
+  min-height: 1.5em;
+}
+.status-msg.error { color: #f06060; }
+.status-msg.active { color: #4af0b0; }
+
+.start-btn {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.12s;
+  margin-bottom: var(--content-gap);
+}
+.start-btn.active { background: rgba(240,96,96,0.15); border-color: rgba(240,96,96,0.4); color: #f06060; }
+
+.meter-card {
+  background: var(--bg2);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 30px 20px;
+  text-align: center;
+  margin-bottom: var(--content-gap);
+  transition: border-color 0.15s, transform 0.1s;
+}
+.emoji-display { font-size: 4rem; line-height: 1; transition: transform 0.15s; }
+.emoji-display.pulse { transform: scale(1.15); }
+.level-label { font-family: var(--font-mono); font-size: 1.3rem; font-weight: 700; color: var(--accent); margin-top: 10px; }
+.level-sub { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text3); margin-top: 4px; }
+
+.meter-bar-wrap { display: flex; gap: 4px; height: 40px; margin-bottom: var(--content-gap); }
+.meter-segment { flex: 1; border-radius: 3px; background: var(--bg3); transition: background 0.05s linear; }
+.meter-segment.lit { background: var(--seg-color); }
+
+.record-card {
+  background: var(--bg2);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius);
+  padding: 14px;
+  text-align: center;
+  margin-bottom: var(--content-gap);
+}
+.record-val { font-family: var(--font-mono); font-size: 1.4rem; font-weight: 700; color: var(--accent); }
+.record-label { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text3); margin-top: 2px; }
+
+.reset-btn {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  cursor: pointer;
+}
+.reset-btn:hover { border-color: var(--accent-border); color: var(--accent); }
+
+.privacy-note {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text3);
+  text-align: center;
+  line-height: 1.6;
+  margin-top: var(--content-gap);
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Aplauzometru</h1>
+    <p>Măsoară volumul microfonului, animat — pentru concursuri și evenimente</p>
+  </div>
+
+  <div class="status-msg" id="status-msg">Apasă START pentru a activa microfonul</div>
+
+  <button class="start-btn" id="start-btn" onclick="toggleMic()">🎤 Pornește microfonul</button>
+
+  <div class="meter-card" id="meter-card">
+    <div class="emoji-display" id="emoji-display">😴</div>
+    <div class="level-label" id="level-label">Liniște</div>
+    <div class="level-sub" id="level-sub">Aplaudă sau strigă pentru a începe!</div>
+  </div>
+
+  <div class="meter-bar-wrap" id="meter-bar-wrap"></div>
+
+  <div class="record-card">
+    <div class="record-val" id="record-val">0%</div>
+    <div class="record-label">nivel maxim atins</div>
+  </div>
+
+  <button class="reset-btn" onclick="resetRecord()">Resetează nivelul maxim</button>
+
+  <p class="privacy-note">Microfonul e procesat 100% local, în browser.</p>
+</div>
+
+<script>
+const LEVELS = [
+  { max: 15,  emoji: '😴', label: 'Liniște',      sub: 'Nimeni nu spune nimic...' },
+  { max: 35,  emoji: '🙂', label: 'Ușor',          sub: 'Se aude ceva...' },
+  { max: 55,  emoji: '😊', label: 'Bine',          sub: 'Se încălzește atmosfera!' },
+  { max: 75,  emoji: '😃', label: 'Zgomotos',      sub: 'Acum vorbim!' },
+  { max: 90,  emoji: '🤩', label: 'Foarte tare',   sub: 'Aplauze puternice!' },
+  { max: 101, emoji: '🔥', label: 'ASURZITOR!',    sub: 'Nivel maxim de entuziasm!' },
+];
+
+let audioCtx = null;
+let analyser = null;
+let stream = null;
+let animationId = null;
+let isActive = false;
+let record = 0;
+let smoothedLevel = 0;
+
+const SEGMENT_COUNT = 20;
+
+function buildSegments() {
+  const wrap = document.getElementById('meter-bar-wrap');
+  wrap.innerHTML = '';
+  for (let i = 0; i < SEGMENT_COUNT; i++) {
+    const seg = document.createElement('div');
+    seg.className = 'meter-segment';
+    const pct = i / (SEGMENT_COUNT-1);
+    let color;
+    if (pct > 0.85) color = '#f06060';
+    else if (pct > 0.6) color = '#f0d040';
+    else color = '#4af0b0';
+    seg.style.setProperty('--seg-color', color);
+    wrap.appendChild(seg);
+  }
+}
+
+async function toggleMic() {
+  if (isActive) stopMic(); else await startMic();
+}
+
+async function startMic() {
+  const statusEl = document.getElementById('status-msg');
+  try {
+    statusEl.textContent = 'Se solicită acces la microfon...';
+    statusEl.className = 'status-msg';
+
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const source = audioCtx.createMediaStreamSource(stream);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 1024;
+    analyser.smoothingTimeConstant = 0.3;
+    source.connect(analyser);
+
+    isActive = true;
+    smoothedLevel = 0;
+    document.getElementById('start-btn').textContent = '■ Oprește microfonul';
+    document.getElementById('start-btn').classList.add('active');
+    statusEl.textContent = '🎤 Microfon activ';
+    statusEl.className = 'status-msg active';
+
+    draw();
+  } catch (err) {
+    statusEl.textContent = 'Acces refuzat sau microfon indisponibil: ' + err.message;
+    statusEl.className = 'status-msg error';
+  }
+}
+
+function stopMic() {
+  if (animationId) cancelAnimationFrame(animationId);
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  if (audioCtx) audioCtx.close();
+
+  isActive = false;
+  document.getElementById('start-btn').textContent = '🎤 Pornește microfonul';
+  document.getElementById('start-btn').classList.remove('active');
+  document.getElementById('status-msg').textContent = 'Microfon oprit';
+  document.getElementById('status-msg').className = 'status-msg';
+  updateDisplay(0);
+}
+
+function updateDisplay(level) {
+  const litCount = Math.round((level/100) * SEGMENT_COUNT);
+  document.querySelectorAll('.meter-segment').forEach((seg, i) => {
+    seg.classList.toggle('lit', i < litCount);
+  });
+
+  const tier = LEVELS.find(l => level < l.max);
+  const emojiEl = document.getElementById('emoji-display');
+  const prevEmoji = emojiEl.textContent;
+  emojiEl.textContent = tier.emoji;
+  document.getElementById('level-label').textContent = tier.label;
+  document.getElementById('level-sub').textContent = tier.sub;
+
+  if (prevEmoji !== tier.emoji) {
+    emojiEl.classList.add('pulse');
+    setTimeout(() => emojiEl.classList.remove('pulse'), 150);
+  }
+
+  if (level > record) {
+    record = level;
+    document.getElementById('record-val').textContent = Math.round(record) + '%';
+  }
+}
+
+function resetRecord() {
+  record = 0;
+  document.getElementById('record-val').textContent = '0%';
+}
+
+function draw() {
+  animationId = requestAnimationFrame(draw);
+
+  const bufferLength = analyser.fftSize;
+  const dataArray = new Float32Array(bufferLength);
+  analyser.getFloatTimeDomainData(dataArray);
+
+  let rms = 0;
+  for (let i = 0; i < bufferLength; i++) rms += dataArray[i]*dataArray[i];
+  rms = Math.sqrt(rms/bufferLength);
+
+  // Mapăm RMS (aprox 0-0.5 în practică pentru voce/aplauze normale) la 0-100%
+  const rawLevel = Math.min(100, (rms/0.4) * 100);
+
+  // Netezire ușoară ca afișajul să nu tremure la fiecare frame
+  smoothedLevel = smoothedLevel*0.75 + rawLevel*0.25;
+
+  updateDisplay(smoothedLevel);
+}
+
+buildSegments();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Aplauzometru</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

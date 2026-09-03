@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ROT13 / Caesar Cipher — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #c080f0;
+  --accent-dim: rgba(224,112,160,0.10);
+  --accent-border: rgba(224,112,160,0.28);
+}
+
+.big-textarea {
+  width: 100%;
+  min-height: 100px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--text);
+  outline: none;
+  resize: vertical;
+  margin-bottom: var(--content-gap);
+}
+.big-textarea:focus { border-color: var(--accent-border); box-shadow: 0 0 0 3px var(--accent-dim); }
+.big-textarea.output { color: var(--accent); }
+
+.area-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.area-name { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; }
+.mini-btn {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text2);
+  cursor: pointer;
+}
+.mini-btn:hover { border-color: var(--accent-border); color: var(--accent); }
+
+.shift-row { display: flex; align-items: center; gap: 12px; margin-bottom: var(--content-gap); }
+.shift-btn {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  cursor: pointer;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+.shift-btn:hover { border-color: var(--accent-border); color: var(--accent); }
+.shift-row input[type=range] { flex: 1; accent-color: var(--accent); }
+.shift-val { font-family: var(--font-mono); font-size: 1rem; font-weight: 700; color: var(--accent); width: 60px; text-align: right; }
+
+.preset-row { display: flex; gap: 6px; margin-bottom: var(--content-gap); }
+.preset-btn {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 5px 14px;
+  border-radius: 99px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text2);
+  cursor: pointer;
+}
+.preset-btn:hover { border-color: var(--accent-border); color: var(--accent); }
+
+.bruteforce-table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.72rem; }
+.bruteforce-table td { padding: 3px 8px; border-bottom: 1px solid rgba(128,128,128,0.06); cursor: pointer; }
+.bruteforce-table td:first-child { color: var(--accent); font-weight: 700; width: 30px; }
+.bruteforce-table tr:hover td { background: var(--bg3); }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>ROT13 / Caesar Cipher</h1>
+    <p>Deplasare literelor cu N poziții — cea mai simplă cifră de substituție</p>
+  </div>
+
+  <div class="area-label">
+    <span class="area-name">Text original</span>
+    <div style="display:flex;gap:6px">
+      <button class="mini-btn" onclick="pasteInto()">Lipește</button>
+      <button class="mini-btn" onclick="clearAll()">Șterge</button>
+    </div>
+  </div>
+  <textarea class="big-textarea" id="in-text" oninput="render()">Salutare, aceasta este o cifra Caesar!</textarea>
+
+  <div class="shift-row">
+    <button class="shift-btn" onclick="adjustShift(-1)">−</button>
+    <input type="range" id="s-shift" min="0" max="25" value="13" oninput="onShiftChange()">
+    <button class="shift-btn" onclick="adjustShift(1)">+</button>
+    <span class="shift-val" id="v-shift">13</span>
+  </div>
+
+  <div class="preset-row">
+    <button class="preset-btn" onclick="setShift(13)">ROT13</button>
+    <button class="preset-btn" onclick="setShift(3)">Caesar clasic (3)</button>
+    <button class="preset-btn" onclick="setShift(0)">Fără (0)</button>
+  </div>
+
+  <div class="area-label">
+    <span class="area-name">Text criptat</span>
+    <button class="mini-btn" onclick="copyOutput()">Copiază</button>
+  </div>
+  <textarea class="big-textarea output" id="out-text" readonly></textarea>
+
+  <div class="card" style="margin-top:var(--content-gap)">
+    <div class="field-label" style="margin-bottom:8px">Brute-force — toate cele 26 variante (click pentru a aplica)</div>
+    <table class="bruteforce-table" id="bruteforce-table"></table>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+function caesarShift(text, shift) {
+  shift = ((shift % 26) + 26) % 26;
+  return text.replace(/[a-zA-Z]/g, ch => {
+    const base = ch <= 'Z' ? 65 : 97;
+    return String.fromCharCode((ch.charCodeAt(0) - base + shift) % 26 + base);
+  });
+}
+
+function render() {
+  const text = document.getElementById('in-text').value;
+  const shift = parseInt(document.getElementById('s-shift').value);
+  document.getElementById('out-text').value = caesarShift(text, shift);
+  renderBruteforce(text);
+}
+
+function onShiftChange() {
+  document.getElementById('v-shift').textContent = document.getElementById('s-shift').value;
+  render();
+}
+
+function setShift(n) {
+  document.getElementById('s-shift').value = n;
+  onShiftChange();
+}
+
+function adjustShift(delta) {
+  const el = document.getElementById('s-shift');
+  el.value = ((parseInt(el.value) + delta) % 26 + 26) % 26;
+  onShiftChange();
+}
+
+function renderBruteforce(text) {
+  const table = document.getElementById('bruteforce-table');
+  if (!text) { table.innerHTML = ''; return; }
+
+  let html = '';
+  for (let s = 1; s <= 25; s++) {
+    const result = caesarShift(text, s);
+    const preview = result.length > 60 ? result.slice(0,60)+'…' : result;
+    html += `<tr onclick="setShift(${s})"><td>${s}</td><td>${preview}</td></tr>`;
+  }
+  table.innerHTML = html;
+}
+
+function clearAll() {
+  document.getElementById('in-text').value = '';
+  render();
+}
+
+function pasteInto() {
+  navigator.clipboard.readText().then(text => {
+    document.getElementById('in-text').value = text;
+    render();
+  }).catch(() => showToast('Nu s-a putut accesa clipboard-ul'));
+}
+
+function copyOutput() {
+  const val = document.getElementById('out-text').value;
+  if (!val) return;
+  navigator.clipboard.writeText(val).then(() => showToast('Copiat!'));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+render();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>ROT13 / Caesar cipher</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

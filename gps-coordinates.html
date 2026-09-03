@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conversii Coordonate GPS — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #90d060;
+  --accent-dim: rgba(144,208,96,0.10);
+  --accent-border: rgba(144,208,96,0.28);
+}
+
+.fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--content-gap); }
+@media (max-width: 500px) { .fields-grid { grid-template-columns: 1fr; } }
+
+.field-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.field-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.field-name { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text2); font-weight: 500; }
+
+/* ── DMS input row ── */
+.dms-row { display: flex; gap: 4px; align-items: center; }
+.dms-row input { text-align: center; font-size: 0.9rem !important; padding: 6px 4px !important; }
+.dms-sep { color: var(--text3); font-family: var(--font-mono); font-size: 0.7rem; }
+.dms-dir {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* ── Results ── */
+.result-list { display: flex; flex-direction: column; gap: 8px; }
+.result-row {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+.result-row-label { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; flex-shrink: 0; }
+.result-row-val { font-family: var(--font-mono); font-size: 0.95rem; font-weight: 600; color: var(--accent); text-align: right; word-break: break-all; }
+.copy-mini {
+  background: none; border: none; cursor: pointer;
+  color: var(--text3); padding: 4px; border-radius: 4px;
+  transition: color 0.12s, background 0.12s; flex-shrink: 0;
+}
+.copy-mini:hover { color: var(--text2); background: var(--bg3); }
+
+/* ── Map placeholder ── */
+.map-preview {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text3);
+}
+.map-preview a { color: var(--accent); text-decoration: none; }
+.map-preview a:hover { text-decoration: underline; }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Conversii coordonate GPS</h1>
+    <p>Grade zecimale ↔ DMS ↔ UTM ↔ Plus Code</p>
+  </div>
+
+  <!-- Input grade zecimale -->
+  <div class="fields-grid" style="margin-bottom:var(--content-gap)">
+    <div class="field-card">
+      <div class="field-top"><span class="field-name">Latitudine (zecimal)</span></div>
+      <input class="input-calc" id="in-lat" type="number" step="any" value="44.4268"
+             style="--input-color:var(--accent);font-size:1.05rem" oninput="computeFromDecimal()">
+    </div>
+    <div class="field-card">
+      <div class="field-top"><span class="field-name">Longitudine (zecimal)</span></div>
+      <input class="input-calc" id="in-lon" type="number" step="any" value="26.1025"
+             style="--input-color:var(--accent);font-size:1.05rem" oninput="computeFromDecimal()">
+    </div>
+  </div>
+
+  <!-- DMS input -->
+  <div class="fields-grid" style="margin-bottom:var(--content-gap)">
+    <div class="field-card">
+      <div class="field-top"><span class="field-name">Latitudine (DMS)</span></div>
+      <div class="dms-row">
+        <input class="input-calc" id="lat-d" type="number" min="0" max="90" step="1" style="--input-color:var(--accent)">
+        <span class="dms-sep">°</span>
+        <input class="input-calc" id="lat-m" type="number" min="0" max="59" step="1" style="--input-color:var(--accent)">
+        <span class="dms-sep">′</span>
+        <input class="input-calc" id="lat-s" type="number" min="0" max="59.999" step="any" style="--input-color:var(--accent)">
+        <span class="dms-sep">″</span>
+        <div class="dms-dir" id="lat-dir" onclick="toggleLatDir()">N</div>
+      </div>
+    </div>
+    <div class="field-card">
+      <div class="field-top"><span class="field-name">Longitudine (DMS)</span></div>
+      <div class="dms-row">
+        <input class="input-calc" id="lon-d" type="number" min="0" max="180" step="1" style="--input-color:var(--accent)">
+        <span class="dms-sep">°</span>
+        <input class="input-calc" id="lon-m" type="number" min="0" max="59" step="1" style="--input-color:var(--accent)">
+        <span class="dms-sep">′</span>
+        <input class="input-calc" id="lon-s" type="number" min="0" max="59.999" step="any" style="--input-color:var(--accent)">
+        <span class="dms-sep">″</span>
+        <div class="dms-dir" id="lon-dir" onclick="toggleLonDir()">E</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="text3" style="font-family:var(--font-mono);font-size:0.68rem;margin-bottom:var(--content-gap)">
+    Editează oricare secțiune (zecimal sau DMS) — cealaltă se actualizează automat.
+  </p>
+
+  <!-- Rezultate -->
+  <div class="result-list" style="margin-bottom:var(--content-gap)">
+    <div class="result-row">
+      <span class="result-row-label">Zecimal</span>
+      <span class="result-row-val" id="res-decimal">—</span>
+      <button class="copy-mini" onclick="copyText('res-decimal')" title="Copiază">⧉</button>
+    </div>
+    <div class="result-row">
+      <span class="result-row-label">DMS</span>
+      <span class="result-row-val" id="res-dms">—</span>
+      <button class="copy-mini" onclick="copyText('res-dms')" title="Copiază">⧉</button>
+    </div>
+    <div class="result-row">
+      <span class="result-row-label">UTM</span>
+      <span class="result-row-val" id="res-utm">—</span>
+      <button class="copy-mini" onclick="copyText('res-utm')" title="Copiază">⧉</button>
+    </div>
+    <div class="result-row">
+      <span class="result-row-label">Plus Code</span>
+      <span class="result-row-val" id="res-pluscode">—</span>
+      <button class="copy-mini" onclick="copyText('res-pluscode')" title="Copiază">⧉</button>
+    </div>
+  </div>
+
+  <!-- Decodare Plus Code → coordonate -->
+  <div class="card" style="margin-bottom:var(--content-gap)">
+    <div class="field-name" style="margin-bottom:8px">Sau decodează un Plus Code existent</div>
+    <input class="input-calc" id="in-pluscode" type="text" placeholder="ex: 849VCWC8+W9"
+           style="--input-color:var(--accent);font-size:1rem;text-transform:uppercase;letter-spacing:0.03em"
+           oninput="decodePlusCodeInput()">
+    <div class="text3" style="font-family:var(--font-mono);font-size:0.65rem;margin-top:8px">
+      Plus Code (Open Location Code, Google) — algoritm deschis, calculat local. Precizie standard ~14×14m.
+    </div>
+  </div>
+
+  <!-- Link hartă -->
+  <div class="map-preview" id="map-link">
+    Vezi pe hartă: <a href="#" id="gmaps-link" target="_blank" rel="noopener">Google Maps</a>
+     · <a href="#" id="osm-link" target="_blank" rel="noopener">OpenStreetMap</a>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+let latDir = 'N', lonDir = 'E';
+let updating = false;
+
+function toggleLatDir() {
+  latDir = latDir === 'N' ? 'S' : 'N';
+  document.getElementById('lat-dir').textContent = latDir;
+  computeFromDMS();
+}
+function toggleLonDir() {
+  lonDir = lonDir === 'E' ? 'W' : 'E';
+  document.getElementById('lon-dir').textContent = lonDir;
+  computeFromDMS();
+}
+
+function decimalToDMS(decimal) {
+  const abs = Math.abs(decimal);
+  const d = Math.floor(abs);
+  const mFloat = (abs - d) * 60;
+  const m = Math.floor(mFloat);
+  const s = (mFloat - m) * 60;
+  return { d, m, s };
+}
+
+function dmsToDecimal(d, m, s, dir) {
+  const val = d + m/60 + s/3600;
+  return (dir === 'S' || dir === 'W') ? -val : val;
+}
+
+function computeFromDecimal() {
+  if (updating) return;
+  updating = true;
+
+  const lat = parseFloat(document.getElementById('in-lat').value);
+  const lon = parseFloat(document.getElementById('in-lon').value);
+
+  if (!isNaN(lat)) {
+    latDir = lat >= 0 ? 'N' : 'S';
+    document.getElementById('lat-dir').textContent = latDir;
+    const dms = decimalToDMS(lat);
+    document.getElementById('lat-d').value = dms.d;
+    document.getElementById('lat-m').value = dms.m;
+    document.getElementById('lat-s').value = trim(dms.s);
+  }
+  if (!isNaN(lon)) {
+    lonDir = lon >= 0 ? 'E' : 'W';
+    document.getElementById('lon-dir').textContent = lonDir;
+    const dms = decimalToDMS(lon);
+    document.getElementById('lon-d').value = dms.d;
+    document.getElementById('lon-m').value = dms.m;
+    document.getElementById('lon-s').value = trim(dms.s);
+  }
+
+  updating = false;
+  renderResults(lat, lon);
+}
+
+function computeFromDMS() {
+  if (updating) return;
+  updating = true;
+
+  const latD = parseFloat(document.getElementById('lat-d').value) || 0;
+  const latM = parseFloat(document.getElementById('lat-m').value) || 0;
+  const latS = parseFloat(document.getElementById('lat-s').value) || 0;
+  const lonD = parseFloat(document.getElementById('lon-d').value) || 0;
+  const lonM = parseFloat(document.getElementById('lon-m').value) || 0;
+  const lonS = parseFloat(document.getElementById('lon-s').value) || 0;
+
+  const lat = dmsToDecimal(latD, latM, latS, latDir);
+  const lon = dmsToDecimal(lonD, lonM, lonS, lonDir);
+
+  document.getElementById('in-lat').value = trim(lat);
+  document.getElementById('in-lon').value = trim(lon);
+
+  updating = false;
+  renderResults(lat, lon);
+}
+
+function trim(n) { return parseFloat(n.toPrecision(8)).toString(); }
+
+function fmtDMS(d, m, s, dir) {
+  return `${d}°${String(m).padStart(2,'0')}'${trim(s).padStart(4,'0')}"${dir}`;
+}
+
+// ── Plus Codes (Open Location Code, Google) — algoritm public, calculat local ──
+const OLC_ALPHABET = "23456789CFGHJMPQRVWX";
+
+function encodeOLC(lat, lon) {
+  lat = Math.max(-90, Math.min(90, lat));
+  lon = ((lon + 180) % 360 + 360) % 360 - 180;
+
+  const latInt = Math.floor((lat + 90) * 8000 + 1e-6);
+  const lonInt = Math.floor((lon + 180) * 8000 + 1e-6);
+
+  let code = '';
+  for (let i = 0; i < 5; i++) {
+    const divisor = Math.pow(20, 4 - i);
+    const digitLat = Math.floor(latInt / divisor) % 20;
+    const digitLon = Math.floor(lonInt / divisor) % 20;
+    code += OLC_ALPHABET[digitLat] + OLC_ALPHABET[digitLon];
+  }
+  return code.slice(0, 8) + '+' + code.slice(8);
+}
+
+function decodeOLC(codeRaw) {
+  const code = codeRaw.toUpperCase().replace('+', '');
+  if (code.length < 8) return null;
+
+  let latInt = 0, lonInt = 0, pairsProcessed = 0;
+  for (let i = 0; i < 5; i++) {
+    const cLat = code[i*2], cLon = code[i*2+1];
+    if (cLat === undefined || cLon === undefined) break;
+    const digitLat = OLC_ALPHABET.indexOf(cLat);
+    const digitLon = OLC_ALPHABET.indexOf(cLon);
+    if (digitLat < 0 || digitLon < 0) return null;
+    const divisor = Math.pow(20, 4 - i);
+    latInt += digitLat * divisor;
+    lonInt += digitLon * divisor;
+    pairsProcessed++;
+  }
+
+  const cellSize = 0.000125 * Math.pow(20, 5 - pairsProcessed);
+  const lat = latInt / 8000 - 90 + cellSize / 2;
+  const lon = lonInt / 8000 - 180 + cellSize / 2;
+  return { lat, lon, cellSizeDeg: cellSize };
+}
+
+function decodePlusCodeInput() {
+  const raw = document.getElementById('in-pluscode').value.trim();
+  if (!raw) return;
+  const isValid = raw.toUpperCase().replace('+','').split('').every(ch => OLC_ALPHABET.indexOf(ch) >= 0) && raw.replace('+','').length >= 8;
+  if (!isValid) return;
+
+  const result = decodeOLC(raw);
+  if (!result) return;
+
+  document.getElementById('in-lat').value = trim(result.lat);
+  document.getElementById('in-lon').value = trim(result.lon);
+  computeFromDecimal();
+}
+
+// ── UTM conversion (WGS84) ──
+function toUTM(lat, lon) {
+  const a = 6378137.0;
+  const f = 1/298.257223563;
+  const k0 = 0.9996;
+  const e = Math.sqrt(f*(2-f));
+  const e2 = e*e;
+  const ep2 = e2/(1-e2);
+
+  const zone = Math.floor((lon+180)/6) + 1;
+  const lonOrigin = (zone-1)*6 - 180 + 3;
+
+  const latRad = lat*Math.PI/180;
+  const lonRad = lon*Math.PI/180;
+  const lonOriginRad = lonOrigin*Math.PI/180;
+
+  const N = a / Math.sqrt(1 - e2*Math.sin(latRad)*Math.sin(latRad));
+  const T = Math.tan(latRad)*Math.tan(latRad);
+  const C = ep2*Math.cos(latRad)*Math.cos(latRad);
+  const A = Math.cos(latRad)*(lonRad-lonOriginRad);
+
+  const M = a*((1 - e2/4 - 3*e2*e2/64 - 5*e2*e2*e2/256)*latRad
+    - (3*e2/8 + 3*e2*e2/32 + 45*e2*e2*e2/1024)*Math.sin(2*latRad)
+    + (15*e2*e2/256 + 45*e2*e2*e2/1024)*Math.sin(4*latRad)
+    - (35*e2*e2*e2/3072)*Math.sin(6*latRad));
+
+  let easting = k0*N*(A + (1-T+C)*A*A*A/6
+    + (5-18*T+T*T+72*C-58*ep2)*A*A*A*A*A/120) + 500000;
+
+  let northing = k0*(M + N*Math.tan(latRad)*(A*A/2 + (5-T+9*C+4*C*C)*A*A*A*A/24
+    + (61-58*T+T*T+600*C-330*ep2)*A*A*A*A*A*A/720));
+
+  if (lat < 0) northing += 10000000;
+
+  const hemisphere = lat >= 0 ? 'N' : 'S';
+  return { zone, hemisphere, easting, northing };
+}
+
+function renderResults(lat, lon) {
+  if (isNaN(lat) || isNaN(lon)) return;
+
+  document.getElementById('res-decimal').textContent = `${trim(lat)}, ${trim(lon)}`;
+
+  const latDms = decimalToDMS(lat);
+  const lonDms = decimalToDMS(lon);
+  const latDirR = lat >= 0 ? 'N' : 'S';
+  const lonDirR = lon >= 0 ? 'E' : 'W';
+  document.getElementById('res-dms').textContent =
+    `${fmtDMS(latDms.d, latDms.m, latDms.s, latDirR)} ${fmtDMS(lonDms.d, lonDms.m, lonDms.s, lonDirR)}`;
+
+  const utm = toUTM(lat, lon);
+  document.getElementById('res-utm').textContent =
+    `${utm.zone}${utm.hemisphere} ${Math.round(utm.easting)}E ${Math.round(utm.northing)}N`;
+
+  document.getElementById('res-pluscode').textContent = encodeOLC(lat, lon);
+
+  document.getElementById('gmaps-link').href = `https://www.google.com/maps?q=${lat},${lon}`;
+  document.getElementById('osm-link').href = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=15/${lat}/${lon}`;
+}
+
+function copyText(id) {
+  const text = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text).then(() => showToast('Copiat: ' + text));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+['lat-d','lat-m','lat-s'].forEach(id => document.getElementById(id).addEventListener('input', computeFromDMS));
+['lon-d','lon-m','lon-s'].forEach(id => document.getElementById(id).addEventListener('input', computeFromDMS));
+
+computeFromDecimal();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Conversii coordonate GPS</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

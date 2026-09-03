@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculator Arie/Volum — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #4af0b0;
+  --accent-dim: rgba(74,240,176,0.10);
+  --accent-border: rgba(74,240,176,0.28);
+}
+
+.cat-tabs { display: flex; gap: 6px; margin-bottom: var(--content-gap); flex-wrap: wrap; }
+.cat-tab {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.cat-tab.active { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+
+.shape-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 6px;
+  margin-bottom: var(--content-gap);
+}
+.shape-btn {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.shape-btn:hover { border-color: var(--accent-border); }
+.shape-btn.active { background: var(--accent-dim); border-color: var(--accent-border); }
+.shape-icon { font-size: 1.3rem; margin-bottom: 4px; }
+.shape-name { font-family: var(--font-mono); font-size: 0.62rem; color: var(--text2); }
+.shape-btn.active .shape-name { color: var(--accent); }
+
+.fields-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: var(--content-gap); margin-bottom: var(--content-gap); }
+.field-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.field-name { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text2); font-weight: 500; margin-bottom: 8px; display: block; }
+
+.formula-box {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text3);
+  padding: 10px 12px;
+  background: var(--bg3);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--content-gap);
+}
+
+.result-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap: 8px; }
+.result-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  text-align: center;
+}
+.result-val { font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+.result-key { font-family: var(--font-mono); font-size: 0.6rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 3px; }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Calculator arie/volum</h1>
+    <p>Forme geometrice 2D și 3D — arie, perimetru, volum, suprafață</p>
+  </div>
+
+  <div class="cat-tabs">
+    <button class="cat-tab active" id="cat-2d" onclick="setCategory('2d')">Forme 2D</button>
+    <button class="cat-tab" id="cat-3d" onclick="setCategory('3d')">Forme 3D</button>
+  </div>
+
+  <div class="shape-grid" id="shape-grid"></div>
+
+  <div class="fields-grid" id="fields-grid"></div>
+
+  <div class="formula-box" id="formula-box"></div>
+
+  <div class="result-row" id="result-row"></div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+const SHAPES_2D = {
+  square:    { name: 'Pătrat', icon: '◻', fields: [{k:'s',label:'Latură'}],
+    calc: v => ({ 'Arie': v.s**2, 'Perimetru': 4*v.s }),
+    formula: 'Arie = latură²,  Perimetru = 4×latură' },
+  rectangle: { name: 'Dreptunghi', icon: '▭', fields: [{k:'w',label:'Lățime'},{k:'h',label:'Înălțime'}],
+    calc: v => ({ 'Arie': v.w*v.h, 'Perimetru': 2*(v.w+v.h) }),
+    formula: 'Arie = L×l,  Perimetru = 2(L+l)' },
+  triangle:  { name: 'Triunghi', icon: '△', fields: [{k:'b',label:'Bază'},{k:'h',label:'Înălțime'}],
+    calc: v => ({ 'Arie': (v.b*v.h)/2 }),
+    formula: 'Arie = (bază × înălțime) / 2' },
+  circle:    { name: 'Cerc', icon: '○', fields: [{k:'r',label:'Rază'}],
+    calc: v => ({ 'Arie': Math.PI*v.r**2, 'Circumferință': 2*Math.PI*v.r }),
+    formula: 'Arie = πr²,  Circumferință = 2πr' },
+  trapezoid: { name: 'Trapez', icon: '⏢', fields: [{k:'a',label:'Bază mare'},{k:'b',label:'Bază mică'},{k:'h',label:'Înălțime'}],
+    calc: v => ({ 'Arie': ((v.a+v.b)/2)*v.h }),
+    formula: 'Arie = ((B+b)/2) × h' },
+  rhombus:   { name: 'Romb', icon: '◇', fields: [{k:'d1',label:'Diagonala 1'},{k:'d2',label:'Diagonala 2'}],
+    calc: v => ({ 'Arie': (v.d1*v.d2)/2 }),
+    formula: 'Arie = (d₁×d₂) / 2' },
+  ellipse:   { name: 'Elipsă', icon: '⬭', fields: [{k:'a',label:'Semiaxa a'},{k:'b',label:'Semiaxa b'}],
+    calc: v => ({ 'Arie': Math.PI*v.a*v.b }),
+    formula: 'Arie = π × a × b' },
+  hexagon:   { name: 'Hexagon regulat', icon: '⬡', fields: [{k:'s',label:'Latură'}],
+    calc: v => ({ 'Arie': (3*Math.sqrt(3)/2)*v.s**2, 'Perimetru': 6*v.s }),
+    formula: 'Arie = (3√3/2) × latură²' },
+};
+
+const SHAPES_3D = {
+  cube:      { name: 'Cub', icon: '⬛', fields: [{k:'s',label:'Latură'}],
+    calc: v => ({ 'Volum': v.s**3, 'Suprafață': 6*v.s**2 }),
+    formula: 'Volum = latură³,  Suprafață = 6×latură²' },
+  box:       { name: 'Paralelipiped dreptunghic', icon: '▦', fields: [{k:'l',label:'Lungime'},{k:'w',label:'Lățime'},{k:'h',label:'Înălțime'}],
+    calc: v => ({ 'Volum': v.l*v.w*v.h, 'Suprafață': 2*(v.l*v.w+v.l*v.h+v.w*v.h) }),
+    formula: 'Volum = L×l×h,  Suprafață = 2(Ll+Lh+lh)' },
+  sphere:    { name: 'Sferă', icon: '⚫', fields: [{k:'r',label:'Rază'}],
+    calc: v => ({ 'Volum': (4/3)*Math.PI*v.r**3, 'Suprafață': 4*Math.PI*v.r**2 }),
+    formula: 'Volum = (4/3)πr³,  Suprafață = 4πr²' },
+  cylinder:  { name: 'Cilindru', icon: '🛢', fields: [{k:'r',label:'Rază bază'},{k:'h',label:'Înălțime'}],
+    calc: v => ({ 'Volum': Math.PI*v.r**2*v.h, 'Suprafață': 2*Math.PI*v.r*(v.r+v.h) }),
+    formula: 'Volum = πr²h,  Suprafață = 2πr(r+h)' },
+  cone:      { name: 'Con', icon: '🔺', fields: [{k:'r',label:'Rază bază'},{k:'h',label:'Înălțime'}],
+    calc: v => { const slant = Math.sqrt(v.r**2+v.h**2); return { 'Volum': (1/3)*Math.PI*v.r**2*v.h, 'Suprafață': Math.PI*v.r*(v.r+slant) }; },
+    formula: 'Volum = (1/3)πr²h,  Suprafață = πr(r+l), l=√(r²+h²)' },
+  pyramid:   { name: 'Piramidă pătrată', icon: '△', fields: [{k:'s',label:'Latură bază'},{k:'h',label:'Înălțime'}],
+    calc: v => { const slantH = Math.sqrt(v.h**2+(v.s/2)**2); return { 'Volum': (1/3)*v.s**2*v.h, 'Suprafață': v.s**2 + 2*v.s*slantH }; },
+    formula: 'Volum = (1/3)×latură²×h' },
+};
+
+let currentCat = '2d';
+let currentShape = 'square';
+
+function trim(n) {
+  if (!isFinite(n)) return '—';
+  return parseFloat(n.toPrecision(6)).toString();
+}
+
+function getShapes() { return currentCat === '2d' ? SHAPES_2D : SHAPES_3D; }
+
+function setCategory(cat) {
+  currentCat = cat;
+  document.getElementById('cat-2d').classList.toggle('active', cat==='2d');
+  document.getElementById('cat-3d').classList.toggle('active', cat==='3d');
+  const shapes = getShapes();
+  currentShape = Object.keys(shapes)[0];
+  buildShapeGrid();
+  buildFields();
+  compute();
+}
+
+function buildShapeGrid() {
+  const grid = document.getElementById('shape-grid');
+  const shapes = getShapes();
+  grid.innerHTML = '';
+  Object.entries(shapes).forEach(([key, s]) => {
+    const btn = document.createElement('div');
+    btn.className = 'shape-btn' + (key === currentShape ? ' active' : '');
+    btn.innerHTML = `<div class="shape-icon">${s.icon}</div><div class="shape-name">${s.name}</div>`;
+    btn.onclick = () => {
+      currentShape = key;
+      buildShapeGrid();
+      buildFields();
+      compute();
+    };
+    grid.appendChild(btn);
+  });
+}
+
+function buildFields() {
+  const shape = getShapes()[currentShape];
+  const grid = document.getElementById('fields-grid');
+  grid.innerHTML = shape.fields.map(f => `
+    <div class="field-card">
+      <span class="field-name">${f.label}</span>
+      <input class="input-calc" id="in-${f.k}" type="number" min="0" step="any" value="5"
+             style="--input-color:var(--accent);font-size:1rem" oninput="compute()">
+    </div>
+  `).join('');
+  document.getElementById('formula-box').textContent = shape.formula;
+}
+
+function compute() {
+  const shape = getShapes()[currentShape];
+  const values = {};
+  let valid = true;
+
+  shape.fields.forEach(f => {
+    const val = parseFloat(document.getElementById('in-'+f.k).value);
+    if (isNaN(val) || val <= 0) valid = false;
+    values[f.k] = val;
+  });
+
+  const resultRow = document.getElementById('result-row');
+  if (!valid) {
+    resultRow.innerHTML = '<div class="result-card"><div class="result-val">—</div><div class="result-key">completează valorile</div></div>';
+    return;
+  }
+
+  const results = shape.calc(values);
+  resultRow.innerHTML = Object.entries(results).map(([label, val]) => `
+    <div class="result-card">
+      <div class="result-val">${trim(val)}</div>
+      <div class="result-key">${label}</div>
+    </div>
+  `).join('');
+}
+
+setCategory('2d');
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Calculator arie/volum</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

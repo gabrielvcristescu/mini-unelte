@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Convertor Format Imagine — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #f08060;
+  --accent-dim: rgba(240,128,96,0.10);
+  --accent-border: rgba(240,128,96,0.28);
+}
+
+.file-drop {
+  border: 2px dashed var(--border2);
+  border-radius: var(--radius);
+  padding: 40px 20px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text3);
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: var(--content-gap);
+}
+.file-drop:hover, .file-drop.dragover { border-color: var(--accent-border); color: var(--accent); background: var(--accent-dim); }
+
+.preview-wrap {
+  display: none;
+  background: var(--bg3);
+  border-radius: var(--radius);
+  padding: 16px;
+  text-align: center;
+  margin-bottom: var(--content-gap);
+}
+.preview-wrap.show { display: block; }
+.preview-wrap img { max-width: 100%; max-height: 260px; border-radius: 6px; }
+
+.info-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: var(--content-gap); }
+.info-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; text-align: center; }
+.info-val { font-family: var(--font-mono); font-size: 0.85rem; font-weight: 600; color: var(--text); }
+.info-key { font-family: var(--font-mono); font-size: 0.58rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+
+.format-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: var(--content-gap);
+}
+@media (max-width: 500px) { .format-grid { grid-template-columns: 1fr; } }
+.format-btn {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.format-btn:hover { border-color: var(--accent-border); }
+.format-btn.active { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+.format-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.format-name { font-family: var(--font-mono); font-size: 0.78rem; font-weight: 700; }
+.format-note { font-family: var(--font-mono); font-size: 0.58rem; color: var(--text3); margin-top: 3px; }
+
+.quality-row { display: flex; align-items: center; gap: 10px; margin-bottom: var(--content-gap); }
+.quality-row input[type=range] { flex: 1; accent-color: var(--accent); }
+.quality-val { font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent); font-weight: 700; width: 50px; text-align: right; }
+
+.download-btn {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.download-btn:hover { filter: brightness(1.15); }
+.download-btn:disabled { opacity: 0.4; cursor: default; }
+
+.warning-msg {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: #f0a040;
+  background: rgba(240,160,64,0.08);
+  border: 1px solid rgba(240,160,64,0.25);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  margin-bottom: var(--content-gap);
+  display: none;
+}
+.warning-msg.show { display: block; }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Convertor format imagine</h1>
+    <p>PNG ↔ JPEG ↔ WebP, local, fără upload</p>
+  </div>
+
+  <div class="file-drop" id="file-drop" onclick="document.getElementById('file-input').click()">
+    Trage o imagine aici sau click pentru a o încărca
+    <input type="file" id="file-input" accept="image/*" style="display:none">
+  </div>
+
+  <div class="preview-wrap" id="preview-wrap">
+    <img id="preview-img" src="">
+  </div>
+
+  <div class="info-row">
+    <div class="info-card"><div class="info-val" id="info-format">—</div><div class="info-key">format original</div></div>
+    <div class="info-card"><div class="info-val" id="info-size">—</div><div class="info-key">dimensiune fișier</div></div>
+  </div>
+
+  <div class="format-grid" id="format-grid"></div>
+
+  <div class="warning-msg" id="warning-msg"></div>
+
+  <div class="quality-row" id="quality-row" style="display:none">
+    <span style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text3)">Calitate</span>
+    <input type="range" id="quality-slider" min="1" max="100" value="92" oninput="onQualityChange()">
+    <span class="quality-val" id="quality-val">92%</span>
+  </div>
+
+  <button class="download-btn" id="download-btn" onclick="downloadConverted()" disabled>⬇ Descarcă în noul format</button>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+const FORMATS = [
+  { mime: 'image/png', name: 'PNG', note: 'fără pierderi' },
+  { mime: 'image/jpeg', name: 'JPEG', note: 'compact' },
+  { mime: 'image/webp', name: 'WebP', note: 'modern' },
+];
+
+let originalImg = null;
+let originalMime = '';
+let originalBytes = 0;
+let targetFormat = 'image/png';
+
+function fmtBytes(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/(1024*1024)).toFixed(2) + ' MB';
+}
+
+function buildFormatGrid() {
+  const grid = document.getElementById('format-grid');
+  grid.innerHTML = FORMATS.map(f => `
+    <div class="format-btn" id="fmt-${f.mime.split('/')[1]}" onclick="selectFormat('${f.mime}')">
+      <div class="format-name">${f.name}</div>
+      <div class="format-note">${f.note}</div>
+    </div>
+  `).join('');
+}
+
+function selectFormat(mime) {
+  targetFormat = mime;
+  document.querySelectorAll('.format-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('fmt-'+mime.split('/')[1]).classList.add('active');
+
+  const needsQuality = mime === 'image/jpeg' || mime === 'image/webp';
+  document.getElementById('quality-row').style.display = needsQuality ? 'flex' : 'none';
+
+  const warningEl = document.getElementById('warning-msg');
+  if (mime === originalMime) {
+    warningEl.textContent = '⚠ Ai selectat același format ca originalul';
+    warningEl.classList.add('show');
+  } else if (mime === 'image/jpeg') {
+    warningEl.textContent = '⚠ JPEG nu suportă transparență — zonele transparente vor deveni albe';
+    warningEl.classList.add('show');
+  } else {
+    warningEl.classList.remove('show');
+  }
+}
+
+function onQualityChange() {
+  document.getElementById('quality-val').textContent = document.getElementById('quality-slider').value + '%';
+}
+
+function handleFile(file) {
+  if (!file || !file.type.startsWith('image/')) {
+    showToast('Te rog selectează un fișier imagine valid');
+    return;
+  }
+
+  originalMime = file.type;
+  originalBytes = file.size;
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      originalImg = img;
+      document.getElementById('preview-img').src = e.target.result;
+      document.getElementById('preview-wrap').classList.add('show');
+      document.getElementById('info-format').textContent = (FORMATS.find(f=>f.mime===originalMime)?.name) || originalMime.split('/')[1].toUpperCase();
+      document.getElementById('info-size').textContent = fmtBytes(originalBytes);
+      document.getElementById('download-btn').disabled = false;
+
+      // Selectăm implicit un format diferit de original
+      const defaultTarget = originalMime === 'image/png' ? 'image/webp' : 'image/png';
+      selectFormat(defaultTarget);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function downloadConverted() {
+  if (!originalImg) return;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = originalImg.width;
+  canvas.height = originalImg.height;
+  const ctx = canvas.getContext('2d');
+
+  if (targetFormat === 'image/jpeg') {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  ctx.drawImage(originalImg, 0, 0);
+
+  const quality = (targetFormat === 'image/jpeg' || targetFormat === 'image/webp')
+    ? parseInt(document.getElementById('quality-slider').value)/100 : undefined;
+
+  canvas.toBlob(blob => {
+    if (!blob) { showToast('Formatul nu e suportat de acest browser'); return; }
+    const ext = targetFormat.split('/')[1] === 'jpeg' ? 'jpg' : targetFormat.split('/')[1];
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `converted.${ext}`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(`Descărcat ca ${ext.toUpperCase()} (${fmtBytes(blob.size)})`);
+  }, targetFormat, quality);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+const fileInput = document.getElementById('file-input');
+const fileDrop = document.getElementById('file-drop');
+fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+fileDrop.addEventListener('dragover', e => { e.preventDefault(); fileDrop.classList.add('dragover'); });
+fileDrop.addEventListener('dragleave', () => fileDrop.classList.remove('dragover'));
+fileDrop.addEventListener('drop', e => {
+  e.preventDefault();
+  fileDrop.classList.remove('dragover');
+  handleFile(e.dataTransfer.files[0]);
+});
+
+buildFormatGrid();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Convertor format imagine</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BPM ↔ Milisecunde — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #d070f0;
+  --accent-dim: rgba(208,112,240,0.10);
+  --accent-border: rgba(208,112,240,0.28);
+}
+
+.field-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: var(--content-gap);
+  text-align: center;
+}
+.field-name { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text2); font-weight: 500; margin-bottom: 8px; display: block; }
+
+.table-wrap { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.division-table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.8rem; }
+.division-table th {
+  background: var(--bg3);
+  color: var(--text3);
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 8px 10px;
+  text-align: left;
+}
+.division-table th:not(:first-child) { text-align: right; }
+.division-table td { padding: 7px 10px; border-top: 1px solid rgba(128,128,128,0.08); color: var(--text2); }
+.division-table td:not(:first-child) { text-align: right; }
+.division-table tr:hover td { background: var(--bg3); }
+.division-name { color: var(--text); font-weight: 600; }
+.division-ms { color: var(--accent); font-weight: 700; }
+
+.category-label {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 10px 10px 4px;
+  background: var(--bg2);
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>BPM ↔ Milisecunde</h1>
+    <p>Diviziuni ritmice — util pentru delay, LFO, sincronizare cu tempo-ul</p>
+  </div>
+
+  <div class="field-card">
+    <span class="field-name">BPM (bătăi pe minut)</span>
+    <input class="input-calc" id="in-bpm" type="number" min="1" step="any" value="120"
+           style="--input-color:var(--accent);font-size:1.5rem;text-align:center" oninput="compute()">
+  </div>
+
+  <div class="table-wrap">
+    <table class="division-table" id="division-table"></table>
+  </div>
+</div>
+
+<script>
+// Diviziuni standard folosite în producție audio (delay, LFO rate, sincronizare tempo)
+const DIVISIONS = [
+  { cat: 'Note întregi și pătrimi' },
+  { name: '1/1 (notă întreagă)', beats: 4 },
+  { name: '1/2 (jumătate)', beats: 2 },
+  { name: '1/4 (pătrime)', beats: 1 },
+  { cat: 'Optimi' },
+  { name: '1/8', beats: 0.5 },
+  { name: '1/8 punctat', beats: 0.75 },
+  { name: '1/8 triolet', beats: 1/3 },
+  { cat: 'Șaisprezecimi' },
+  { name: '1/16', beats: 0.25 },
+  { name: '1/16 punctat', beats: 0.375 },
+  { name: '1/16 triolet', beats: 1/6 },
+  { cat: 'Treizecidoimi' },
+  { name: '1/32', beats: 0.125 },
+  { name: '1/32 triolet', beats: 1/12 },
+];
+
+function trim(n) {
+  return parseFloat(n.toPrecision(6)).toString();
+}
+
+function compute() {
+  const bpm = parseFloat(document.getElementById('in-bpm').value);
+  const table = document.getElementById('division-table');
+
+  if (isNaN(bpm) || bpm <= 0) {
+    table.innerHTML = '<tr><td>Introdu un BPM valid</td></tr>';
+    return;
+  }
+
+  const quarterNoteMs = 60000 / bpm; // durata unei pătrimi în ms
+
+  let html = '<thead><tr><th>Diviziune</th><th>Durată (ms)</th><th>Frecvență (Hz)</th></tr></thead><tbody>';
+
+  DIVISIONS.forEach(d => {
+    if (d.cat) {
+      html += `<tr><td colspan="3" class="category-label">${d.cat}</td></tr>`;
+      return;
+    }
+    const ms = quarterNoteMs * d.beats;
+    const hz = 1000 / ms;
+    html += `<tr>
+      <td class="division-name">${d.name}</td>
+      <td class="division-ms">${trim(ms)}</td>
+      <td>${trim(hz)}</td>
+    </tr>`;
+  });
+
+  html += '</tbody>';
+  table.innerHTML = html;
+}
+
+compute();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>BPM ↔ milisecunde</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

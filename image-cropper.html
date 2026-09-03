@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crop Imagine — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #f08060;
+  --accent-dim: rgba(240,128,96,0.10);
+  --accent-border: rgba(240,128,96,0.28);
+}
+
+.file-drop {
+  border: 2px dashed var(--border2);
+  border-radius: var(--radius);
+  padding: 40px 20px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text3);
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: var(--content-gap);
+}
+.file-drop:hover, .file-drop.dragover { border-color: var(--accent-border); color: var(--accent); background: var(--accent-dim); }
+
+.crop-outer {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--content-gap);
+}
+.crop-wrap {
+  display: none;
+  position: relative;
+  background: var(--bg3);
+  border-radius: var(--radius);
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+}
+.crop-wrap.show { display: block; }
+.crop-wrap img { display: block; width: 100%; height: 100%; pointer-events: none; }
+
+.crop-overlay {
+  position: absolute;
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 0 2000px rgba(0,0,0,0.5);
+  cursor: move;
+}
+.crop-handle {
+  position: absolute;
+  width: 14px; height: 14px;
+  background: var(--accent);
+  border: 2px solid #fff;
+  border-radius: 50%;
+}
+.crop-handle.nw { top: -8px; left: -8px; cursor: nwse-resize; }
+.crop-handle.ne { top: -8px; right: -8px; cursor: nesw-resize; }
+.crop-handle.sw { bottom: -8px; left: -8px; cursor: nesw-resize; }
+.crop-handle.se { bottom: -8px; right: -8px; cursor: nwse-resize; }
+
+.aspect-row { display: flex; gap: 6px; margin-bottom: var(--content-gap); flex-wrap: wrap; }
+.aspect-btn {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 5px 12px;
+  border-radius: 99px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text2);
+  cursor: pointer;
+}
+.aspect-btn.active { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+
+.fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--content-gap); margin-bottom: var(--content-gap); }
+.field-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+.field-name { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text2); font-weight: 500; margin-bottom: 8px; display: block; }
+
+.info-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: var(--content-gap); }
+.info-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; text-align: center; }
+.info-val { font-family: var(--font-mono); font-size: 0.9rem; font-weight: 600; color: var(--text); }
+.info-key { font-family: var(--font-mono); font-size: 0.58rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+
+.download-btn {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.download-btn:hover { filter: brightness(1.15); }
+.download-btn:disabled { opacity: 0.4; cursor: default; }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Crop imagine</h1>
+    <p>Selectează regiunea dorită, local — trage colțurile sau interiorul</p>
+  </div>
+
+  <div class="file-drop" id="file-drop" onclick="document.getElementById('file-input').click()">
+    Trage o imagine aici sau click pentru a o încărca
+    <input type="file" id="file-input" accept="image/*" style="display:none">
+  </div>
+
+  <div class="aspect-row" id="aspect-row"></div>
+
+  <div class="crop-outer">
+    <div class="crop-wrap" id="crop-wrap">
+      <img id="crop-img" src="">
+      <div class="crop-overlay" id="crop-overlay">
+        <div class="crop-handle nw" data-handle="nw"></div>
+        <div class="crop-handle ne" data-handle="ne"></div>
+        <div class="crop-handle sw" data-handle="sw"></div>
+        <div class="crop-handle se" data-handle="se"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="info-row">
+    <div class="info-card"><div class="info-val" id="info-selection">—</div><div class="info-key">selecție (px reali)</div></div>
+    <div class="info-card"><div class="info-val" id="info-original">—</div><div class="info-key">imagine originală</div></div>
+  </div>
+
+  <div class="fields-grid" id="export-fields-grid">
+    <div class="field-card">
+      <span class="field-name">Format ieșire</span>
+      <select class="unit-select" id="format-select" onchange="onFormatChange()" style="width:100%;padding:8px">
+        <option value="auto">Auto (păstrează originalul)</option>
+        <option value="image/png">PNG</option>
+        <option value="image/jpeg">JPEG</option>
+        <option value="image/webp">WebP</option>
+      </select>
+    </div>
+    <div class="field-card" id="quality-card" style="display:none">
+      <span class="field-name">Calitate</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <input type="range" id="quality-slider" min="10" max="100" value="90" style="flex:1;accent-color:var(--accent)" oninput="onQualityChange()">
+        <span style="font-family:var(--font-mono);font-size:0.78rem;color:var(--accent);width:40px;text-align:right" id="quality-val">90%</span>
+      </div>
+    </div>
+  </div>
+
+  <button class="download-btn" id="download-btn" onclick="downloadCropped()" disabled>⬇ Descarcă imaginea decupată</button>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+let originalImg = null;
+let originalW = 0, originalH = 0;
+let originalMimeType = 'image/png';
+let displayScale = 1;
+let crop = { x: 20, y: 20, w: 150, h: 150 };
+let dragMode = null; // 'move' | 'nw' | 'ne' | 'sw' | 'se'
+let dragStart = { x:0, y:0, crop:null };
+let lockedAspect = null;
+
+const ASPECTS = [
+  { label: 'Liber', ratio: null },
+  { label: '1:1', ratio: 1 },
+  { label: '4:3', ratio: 4/3 },
+  { label: '16:9', ratio: 16/9 },
+  { label: '3:4', ratio: 3/4 },
+];
+
+function buildAspectRow() {
+  const wrap = document.getElementById('aspect-row');
+  ASPECTS.forEach((a, i) => {
+    const btn = document.createElement('div');
+    btn.className = 'aspect-btn' + (i===0 ? ' active' : '');
+    btn.textContent = a.label;
+    btn.onclick = () => {
+      document.querySelectorAll('.aspect-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      lockedAspect = a.ratio;
+      if (lockedAspect && originalImg) {
+        crop.h = crop.w / lockedAspect;
+        clampCrop();
+        renderCrop();
+      }
+    };
+    wrap.appendChild(btn);
+  });
+}
+
+function handleFile(file) {
+  if (!file || !file.type.startsWith('image/')) {
+    showToast('Te rog selectează un fișier imagine valid');
+    return;
+  }
+  originalMimeType = file.type;
+  document.getElementById('format-select').value = 'auto';
+  onFormatChange();
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      originalImg = img;
+      originalW = img.width;
+      originalH = img.height;
+
+      const cropImgEl = document.getElementById('crop-img');
+      cropImgEl.src = e.target.result;
+      cropImgEl.onload = () => {
+        const cropOuter = document.querySelector('.crop-outer');
+        const availableWidth = cropOuter.clientWidth || 600;
+        const displayW = Math.min(originalW, availableWidth);
+        const displayH = displayW * (originalH / originalW);
+        displayScale = originalW / displayW;
+
+        const wrap = document.getElementById('crop-wrap');
+        wrap.style.width = displayW + 'px';
+        wrap.style.height = displayH + 'px';
+        wrap.classList.add('show');
+
+        document.getElementById('info-original').textContent = `${originalW} × ${originalH}px`;
+        document.getElementById('download-btn').disabled = false;
+
+        crop = { x: displayW*0.15, y: displayH*0.15, w: displayW*0.7, h: displayH*0.7 };
+        renderCrop();
+      };
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function clampCrop() {
+  const wrap = document.getElementById('crop-wrap');
+  const maxW = wrap.clientWidth, maxH = wrap.clientHeight;
+  crop.w = Math.max(20, Math.min(crop.w, maxW));
+  crop.h = Math.max(20, Math.min(crop.h, maxH));
+  crop.x = Math.max(0, Math.min(crop.x, maxW - crop.w));
+  crop.y = Math.max(0, Math.min(crop.y, maxH - crop.h));
+}
+
+function renderCrop() {
+  const overlay = document.getElementById('crop-overlay');
+  overlay.style.left = crop.x + 'px';
+  overlay.style.top = crop.y + 'px';
+  overlay.style.width = crop.w + 'px';
+  overlay.style.height = crop.h + 'px';
+
+  const realW = Math.round(crop.w * displayScale);
+  const realH = Math.round(crop.h * displayScale);
+  document.getElementById('info-selection').textContent = `${realW} × ${realH}px`;
+}
+
+function startDrag(e, mode) {
+  e.preventDefault();
+  dragMode = mode;
+  const point = e.touches ? e.touches[0] : e;
+  dragStart = { x: point.clientX, y: point.clientY, crop: {...crop} };
+}
+
+function onDragMove(e) {
+  if (!dragMode) return;
+  const point = e.touches ? e.touches[0] : e;
+  const dx = point.clientX - dragStart.x;
+  const dy = point.clientY - dragStart.y;
+  const s = dragStart.crop;
+
+  if (dragMode === 'move') {
+    crop.x = s.x + dx;
+    crop.y = s.y + dy;
+  } else {
+    if (dragMode.includes('n')) { crop.y = s.y + dy; crop.h = s.h - dy; }
+    if (dragMode.includes('s')) { crop.h = s.h + dy; }
+    if (dragMode.includes('w')) { crop.x = s.x + dx; crop.w = s.w - dx; }
+    if (dragMode.includes('e')) { crop.w = s.w + dx; }
+
+    if (lockedAspect) {
+      // Recalculăm păstrând colțul opus fix
+      if (dragMode==='se' || dragMode==='ne') crop.h = crop.w / lockedAspect;
+      else crop.h = crop.w / lockedAspect;
+      if (dragMode.includes('n')) crop.y = s.y + s.h - crop.h;
+    }
+  }
+
+  clampCrop();
+  renderCrop();
+}
+
+function stopDrag() { dragMode = null; }
+
+document.getElementById('crop-overlay').addEventListener('mousedown', e => {
+  if (e.target.dataset.handle) startDrag(e, e.target.dataset.handle);
+  else startDrag(e, 'move');
+});
+document.querySelectorAll('.crop-handle').forEach(h => {
+  h.addEventListener('touchstart', e => startDrag(e, h.dataset.handle), {passive:false});
+});
+document.getElementById('crop-overlay').addEventListener('touchstart', e => {
+  if (!e.target.dataset.handle) startDrag(e, 'move');
+}, {passive:false});
+
+document.addEventListener('mousemove', onDragMove);
+document.addEventListener('touchmove', onDragMove, {passive:false});
+document.addEventListener('mouseup', stopDrag);
+document.addEventListener('touchend', stopDrag);
+
+function getEffectiveMimeType() {
+  const sel = document.getElementById('format-select').value;
+  if (sel === 'auto') {
+    return (originalMimeType === 'image/jpeg' || originalMimeType === 'image/webp')
+      ? originalMimeType : 'image/png';
+  }
+  return sel;
+}
+
+function onFormatChange() {
+  const mime = getEffectiveMimeType();
+  const needsQuality = mime === 'image/jpeg' || mime === 'image/webp';
+  const qualityCard = document.getElementById('quality-card');
+  const grid = document.getElementById('export-fields-grid');
+  qualityCard.style.display = needsQuality ? 'block' : 'none';
+  grid.style.gridTemplateColumns = needsQuality ? '1fr 1fr' : '1fr';
+}
+
+function onQualityChange() {
+  document.getElementById('quality-val').textContent = document.getElementById('quality-slider').value + '%';
+}
+
+function extForMime(mime) {
+  if (mime === 'image/jpeg') return 'jpg';
+  if (mime === 'image/webp') return 'webp';
+  return 'png';
+}
+
+function downloadCropped() {
+  if (!originalImg) return;
+
+  const realX = crop.x * displayScale;
+  const realY = crop.y * displayScale;
+  const realW = crop.w * displayScale;
+  const realH = crop.h * displayScale;
+
+  const mime = getEffectiveMimeType();
+  const quality = mime === 'image/png' ? undefined : parseInt(document.getElementById('quality-slider').value)/100;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = realW;
+  canvas.height = realH;
+  const ctx = canvas.getContext('2d');
+
+  if (mime === 'image/jpeg') {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, realW, realH);
+  }
+
+  ctx.drawImage(originalImg, realX, realY, realW, realH, 0, 0, realW, realH);
+
+  canvas.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `cropped-${Math.round(realW)}x${Math.round(realH)}.${extForMime(mime)}`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Descărcat!');
+  }, mime, quality);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+const fileInput = document.getElementById('file-input');
+const fileDrop = document.getElementById('file-drop');
+fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+fileDrop.addEventListener('dragover', e => { e.preventDefault(); fileDrop.classList.add('dragover'); });
+fileDrop.addEventListener('dragleave', () => fileDrop.classList.remove('dragover'));
+fileDrop.addEventListener('drop', e => {
+  e.preventDefault();
+  fileDrop.classList.remove('dragover');
+  handleFile(e.dataTransfer.files[0]);
+});
+
+buildAspectRow();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Crop imagine</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

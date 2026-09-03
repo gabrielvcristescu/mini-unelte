@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculator Dobândă Compusă — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #4af0b0;
+  --accent-dim: rgba(74,240,176,0.10);
+  --accent-border: rgba(74,240,176,0.28);
+}
+
+.fields-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--content-gap); margin-bottom: var(--content-gap); }
+@media (max-width: 500px) { .fields-grid { grid-template-columns: 1fr; } }
+
+.field-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.field-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.field-name { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text2); font-weight: 500; }
+.field-unit-select {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  padding: 2px 5px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  color: var(--text2);
+  outline: none;
+  cursor: pointer;
+}
+
+.result-card {
+  background: var(--bg2);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  text-align: center;
+  margin-bottom: var(--content-gap);
+}
+.result-main { font-family: var(--font-mono); font-size: 1.8rem; font-weight: 700; color: var(--accent); }
+.result-sub { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text3); margin-top: 4px; }
+
+.info-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: var(--content-gap); }
+@media (max-width: 500px) { .info-row { grid-template-columns: 1fr; } }
+.info-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; text-align: center; }
+.info-val { font-family: var(--font-mono); font-size: 0.95rem; font-weight: 600; color: var(--text); }
+.info-key { font-family: var(--font-mono); font-size: 0.58rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+
+/* ── Year-by-year table ── */
+.year-table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.74rem; }
+.year-table th { text-align: right; color: var(--text3); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.06em; padding: 5px 10px; border-bottom: 1px solid var(--border); }
+.year-table th:first-child { text-align: left; }
+.year-table td { padding: 4px 10px; text-align: right; border-bottom: 1px solid rgba(128,128,128,0.05); color: var(--text2); }
+.year-table td:first-child { text-align: left; color: var(--text); }
+.year-table tr:hover td { background: var(--bg3); }
+.year-table .growth { color: var(--accent); }
+
+.disclaimer {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--text3);
+  margin-top: var(--content-gap);
+  line-height: 1.5;
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Calculator dobândă compusă</h1>
+    <p>Capital, rată anuală, ani → valoare finală estimată</p>
+  </div>
+
+  <div class="fields-grid">
+    <div class="field-card">
+      <span class="field-name">Capital inițial</span>
+      <input class="input-calc" id="in-principal" type="number" min="0" step="any" value="10000"
+             style="--input-color:var(--accent);font-size:1.05rem" oninput="compute()">
+    </div>
+    <div class="field-card">
+      <span class="field-name">Rată dobândă anuală (%)</span>
+      <input class="input-calc" id="in-rate" type="number" step="any" value="5"
+             style="--input-color:var(--accent);font-size:1.05rem" oninput="compute()">
+    </div>
+    <div class="field-card">
+      <span class="field-name">Perioadă (ani)</span>
+      <input class="input-calc" id="in-years" type="number" min="0" step="1" value="10"
+             style="--input-color:var(--accent);font-size:1.05rem" oninput="compute()">
+    </div>
+    <div class="field-card">
+      <div class="field-top">
+        <span class="field-name">Frecvență capitalizare</span>
+      </div>
+      <select class="field-unit-select" id="in-freq" onchange="compute()" style="width:100%;padding:8px">
+        <option value="1">Anual</option>
+        <option value="4">Trimestrial</option>
+        <option value="12" selected>Lunar</option>
+        <option value="365">Zilnic</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="field-card" style="margin-bottom:var(--content-gap)">
+    <span class="field-name">Contribuție lunară suplimentară (opțional)</span>
+    <input class="input-calc" id="in-monthly" type="number" min="0" step="any" value="0"
+           style="--input-color:var(--accent);font-size:1rem" oninput="compute()">
+  </div>
+
+  <div class="result-card">
+    <div class="result-main" id="result-main">—</div>
+    <div class="result-sub" id="result-sub"></div>
+  </div>
+
+  <div class="info-row">
+    <div class="info-card"><div class="info-val" id="info-invested">—</div><div class="info-key">total investit</div></div>
+    <div class="info-card"><div class="info-val" id="info-interest">—</div><div class="info-key">dobândă câștigată</div></div>
+    <div class="info-card"><div class="info-val" id="info-multiplier">—</div><div class="info-key">multiplicator</div></div>
+  </div>
+
+  <div class="card">
+    <div class="field-label" style="margin-bottom:10px">Evoluție an de an</div>
+    <table class="year-table" id="year-table"></table>
+  </div>
+
+  <p class="disclaimer">
+    Calcul matematic simplu, nu ia în calcul inflația, taxele sau comisioanele. Nu constituie sfat financiar. Pentru decizii financiare importante, verifică ipotezele și condițiile reale aplicabile.
+  </p>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+function trim(n) {
+  if (!isFinite(n)) return '—';
+  return parseFloat(n.toPrecision(7)).toLocaleString('ro-RO', { maximumFractionDigits: 2 });
+}
+
+function compute() {
+  const principal = parseFloat(document.getElementById('in-principal').value);
+  const ratePct = parseFloat(document.getElementById('in-rate').value);
+  const years = parseFloat(document.getElementById('in-years').value);
+  const freq = parseFloat(document.getElementById('in-freq').value);
+  const monthly = parseFloat(document.getElementById('in-monthly').value) || 0;
+
+  const resultMain = document.getElementById('result-main');
+  const resultSub = document.getElementById('result-sub');
+
+  if (isNaN(principal) || isNaN(ratePct) || isNaN(years) || principal < 0 || years < 0) {
+    resultMain.textContent = '—';
+    resultSub.textContent = 'Completează toate câmpurile';
+    document.getElementById('info-invested').textContent = '—';
+    document.getElementById('info-interest').textContent = '—';
+    document.getElementById('info-multiplier').textContent = '—';
+    document.getElementById('year-table').innerHTML = '';
+    return;
+  }
+
+  const r = ratePct / 100;
+  const n = freq;
+
+  // Calcul lună cu lună pentru a include contribuțiile suplimentare corect
+  const totalMonths = Math.round(years * 12);
+  const monthlyRate = r / 12; // rată lunară echivalentă simplă pt aplicarea contribuțiilor
+  const compoundPerMonth = Math.pow(1 + r/n, n/12); // factor de creștere lunar dat de frecvența n
+
+  let balance = principal;
+  let totalContributed = principal;
+  const yearlyData = [];
+
+  for (let m = 1; m <= totalMonths; m++) {
+    balance = balance * compoundPerMonth + monthly;
+    totalContributed += monthly;
+    if (m % 12 === 0) {
+      yearlyData.push({ year: m/12, balance, contributed: totalContributed });
+    }
+  }
+  // Dacă years nu e multiplu întreg de 12 luni, adăugăm ultimul rest
+  if (totalMonths % 12 !== 0 || totalMonths === 0) {
+    yearlyData.push({ year: years, balance, contributed: totalContributed });
+  }
+
+  const finalValue = balance;
+  const interestEarned = finalValue - totalContributed;
+  const multiplier = totalContributed > 0 ? finalValue / totalContributed : 0;
+
+  resultMain.textContent = trim(finalValue) + ' Lei';
+  resultSub.textContent = `după ${trim(years)} ani, capitalizare ${freqLabel(n)}`;
+
+  document.getElementById('info-invested').textContent = trim(totalContributed) + ' Lei';
+  document.getElementById('info-interest').textContent = trim(interestEarned) + ' Lei';
+  document.getElementById('info-multiplier').textContent = trim(multiplier) + '×';
+
+  renderYearTable(yearlyData);
+}
+
+function freqLabel(n) {
+  if (n === 1) return 'anuală';
+  if (n === 4) return 'trimestrială';
+  if (n === 12) return 'lunară';
+  return 'zilnică';
+}
+
+function renderYearTable(data) {
+  const table = document.getElementById('year-table');
+  table.innerHTML = `<thead><tr><th>An</th><th>Contribuit</th><th>Valoare</th><th>Creștere</th></tr></thead>`;
+  const tbody = document.createElement('tbody');
+  data.forEach(d => {
+    const growth = d.balance - d.contributed;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${trim(d.year)}</td><td>${trim(d.contributed)}</td><td>${trim(d.balance)}</td><td class="growth">+${trim(growth)}</td>`;
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+}
+
+compute();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Calculator dobândă compusă</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

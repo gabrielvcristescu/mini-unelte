@@ -1,0 +1,1218 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Simulator calculator grafic — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+  :root{--body:#f6f6f3;--edge:#b81421;--dark:#333;--key:#f7f7f7;--key2:#e9e9e9;--screen:#eaf2ee;--blue:#1d56a6;--red:#c92332;}
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);font-family:var(--font-sans);color:var(--text);min-height:100vh;padding:0;}
+  .wrap{display:grid;grid-template-columns:minmax(330px,430px) minmax(320px,560px);gap:18px;align-items:start;max-width:1020px;width:100%;margin:0 auto}
+  .calc{width:100%;max-width:420px;margin:0 auto;background:var(--body);border-radius:28px 28px 48px 48px;border-left:13px solid var(--edge);border-right:13px solid var(--edge);box-shadow:0 22px 60px #000a, inset 0 0 0 1px #ddd;padding:14px 15px 22px;}
+  .screen{background:var(--screen);border:3px solid #3d3d3d;border-radius:5px;box-shadow:inset 0 0 0 1px #999;height:290px;overflow:hidden;display:flex;flex-direction:column;}
+  .topbar{height:20px;background:#dfe9e5;border-bottom:1px solid #8da09a;font-size:11px;display:flex;align-items:center;gap:4px;padding:0 5px;color:#263a37}.title{flex:1;text-align:center;font-weight:600}.indicator{font-size:10px;color:#063;font-weight:700;letter-spacing:.02em}.indicator.gold{color:#a6790f;width:22px;text-align:center;flex-shrink:0}
+  .display{flex:1;position:relative;background:#f8fff9}.display canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab}.display canvas.dragging{cursor:grabbing}
+  .smallkey{
+    height:30px;border-radius:7px;background:linear-gradient(#fff,#e7e7e7);border:1px solid #bbb;box-shadow:0 2px 0 #aaa;
+    font-size:11px;font-weight:650;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    display:flex;align-items:center;justify-content:center;letter-spacing:-0.01em;padding:0 4px;text-transform:uppercase
+  }
+  .entry-row{
+    display:grid;grid-template-columns:minmax(0,1fr) 62px;gap:7px;
+    margin:10px 4px 6px;
+  }
+  .entry-row input{
+    min-width:0;height:32px;border:1px solid #9aa;background:#fff;color:#222;
+    border-radius:4px;padding:4px 8px;font-size:13px;font-family:ui-monospace,Consolas,monospace;
+  }
+  .entry-row button{
+    height:32px;border:1px solid #999;border-radius:6px;background:linear-gradient(#fff,#e8e8e8);
+    box-shadow:0 2px 0 #aaa;font-size:11px;font-weight:650;cursor:pointer;text-transform:uppercase;
+    color:#333
+  }
+  .status-row{
+    min-height:48px;flex-shrink:0;padding:6px 10px;
+    background:#dfe9e5;border-top:1px solid #8da09a;
+    color:#263a37;font-size:13px;line-height:1.4;
+    font-family:ui-monospace,Consolas,monospace;font-weight:600;
+    overflow-wrap:anywhere;display:flex;align-items:center;
+  }
+  .middle{display:grid;grid-template-columns:56px 1fr 56px;gap:8px;align-items:center;margin-bottom:8px}
+  .sidecol{display:grid;gap:6px;align-content:center}
+  .nav-cluster{
+    min-height:96px;display:grid;
+    grid-template-columns:repeat(3,32px);
+    grid-template-rows:repeat(3,24px);
+    gap:4px;justify-content:center;align-content:center;
+    padding:6px 8px;border-radius:14px;background:#e9e9e9;border:1px solid #bbb;
+    box-shadow:inset 0 2px 5px #fff,0 2px 0 #aaa;
+  }
+  .nav-btn{
+    border:1px solid #aaa;background:linear-gradient(#fff,#e7e7e7);border-radius:6px;
+    box-shadow:0 2px 0 #aaa;color:#444;font-size:11px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;padding:0;
+  }
+  .nav-btn:active{transform:translateY(1px);box-shadow:0 1px 0 #999}
+  .nav-btn.up{grid-column:2;grid-row:1}
+  .nav-btn.left{grid-column:1;grid-row:2}
+  .nav-btn.ok{grid-column:2;grid-row:2;background:linear-gradient(#fdfdfd,#dedede);font-size:9px}
+  .nav-btn.right{grid-column:3;grid-row:2}
+  .nav-btn.down{grid-column:2;grid-row:3}
+  
+  /* ---- TI-style keyboard ----
+     Top: 5 thin "menu" keys right under the screen (Y=, WINDOW, ZOOM, TRACE, GRAPH),
+     exactly like a real graphing calculator, not a flat grid of 18 tiny buttons. */
+  .menurow{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:9px}
+  .menukey{
+    height:24px;border-radius:5px 5px 3px 3px;border:1px solid #9aa;background:linear-gradient(#e4e9ea,#c9d2d4);
+    box-shadow:0 2px 0 #8b979a;font-size:9px;font-weight:700;color:#233;display:flex;align-items:center;justify-content:center;
+    cursor:pointer;user-select:none;letter-spacing:-0.02em
+  }
+  .menukey:active{transform:translateY(1px);box-shadow:0 1px 0 #7c898c}
+
+  .keyboard{display:grid;gap:6px}
+  .keyrow{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+  .key{
+    height:30px;border-radius:6px;border:1px solid #aaa;background:linear-gradient(#fff,#e8e8e8);box-shadow:0 2px 0 #aaa;
+    font-size:10.5px;font-weight:650;color:#333;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;
+    white-space:nowrap;overflow:hidden;text-overflow:clip;letter-spacing:-0.02em;padding:0 2px;line-height:1;position:relative
+  }
+  .key .shifted{position:absolute;top:1px;left:3px;font-size:7px;color:var(--blue);font-weight:700}
+  .key.compact{font-size:9px}
+  .key:active,.smallkey:active,.menukey:active{transform:translateY(1px);box-shadow:0 1px 0 #999}
+  .key.black{background:linear-gradient(#444,#111);color:#fff;border-color:#000}
+  .key.red{background:linear-gradient(#f06470,#c7192a);color:#fff;border-color:#8f0d17}
+  .key.blue{background:linear-gradient(#5b78ad,#344e7f);color:#fff;border-color:#2a426d}
+  .key.gold{background:linear-gradient(#ffd873,#e0a51c);color:#3a2a00;border-color:#b9860f}
+  .key.gold.active{background:linear-gradient(#ffef9e,#f0bd2e);box-shadow:0 0 0 2px #b9860f inset,0 2px 0 #aaa}
+  .key.enter-wide{grid-column:span 5;height:32px;font-size:11px}
+  .label{font-size:9px;color:var(--text3,#888);display:block;text-align:center;margin-top:2px}
+  .sim-panel{background:var(--bg2,#fff);color:var(--text,#222);border:1px solid var(--border,transparent);border-radius:14px;padding:18px;box-shadow:0 14px 40px var(--shadow,#0003)}
+  .sim-panel h1{font-size:22px;margin:0 0 8px}
+  .sim-panel p{line-height:1.45;margin:10px 0;font-size:13px}
+  .sim-panel code{background:var(--bg3,#f2f2f2);color:inherit;padding:2px 5px;border-radius:4px;font-family:var(--font-mono,monospace)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .note{font-size:13px;color:var(--text2,#555)}
+  .history{max-height:180px;overflow:auto;border:1px solid var(--border,#ddd);border-radius:8px;padding:8px;background:var(--bg3,#fafafa);font-family:var(--font-mono,monospace);font-size:13px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin:9px 0}
+  @media(max-width:850px){.wrap{grid-template-columns:1fr}.sim-panel{order:2}.calc{order:1}}
+
+  .graph-legend{
+    position:absolute;left:8px;top:38px;z-index:4;display:none;gap:5px;flex-wrap:wrap;
+    max-width:calc(100% - 16px);pointer-events:none
+  }
+  .graph-legend.show{display:flex}
+  .graph-legend span{
+    background:rgba(255,255,255,.88);border:1px solid #aaa;border-radius:4px;padding:2px 5px;
+    font-family:ui-monospace,Consolas,monospace;font-size:9px;color:#333
+  }
+  .graph-legend i{display:inline-block;width:9px;height:2px;margin-right:4px;vertical-align:middle}
+  .docs{margin-top:14px;border-top:1px solid #ddd;padding-top:10px}
+  .docs summary{cursor:pointer;font-weight:700;font-size:14px}
+  .docs h3{font-size:14px;margin:14px 0 4px}
+  .docs p{font-size:13px;margin:5px 0;line-height:1.45}
+  .func-doc{
+    display:grid;grid-template-columns:max-content 1fr;gap:4px 10px;
+    margin:7px 0 10px;font-size:13px;align-items:baseline
+  }
+  .func-doc code{white-space:nowrap;font-family:var(--font-mono,monospace)}
+  .func-doc span{color:#555}
+
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+
+<style id="category-accent-override">
+:root { --accent: #f07090; }
+</style>
+</head>
+<body data-show-source="true">
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+<div class="tool-page">
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+  </div>
+<div class="wrap">
+  <section class="calc" aria-label="Simulator calculator grafic educațional">
+    <div class="screen">
+      <div class="topbar"><span class="indicator" id="modeIndicator">CALC</span><span class="indicator gold" id="secondIndicator"></span><span class="title">Graph Calculator</span><span class="indicator" id="angleIndicator">RAD</span></div>
+      <div class="display">
+        <canvas id="graph"></canvas>
+        <div class="graph-legend" id="graphLegend"></div>
+      </div>
+      <div class="status-row" id="status">Scrie o expresie sau o funcție de x. Exemplu: sin(x), x^2-3*x+1</div>
+    </div>
+
+    <div class="entry-row">
+      <input id="expr" value="sin(x)" aria-label="expresie" autofocus />
+      <button id="enterBtn">enter</button>
+    </div>
+    <div class="middle">
+      <div class="sidecol">
+        <button class="smallkey" data-action="history">hist</button>
+        <button class="smallkey" data-action="doc">doc</button>
+      </div>
+      <div class="nav-cluster" aria-label="Navigare">
+        <button class="nav-btn up" data-nav="up" aria-label="Sus">▲</button>
+        <button class="nav-btn left" data-nav="left" aria-label="Stânga">◀</button>
+        <button class="nav-btn ok" data-nav="ok">OK</button>
+        <button class="nav-btn right" data-nav="right" aria-label="Dreapta">▶</button>
+        <button class="nav-btn down" data-nav="down" aria-label="Jos">▼</button>
+      </div>
+      <div class="sidecol">
+        <button class="smallkey" data-action="reset" title="Șterge tot: istoric, expresie, domeniu, unghi">reset</button>
+      </div>
+    </div>
+    <div class="menurow" id="menuRow">
+      <button class="menukey" data-menu="yeq" title="Comută în modul grafic și pune cursorul în câmpul de expresie">Y=</button>
+      <button class="menukey" data-menu="window" title="Derulează la câmpurile de domeniu X/Y de mai jos">WINDOW</button>
+      <button class="menukey" data-menu="zoom" title="Resetează domeniul X/Y la valorile implicite">ZOOM</button>
+      <button class="menukey" data-menu="trace" title="Selectează expresia curentă, gata de editat">TRACE</button>
+      <button class="menukey" data-menu="graph" title="Desenează graficul expresiei curente">GRAPH</button>
+    </div>
+    <div class="keyboard" id="keyboard"></div>
+  </section>
+
+  <aside class="sim-panel">
+    <h1>Calculator grafic educațional</h1>
+    <p>Simulator educațional independent, inspirat de organizarea calculatoarelor grafice de tip TI. Nu este firmware TI și nu reproduce integral funcțiile unui model comercial. Permite calcule numerice, trasarea graficelor de funcții și are o tastatură virtuală completă.</p>
+    <div class="row">
+      <button class="btn btn-secondary" id="graphMode">Mod grafic</button>
+      <button class="btn btn-secondary" id="calcMode">Mod calculator</button>
+      <button class="btn btn-secondary" id="resetView">Reset vedere</button>
+      <button class="btn btn-primary" id="downloadBtn">Salvează istoricul</button>
+      <button class="btn btn-primary" id="downloadPng">Salvează graficul (PNG)</button>
+    </div>
+    <div class="grid2">
+      <div><b>Domeniu X</b><br><input id="xmin" value="-10" style="width:70px"> până la <input id="xmax" value="10" style="width:70px"></div>
+      <div><b>Domeniu Y</b><br><input id="ymin" value="-5" style="width:70px"> până la <input id="ymax" value="5" style="width:70px"></div>
+    </div>
+    <p class="note">Funcții acceptate: <code>sin cos tan asin acos atan sqrt abs log ln exp floor ceil round min max pow ncr npr</code>, constantele <code>pi e</code>, și operatorul postfix <code>!</code> (factorial). Puterea se scrie cu <code>^</code>. Înmulțirea implicită funcționează ca la un calculator fizic (<code>5x</code>, <code>2(x+1)</code>, <code>3sin(x)</code>) — nu e nevoie de <code>*</code> peste tot.</p>
+    <p><b>Exemple:</b></p>
+    <div class="row">
+      <button class="btn btn-ghost ex" data-e="sin(x)">sin(x)</button>
+      <button class="btn btn-ghost ex" data-e="cos(2*x)">cos(2x)</button>
+      <button class="btn btn-ghost ex" data-e="x^2-3*x+1">parabolă</button>
+      <button class="btn btn-ghost ex" data-e="sqrt(abs(x))*sin(3*x)">funcție mixtă</button>
+      <button class="btn btn-ghost ex" data-e="sin(x);cos(x)">2 grafice</button>
+      <button class="btn btn-ghost ex" data-e="ncr(12,4)">nCr</button>
+      <button class="btn btn-ghost ex" data-e="2+2*5">calcul</button>
+    </div>
+    <p><b>Istoric:</b></p><div class="history" id="history"></div>
+    <details class="docs" id="documentation">
+      <summary>Documentație</summary>
+
+      <h3>Tutorial rapid</h3>
+      <ol style="margin:6px 0 14px;padding-left:20px;line-height:1.6">
+        <li>Scrie o expresie în câmpul de sus și apasă <b>ENTER</b>. Dacă expresia conține variabila <code>x</code>, calculatorul desenează automat graficul; altfel calculează direct rezultatul numeric. Nu trebuie ales manual un mod.</li>
+        <li>Pentru mai multe funcții pe același grafic, desparte-le cu <code>;</code> — de exemplu <code>sin(x);cos(x)</code>. Fiecare primește o culoare proprie, afișată în legenda din colțul ecranului.</li>
+        <li>Tasta galbenă <b>2nd</b> activează, pentru o singură apăsare, funcția secundară afișată deasupra fiecărei taste (de exemplu <b>2nd + SIN</b> → <code>asin(</code>). După apăsare, tastatura revine automat la starea normală.</li>
+        <li>Rândul <b>Y= / WINDOW / ZOOM / TRACE / GRAPH</b> de sub ecran controlează vederea graficului: <b>WINDOW</b> te duce la câmpurile de domeniu X/Y, <b>ZOOM</b> le resetează la valorile implicite, <b>GRAPH</b> desenează imediat.</li>
+        <li>Poți trage direct pe grafic cu mouse-ul (sau cu degetul) ca să-l deplasezi, și poți mări/micșora cu rotița sau cu pinch pe ecran tactil.</li>
+        <li>Butoanele <b>Salvează istoricul</b> și <b>Salvează graficul (PNG)</b> de mai sus descarcă istoricul de calcule, respectiv imaginea curentă a graficului.</li>
+      </ol>
+
+      <h3>Ecranul și modurile</h3>
+      <p>Nu există un comutator obligatoriu între „calculator” și „grafic”: la apăsarea <b>ENTER</b>, o expresie care conține <code>x</code> sau <code>;</code> se desenează automat ca grafic; orice altă expresie se evaluează ca un calcul numeric. <code>ans</code> păstrează întotdeauna ultimul rezultat numeric, indiferent de mod.</p>
+      <p>Poți suprapune până la 6 funcții simultan, despărțite prin <code>;</code>. Butoanele <b>Mod grafic</b> / <b>Mod calculator</b> din panoul de mai sus și tasta <b>Y=</b> trec manual pe ecranul grafic înainte de a scrie ceva — util ca să ajungi direct la câmpurile de domeniu X/Y.</p>
+
+      <h3>Rândul de funcții: Y= / WINDOW / ZOOM / TRACE / GRAPH</h3>
+      <div class="func-doc">
+        <code>Y=</code><span>trece pe ecranul grafic și pune cursorul în câmpul de expresie</span>
+        <code>WINDOW</code><span>derulează la câmpurile de domeniu X/Y de mai jos</span>
+        <code>ZOOM</code><span>resetează domeniul X/Y la valorile implicite (-10..10 / -5..5)</span>
+        <code>TRACE</code><span>selectează expresia curentă din câmp, gata de suprascris</span>
+        <code>GRAPH</code><span>trece pe grafic și desenează imediat expresia curentă</span>
+      </div>
+
+      <h3>Rândul utilitar: 2nd / MODE / DEL / CLEAR / ANS</h3>
+      <div class="func-doc">
+        <code>2nd</code><span>tastă shift: activează pentru o singură apăsare funcția secundară a tastei următoare</span>
+        <code>MODE</code><span>comută unghiurile <b>RAD/DEG</b> pentru funcțiile trigonometrice (unitatea curentă apare în colțul din dreapta al ecranului)</span>
+        <code>DEL</code><span>șterge un caracter înainte de cursor</span>
+        <code>CLEAR</code><span>golește tot câmpul de expresie</span>
+        <code>ANS</code><span>inserează ultimul rezultat numeric (<code>ans</code>)</span>
+      </div>
+
+      <h3>Trigonometrie și logaritmi (shift <code>2nd</code>)</h3>
+      <div class="func-doc">
+        <code>SIN / COS / TAN</code><span>funcțiile trigonometrice directe</span>
+        <code>2nd + SIN/COS/TAN</code><span>inversele: <code>asin(</code> / <code>acos(</code> / <code>atan(</code></span>
+        <code>LOG</code><span>logaritm în baza 10 — <code>2nd + LOG</code> inserează <code>10^(</code>, adică 10 la puterea x</span>
+        <code>LN</code><span>logaritm natural — <code>2nd + LN</code> inserează <code>exp(</code>, adică e la puterea x</span>
+      </div>
+
+      <h3>Grupare și funcții matematice (shift <code>2nd</code>)</h3>
+      <div class="func-doc">
+        <code>x²</code><span>ridică la puterea 2 — <code>2nd + x²</code> → <code>FLOOR</code>, rotunjire în jos</span>
+        <code>√</code><span>radical — <code>sqrt(</code> — <code>2nd + √</code> → <code>CEIL</code>, rotunjire în sus</span>
+        <code>^</code><span>ridicare la putere, ex. <code>2^8</code> — <code>2nd + ^</code> → <code>ROUND</code>, rotunjire la cel mai apropiat întreg</span>
+        <code>(</code><span>paranteză deschisă — <code>2nd + (</code> → <code>MIN</code>, minim din mai multe valori</span>
+        <code>)</code><span>paranteză închisă — <code>2nd + )</code> → <code>MAX</code>, maxim din mai multe valori</span>
+        <code>ABS</code><span>valoare absolută — <code>abs(</code> — <code>2nd + ABS</code> → <code>!</code>, factorial</span>
+        <code>POW</code><span>putere cu doi parametri — <code>pow(a,b)</code> = a la puterea b — <code>2nd + POW</code> → <code>nPr</code>, permutări</span>
+        <code>,</code><span>separator de parametri, pentru <code>pow(2,8)</code>, <code>min(1,2,3)</code> etc. — <code>2nd + ,</code> → <code>nCr</code>, combinări</span>
+        <code>;</code><span>separator între funcții diferite, pentru grafice suprapuse</span>
+        <code>x</code><span>variabila de grafic (tastă albastră, distinctă de tasta <code>*</code> — înmulțirea, din blocul de operații)</span>
+      </div>
+
+      <h3>Factorial, combinări și permutări</h3>
+      <p><code>!</code> se scrie după număr, ca pe orice calculator — <code>5!</code> înseamnă 120, nu <code>!5</code>. Funcționează și înlănțuit (<code>3!!</code>) și combinat cu alte operații, cu precedența corectă: <code>2^3!</code> = <code>2^(3!)</code> = 64, iar <code>3!^2</code> = <code>(3!)^2</code> = 36.</p>
+      <p>Factorialul acceptă orice număr real (nu doar întregi) — se poate chiar trasa graficul lui <code>x!</code> ca o curbă continuă. Factorialul numerelor întregi negative rămâne nedefinit.</p>
+      <p><code>ncr(n,r)</code> (combinări) și <code>npr(n,r)</code> (permutări) se scriu ca funcții cu paranteză — de exemplu <code>ncr(12,4)</code> = 495, <code>npr(12,4)</code> = 11880.</p>
+
+      <h3>Înmulțire implicită</h3>
+      <p>Nu e nevoie de <code>*</code> peste tot: <code>5x</code>, <code>2pi</code>, <code>2(x+1)</code>, <code>(x+1)(x-1)</code> și <code>3sin(x)</code> se interpretează direct ca <code>5*x</code>, <code>2*pi</code>, <code>2*(x+1)</code>, <code>(x+1)*(x-1)</code>, respectiv <code>3*sin(x)</code>. Regula: se subînțelege înmulțirea între o cifră sau o paranteză închisă și ce urmează imediat după (literă, cifră sau paranteză deschisă).</p>
+
+      <h3>Bloc numeric și operații</h3>
+      <p>Cifrele <code>0-9</code>, punctul zecimal și <code>(-)</code> (minus unar, pentru numere negative) sunt grupate pe 3 coloane; în dreapta lor, pe 2 coloane: constantele <code>π</code>/<code>e</code>, operatorii <code>* ÷ + −</code>, și <code>=</code>/<code>ENTER</code> (identice — execută expresia).</p>
+
+      <h3>Navigare pe grafic cu mouse-ul sau degetul</h3>
+      <p>Tragi cu mouse-ul (sau cu un deget, pe ecran tactil) peste grafic pentru a-l deplasa (pan) — conținutul urmărește direcția de tragere, ca pe o hartă. Rotița mouse-ului sau ciupitul cu două degete (pinch) mărește sau micșorează zona vizibilă, centrat exact pe punctul de sub cursor sau dintre cele două degete. Câmpurile de domeniu X/Y de mai sus se actualizează automat.</p>
+
+      <h3>Axa X în fracții de π</h3>
+      <p>Când graficul conține <code>sin</code>, <code>cos</code>, <code>tan</code> sau inversele lor și unghiul e pe <b>RAD</b>, gridul de pe axa X se etichetează automat în fracții de π (<code>π/2</code>, <code>π</code>, <code>3π/2</code>...) în loc de zecimale. Pentru orice altă expresie, sau când unghiul e pe <b>DEG</b>, gridul rămâne în zecimale.</p>
+
+      <h3>Istoric și navigare</h3>
+      <p><b>▲/▼</b> navighează prin expresiile evaluate anterior. <b>◀/▶</b> mută cursorul în câmpul expresiei, fără să șteargă nimic. <b>OK</b> execută expresia curentă (identic cu ENTER).</p>
+      <p><b>hist</b> mută focusul la istoric. <b>doc</b> deschide această documentație. <b>reset</b> șterge tot: istoric, expresie, domeniu X/Y și unghi.</p>
+
+      <h3>Limitări</h3>
+      <p>Simulatorul este educațional. Nu reproduce un CAS (sistem de calcul simbolic), programare sau firmware-ul unui calculator comercial.</p>
+    </details>
+  </aside>
+</div>
+<script>
+const expr = document.getElementById('expr');
+const statusEl = document.getElementById('status');
+const canvas = document.getElementById('graph');
+const ctx = canvas.getContext('2d');
+const hist = document.getElementById('history');
+const modeIndicator = document.getElementById('modeIndicator');
+const secondIndicator = document.getElementById('secondIndicator');
+const graphLegend = document.getElementById('graphLegend');
+const angleIndicator = document.getElementById('angleIndicator');
+
+let mode = 'calc';
+let angleMode = 'RAD';
+let ansValue = 0;
+let historyItems = [];
+let historyCursor = -1;
+let secondActive = false;
+
+/* TI-style rows: utility row, then a shiftable trig/log row (real "2nd"
+   behaviour — sin becomes sin⁻¹, log becomes 10^x, etc.), then grouping,
+   then numeric pad with operators folded in. 40 keys total instead of the
+   previous 47 crammed into 4 separate unrelated grids. */
+const keyRows = [
+  [
+    {label:'2nd', insert:null, action:'shift', gold:true, title:'Shift: activează pentru o apăsare funcțiile inverse (SIN⁻¹, 10ˣ, etc.)'},
+    {label:'MODE', insert:null, action:'angle', blue:true, title:'Comută unghiurile RAD/DEG pentru funcțiile trigonometrice'},
+    {label:'DEL', insert:null, action:'del', title:'Șterge caracterul dinaintea cursorului'},
+    {label:'CLEAR', insert:null, action:'clear', title:'Golește tot câmpul de expresie'},
+    {label:'ANS', insert:'ans', title:'Inserează ultimul rezultat numeric'}
+  ],
+  [
+    {label:'SIN', insert:'sin(', shiftLabel:'SIN⁻¹', shiftInsert:'asin('},
+    {label:'COS', insert:'cos(', shiftLabel:'COS⁻¹', shiftInsert:'acos('},
+    {label:'TAN', insert:'tan(', shiftLabel:'TAN⁻¹', shiftInsert:'atan('},
+    {label:'LOG', insert:'log(', shiftLabel:'10ˣ', shiftInsert:'10^('},
+    {label:'LN', insert:'ln(', shiftLabel:'eˣ', shiftInsert:'exp('}
+  ],
+  [
+    {label:'x²', insert:'^2', shiftLabel:'FLOOR', shiftInsert:'floor(', title:'Ridică la puterea 2 · 2nd: floor( (rotunjire în jos)'},
+    {label:'√', insert:'sqrt(', shiftLabel:'CEIL', shiftInsert:'ceil(', title:'Radical · 2nd: ceil( (rotunjire în sus)'},
+    {label:'^', insert:'^', shiftLabel:'ROUND', shiftInsert:'round(', title:'Ridicare la putere, ex. 2^8 · 2nd: round( (rotunjire la cel mai apropiat întreg)'},
+    {label:'(', insert:'(', shiftLabel:'MIN', shiftInsert:'min(', title:'Paranteză deschisă · 2nd: min( (minim din mai multe valori)'},
+    {label:')', insert:')', shiftLabel:'MAX', shiftInsert:'max(', title:'Paranteză închisă · 2nd: max( (maxim din mai multe valori)'}
+  ],
+  [
+    {label:'ABS', insert:'abs(', shiftLabel:'!', shiftInsert:'!', title:'Valoare absolută · 2nd: ! (factorial — se scrie după număr, ex. 5!)'},
+    {label:'POW', insert:'pow(', shiftLabel:'nPr', shiftInsert:'npr(', title:'Putere cu 2 parametri: pow(a,b) = a la puterea b · 2nd: nPr (permutări) — npr(n,r)'},
+    {label:',', insert:',', shiftLabel:'nCr', shiftInsert:'ncr(', title:'Separator de parametri, ex. pow(2,8) · 2nd: nCr (combinări) — ncr(n,r)'},
+    {label:';', insert:';', title:'Separator între funcții, pentru grafice suprapuse'},
+    {label:'x', insert:'x', blue:true, title:'Variabila de grafic (diferită de tasta * — înmulțirea)'}
+  ],
+  [
+    {label:'7', insert:'7', digit:true},
+    {label:'8', insert:'8', digit:true},
+    {label:'9', insert:'9', digit:true},
+    {label:'π', insert:'pi'},
+    {label:'e', insert:'e'}
+  ],
+  [
+    {label:'4', insert:'4', digit:true},
+    {label:'5', insert:'5', digit:true},
+    {label:'6', insert:'6', digit:true},
+    {label:'*', insert:'*'},
+    {label:'÷', insert:'/'}
+  ],
+  [
+    {label:'1', insert:'1', digit:true},
+    {label:'2', insert:'2', digit:true},
+    {label:'3', insert:'3', digit:true},
+    {label:'+', insert:'+'},
+    {label:'−', insert:'-'}
+  ],
+  [
+    {label:'0', insert:'0', digit:true},
+    {label:'.', insert:'.', digit:true},
+    {label:'(-)', insert:'-', digit:true, title:'Minus unar, ex: (-)3'},
+    {label:'=', insert:null, action:'run'},
+    {label:'ENTER', insert:null, action:'run', blue:true}
+  ]
+];
+
+const keyboardEl = document.getElementById('keyboard');
+
+function keyLabel(def){ return (secondActive && def.shiftLabel) ? def.shiftLabel : def.label; }
+
+function makeKeyButton(def){
+  const b=document.createElement('button');
+  const label = keyLabel(def);
+  const compact = label.length>=4;
+  b.className='key '+(compact?'compact ':'')+(def.digit?'black ':'')+(def.blue?'blue ':'')+(def.gold?'gold ':'')+(def.gold&&secondActive?'active ':'');
+  b.textContent=label;
+  b.dataset.action = def.action || '';
+  if(def.title) b.title = def.title;
+  b._def = def;
+  return b;
+}
+
+function renderKeyboard(){
+  keyboardEl.innerHTML='';
+  keyRows.forEach(row=>{
+    const r=document.createElement('div');
+    r.className='keyrow';
+    row.forEach(def=>r.appendChild(makeKeyButton(def)));
+    keyboardEl.appendChild(r);
+  });
+}
+renderKeyboard();
+
+function pressKey(def){
+  if(def.action==='shift'){ secondActive=!secondActive; renderKeyboard(); secondIndicator.textContent=secondActive?'2ND':''; return; }
+  if(def.action==='angle'){ toggleAngle(); return; }
+  if(def.action==='del'){ deleteAtCursor(); return; }
+  if(def.action==='clear'){ clearEntry(); return; }
+  if(def.action==='run'){ run(); return; }
+  const value = (secondActive && def.shiftInsert) ? def.shiftInsert : def.insert;
+  insertAtCursor(value);
+  if(secondActive){ secondActive=false; renderKeyboard(); secondIndicator.textContent=''; }
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g,c=>({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+function fmt(v){
+  if(!Number.isFinite(v)) return String(v);
+  const av=Math.abs(v);
+  if((av!==0 && av<1e-8) || av>=1e10) return v.toExponential(8).replace(/\.?0+e/,'e');
+  return Number(v.toPrecision(12)).toString();
+}
+
+
+function addHistory(expression,result,type='calc'){
+  historyItems.push({expression,result,type});
+  historyCursor=historyItems.length;
+  const row=document.createElement('div');
+  row.textContent = type==='graph' ? 'grafic: y = '+expression : expression+' = '+result;
+  hist.prepend(row);
+}
+
+function insertAtCursor(value){
+  const s=expr.selectionStart ?? expr.value.length;
+  const e=expr.selectionEnd ?? s;
+  expr.value=expr.value.slice(0,s)+value+expr.value.slice(e);
+  expr.focus();
+  const p=s+value.length;
+  expr.setSelectionRange(p,p);
+}
+
+function deleteAtCursor(){
+  expr.focus();
+  let s=expr.selectionStart ?? expr.value.length;
+  let e=expr.selectionEnd ?? s;
+  if(s!==e){
+    expr.value=expr.value.slice(0,s)+expr.value.slice(e);
+    expr.setSelectionRange(s,s);
+  }else if(s>0){
+    expr.value=expr.value.slice(0,s-1)+expr.value.slice(s);
+    expr.setSelectionRange(s-1,s-1);
+  }
+}
+
+function clearEntry(){
+  expr.value='';
+  statusEl.textContent='Intrare ștearsă.';
+  expr.focus();
+}
+
+function resetAll(){
+  ansValue=0;
+  historyItems=[];
+  historyCursor=-1;
+  hist.innerHTML='';
+  expr.value='';
+  mode='calc';
+  modeIndicator.textContent='CALC';
+  angleMode='RAD';
+  angleIndicator.textContent='RAD';
+  if(secondActive){ secondActive=false; renderKeyboard(); secondIndicator.textContent=''; }
+  document.getElementById('xmin').value=-10;
+  document.getElementById('xmax').value=10;
+  document.getElementById('ymin').value=-5;
+  document.getElementById('ymax').value=5;
+  xAxisInPi=false;
+  drawAxes(-10,10,-5,5);
+  graphLegend.classList.remove('show');
+  graphLegend.innerHTML='';
+  statusEl.textContent='Simulator resetat.';
+}
+
+
+function toRad(v){return angleMode==='DEG'?v*Math.PI/180:v}
+function fromRad(v){return angleMode==='DEG'?v*180/Math.PI:v}
+
+const FN = {
+  sin:v=>Math.sin(toRad(v)),
+  cos:v=>Math.cos(toRad(v)),
+  tan:v=>Math.tan(toRad(v)),
+  asin:v=>fromRad(Math.asin(v)),
+  acos:v=>fromRad(Math.acos(v)),
+  atan:v=>fromRad(Math.atan(v)),
+  sqrt:Math.sqrt,
+  abs:Math.abs,
+  exp:Math.exp,
+  ln:Math.log,
+  log:Math.log10,
+  floor:Math.floor,
+  ceil:Math.ceil,
+  round:Math.round,
+  min:Math.min,
+  max:Math.max,
+  pow:realPow,
+  fact:factorial,
+  ncr:(n,r)=>Math.round(factorial(n)/(factorial(r)*factorial(n-r))),
+  npr:(n,r)=>Math.round(factorial(n)/factorial(n-r))
+};
+
+/* Lanczos approximation of the Gamma function (standard g=7, n=9
+   coefficients, accurate to ~15 digits) — n! is Γ(n+1). Using Gamma
+   instead of a plain integer loop means factorial works for any real
+   input, not just non-negative integers, matching how a real TI
+   evaluates non-integer/negative factorials via the same Γ relation
+   (its documented range is -0.5 and multiples of 0.5, but the
+   underlying math is identical and Γ is continuous, so this covers
+   any real value, which also makes x! graphable as a smooth curve). */
+function gamma(z){
+  const g=7;
+  const p=[0.99999999999980993,676.5203681218851,-1259.1392167224028,
+    771.32342877765313,-176.61502916214059,12.507343278686905,
+    -0.13857109526572012,9.9843695780195716e-6,1.5056327351493116e-7];
+  if(z<0.5) return Math.PI/(Math.sin(Math.PI*z)*gamma(1-z)); // reflection formula
+  z-=1;
+  let x=p[0];
+  for(let i=1;i<g+2;i++) x+=p[i]/(z+i);
+  const t=z+g+0.5;
+  return Math.sqrt(2*Math.PI)*Math.pow(t,z+0.5)*Math.exp(-t)*x;
+}
+function factorial(n){
+  if(!Number.isFinite(n)) return NaN;
+  if(n<0 && Number.isInteger(n)) return NaN; // Γ has poles at negative integers
+  return gamma(n+1);
+}
+
+/* Finds the smallest q (1..maxDen) such that x ≈ p/q for some integer p —
+   i.e. the reduced fraction behind a typed exponent like 1/3 (which JS
+   only ever hands us as the float 0.3333333333333333). Returns null if
+   no such small, clean fraction exists (genuinely irrational-ish
+   exponent), in which case there's no clean real-valued root to fall
+   back to anyway. */
+function simpleFraction(x, maxDen=1000, eps=1e-9){
+  for(let q=1; q<=maxDen; q++){
+    const p=Math.round(x*q);
+    if(Math.abs(x-p/q)<eps) return {p,q};
+  }
+  return null;
+}
+
+/* Math.pow / the native ** operator both return NaN for a negative base
+   with a non-integer exponent (e.g. (-8)**(1/3) => NaN), even though the
+   real cube root of -8 is -2 — JS only computes the *principal* (complex)
+   root. A real graphing calculator gives you -2. This restores that: for
+   a negative base raised to p/q in lowest terms, a real root exists
+   whenever q is odd, with sign (-1)^p. */
+function realPow(base, exponent){
+  if(typeof base!=='number' || typeof exponent!=='number') return Math.pow(base,exponent);
+  if(base>=0 || !Number.isFinite(base) || !Number.isFinite(exponent)) return Math.pow(base,exponent);
+  if(Number.isInteger(exponent)) return Math.pow(base,exponent); // already correct natively
+  const frac=simpleFraction(exponent);
+  if(!frac) return NaN; // no clean small-denominator fraction — no real value to give
+  const {p,q}=frac;
+  if(q%2===0) return NaN; // even root of a negative number: genuinely no real value
+  const magnitude=Math.pow(Math.abs(base), p/q);
+  return (p%2===0) ? magnitude : -magnitude;
+}
+
+/* Scans backward/forward from a '^' to find its operand: a parenthesized
+   group (optionally preceded by a function name, e.g. sin(x)), a bare
+   number, or a bare identifier (x, pi, e, ans) — with a leading unary
+   minus absorbed into the operand either at the very start of the
+   expression or right after another operator/open-paren, matching how
+   this calculator's own (-) key and negative-number entry work. */
+function scanAtomBackward(s, end){
+  let i=end;
+  if(s[i]===')'){
+    let depth=1; i--;
+    while(i>=0 && depth>0){ if(s[i]===')')depth++; else if(s[i]==='(')depth--; i--; }
+    i++; // position of matching '('
+    while(i>0 && /[A-Za-z0-9_]/.test(s[i-1])) i--; // absorb a function name before it
+  }else if(/[0-9.]/.test(s[i])){
+    while(i>0 && /[0-9.]/.test(s[i-1])) i--;
+  }else if(/[A-Za-z_]/.test(s[i])){
+    while(i>0 && /[A-Za-z0-9_]/.test(s[i-1])) i--;
+  }
+  if(i>0 && s[i-1]==='-' && (i<2 || /[-+*/(,^]/.test(s[i-2]))) i--; // leading unary minus
+  return i;
+}
+function scanAtomForward(s, start){
+  let i=start;
+  if(s[i]==='-') i++; // unary minus right after ^ is always unambiguous
+  if(s[i]==='('){
+    let depth=1; i++;
+    while(i<s.length && depth>0){ if(s[i]==='(')depth++; else if(s[i]===')')depth--; i++; }
+  }else if(/[A-Za-z_]/.test(s[i])){
+    while(i<s.length && /[A-Za-z0-9_]/.test(s[i])) i++;
+    if(s[i]==='('){
+      let depth=1; i++;
+      while(i<s.length && depth>0){ if(s[i]==='(')depth++; else if(s[i]===')')depth--; i++; }
+    }
+  }else if(/[0-9.]/.test(s[i])){
+    while(i<s.length && /[0-9.]/.test(s[i])) i++;
+  }
+  return i;
+}
+
+/* Converts every a^b into POWR(a,b), processing the rightmost '^' first
+   so chains stay right-associative: 2^3^2 becomes POWR(2,POWR(3,2)) —
+   the already-converted POWR(3,2) is itself a valid "identifier(...)"
+   atom, so the next pass to the left picks it up correctly as its
+   right-hand operand. */
+function applyRealPow(s){
+  let idx;
+  while((idx=s.lastIndexOf('^'))!==-1){
+    const li=scanAtomBackward(s, idx-1);
+    const ri=scanAtomForward(s, idx+1);
+    const left=s.slice(li, idx), right=s.slice(idx+1, ri);
+    s=s.slice(0,li)+'POWR('+left+','+right+')'+s.slice(ri);
+  }
+  return s;
+}
+
+/* Postfix ! (factorial), same atom-scanning as ^ but with no right-hand
+   side: reuses scanAtomBackward for the operand, and processes left to
+   right so a chain like 3!! becomes FACT(FACT(3)) rather than mangling
+   the second '!' against a bare "!" character. */
+function applyFactorial(s){
+  let idx;
+  while((idx=s.indexOf('!'))!==-1){
+    const li=scanAtomBackward(s, idx-1);
+    const atom=s.slice(li, idx);
+    s=s.slice(0,li)+'FACT('+atom+')'+s.slice(idx+1);
+  }
+  return s;
+}
+
+function normalizeExpression(s){
+  let t = s.trim()
+    .replace(/×/g,'*')
+    .replace(/÷/g,'/')
+    .replace(/π/g,'pi');
+
+  /* Factorial first, so its FACT(...) result is a proper parenthesized
+     atom by the time implicit multiplication and ^ look for one (this
+     is what lets 3!x and 2^3! and (3!)^2 all resolve correctly). */
+  t = applyFactorial(t);
+  /* Implicit multiplication, like every real calculator: 5x, 2(x+1),
+     (x+1)(x-1), 3sin(x), 2pi, etc. Without this, sin(5x) is a raw JS
+     syntax error ("Invalid or unexpected token") since 5x isn't a
+     valid token sequence — the engine required an explicit * everywhere,
+     which no physical calculator does. */
+  t = t.replace(/(\d)(?=[A-Za-z_(])/g, '$1*');          // digit, then letter/'('
+  t = t.replace(/(\))(?=[0-9A-Za-z_(])/g, '$1*');        // ')', then digit/letter/'('
+  t = t.replace(/\b(x|e|pi|ans)\b(?=[(0-9])/g, '$1*');   // bare constant/variable, then '('/digit
+
+  return applyRealPow(t);
+}
+
+function compileExpression(source){
+  const s=normalizeExpression(source);
+  if(!s) throw new Error('Expresie goală');
+
+  if(!/^[0-9A-Za-z_+\-*/().,\s]*$/.test(s))
+    throw new Error('Caractere nepermise');
+
+  const names = ['x','ans','pi','e',
+    'sin','cos','tan','asin','acos','atan','sqrt','abs','exp','ln','log',
+    'floor','ceil','round','min','max','pow','POWR','ncr','npr','FACT'];
+
+  const tokens = s.match(/[A-Za-z_][A-Za-z0-9_]*/g) || [];
+  for(const t of tokens){
+    if(!names.includes(t)) throw new Error('Nume necunoscut: '+t);
+  }
+
+  return new Function(
+    ...names,
+    '"use strict"; return ('+s+');'
+  );
+}
+
+function evaluateExpression(source,xValue=0){
+  const fn=compileExpression(source);
+  return fn(
+    xValue,ansValue,Math.PI,Math.E,
+    FN.sin,FN.cos,FN.tan,FN.asin,FN.acos,FN.atan,FN.sqrt,FN.abs,FN.exp,FN.ln,FN.log,
+    FN.floor,FN.ceil,FN.round,FN.min,FN.max,FN.pow,realPow,FN.ncr,FN.npr,FN.fact
+  );
+}
+
+function val(id){
+  const v=parseFloat(document.getElementById(id).value);
+  if(!Number.isFinite(v)) throw new Error('Domeniu numeric invalid');
+  return v;
+}
+
+/* Chooses a "nice" grid step (1/2/5 × 10^n) so the number of gridlines
+   stays roughly constant regardless of the X/Y domain size — fixes the
+   previous fixed step=1, which drew thousands of lines (and froze the
+   tab) for any domain wider than a couple dozen units. */
+function niceStep(range,pixels,targetPx=46){
+  if(!(range>0)) return 1;
+  const rough=range/Math.max(1,pixels/targetPx);
+  const mag=Math.pow(10,Math.floor(Math.log10(rough)));
+  const norm=rough/mag;
+  const step=norm<1.5?1:norm<3.5?2:norm<7.5?5:10;
+  return step*mag;
+}
+
+let lastViewport={xmin:-10,xmax:10,ymin:-5,ymax:5};
+let xAxisInPi=false; // set by graphIt() when a trig function is graphed in RAD mode
+
+function gcdInt(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ [a,b]=[b,a%b]; } return a||1; }
+
+/* Renders a tick value that's an exact multiple of π (num/den * π, in
+   lowest terms) as "π", "π/2", "3π/2", "-2π", etc. — the way textbooks
+   and most graphing tools label trig axes, instead of the decimal
+   approximation (1.5707963267948966 for π/2). */
+function formatPiFraction(num,den){
+  if(num===0) return '0';
+  const g=gcdInt(num,den);
+  num/=g; den/=g;
+  const sign=num<0?'-':'';
+  num=Math.abs(num);
+  const coeff=num===1?'':String(num);
+  return den===1 ? sign+coeff+'π' : sign+coeff+'π/'+den;
+}
+
+/* Same "keep the gridline count roughly constant" goal as niceStep, but
+   snapped to nice fractions of π (quarters, thirds, sixths, halves,
+   whole multiples) instead of powers of ten — since a trig graph's
+   natural rhythm is in units of π, not 1/2/5. */
+const PI_STEP_CANDIDATES=[
+  [1,12],[1,6],[1,4],[1,3],[1,2],[2,3],[1,1],[2,1],[3,1],[4,1],
+  [6,1],[8,1],[12,1],[16,1],[24,1],[32,1],[48,1],[64,1],[96,1],[128,1]
+];
+function niceStepPi(range,pixels,targetPx=46){
+  const rough=range/Math.max(1,pixels/targetPx);
+  for(const [num,den] of PI_STEP_CANDIDATES){
+    if((num/den)*Math.PI>=rough) return {num,den};
+  }
+  const last=PI_STEP_CANDIDATES[PI_STEP_CANDIDATES.length-1];
+  return {num:last[0]*Math.ceil(rough/((last[0]/last[1])*Math.PI)), den:last[1]};
+}
+
+function drawAxes(xmin,xmax,ymin,ymax){
+  lastViewport={xmin,xmax,ymin,ymax};
+  ctx.clearRect(0,0,cssW,cssH);
+  ctx.fillStyle='#f8fff9';
+  ctx.fillRect(0,0,cssW,cssH);
+
+  const W=cssW,H=cssH;
+  const px=x=>(x-xmin)/(xmax-xmin)*W;
+  const py=y=>H-(y-ymin)/(ymax-ymin)*H;
+
+  ctx.strokeStyle='#d8d8d8';
+  ctx.lineWidth=1;
+  ctx.font='10px system-ui';
+  ctx.fillStyle='#666';
+
+  const piFrac = xAxisInPi ? niceStepPi(xmax-xmin,W) : null;
+  const stepX = xAxisInPi ? (piFrac.num/piFrac.den)*Math.PI : niceStep(xmax-xmin,W);
+  const stepY=niceStep(ymax-ymin,H);
+  const startXi=Math.ceil(xmin/stepX), endXi=Math.floor(xmax/stepX);
+  const startYi=Math.ceil(ymin/stepY), endYi=Math.floor(ymax/stepY);
+
+  for(let i=startXi;i<=endXi;i++){
+    const x=i*stepX, X=px(x);
+    ctx.beginPath();ctx.moveTo(X,0);ctx.lineTo(X,H);ctx.stroke();
+    const label = xAxisInPi ? formatPiFraction(i*piFrac.num, piFrac.den) : fmt(x);
+    if(x!==0 && py(0)>=0 && py(0)<=H) ctx.fillText(label,X+2,py(0)-2);
+  }
+  for(let i=startYi;i<=endYi;i++){
+    const y=i*stepY, Y=py(y);
+    ctx.beginPath();ctx.moveTo(0,Y);ctx.lineTo(W,Y);ctx.stroke();
+    if(y!==0 && px(0)>=0 && px(0)<=W) ctx.fillText(fmt(y),px(0)+3,Y-2);
+  }
+
+  ctx.strokeStyle='#777';
+  ctx.lineWidth=1.5;
+  ctx.beginPath();
+  if(px(0)>=0&&px(0)<=W){ctx.moveTo(px(0),0);ctx.lineTo(px(0),H)}
+  if(py(0)>=0&&py(0)<=H){ctx.moveTo(0,py(0));ctx.lineTo(W,py(0))}
+  ctx.stroke();
+}
+
+/* Tokenizer identical to compileExpression's, reused here so “contains x”
+   checks the actual variable token — not the substring “x” (which would also
+   misfire on exp(...), which contains the letter x without being a
+   function of x). This also replaces the old guard, whose regex
+   literal (`/\bx\b/`) had somehow ended up containing two raw
+   backspace control bytes instead of the two-character `\b` escape —
+   so it silently never matched, and typing sin(x) in calc mode just
+   evaluated sin(0) instead of warning anything. */
+function usesXVariable(source){
+  const tokens=normalizeExpression(source).match(/[A-Za-z_][A-Za-z0-9_]*/g)||[];
+  return tokens.includes('x');
+}
+
+function calcIt(){
+  const source=expr.value.trim();
+
+  const result=evaluateExpression(source,0);
+  if(typeof result!=='number' || !Number.isFinite(result)) throw new Error('Rezultat nedefinit');
+
+  ansValue=result;
+  const out=fmt(result);
+  statusEl.textContent=source+' = '+out;
+  addHistory(source,out,'calc');
+  graphLegend.classList.remove('show');
+  graphLegend.innerHTML='';
+  xAxisInPi=false;
+  drawAxes(-10,10,-5,5);
+}
+
+function graphIt(){
+  const source=expr.value.trim();
+  if(!source) throw new Error('Expresie goală');
+
+  const expressions=source.split(';').map(s=>s.trim()).filter(Boolean);
+  if(!expressions.length) throw new Error('Nu există funcții de desenat');
+  if(expressions.length>6) throw new Error('Maximum 6 funcții simultan');
+
+  const xmin=val('xmin'),xmax=val('xmax'),ymin=val('ymin'),ymax=val('ymax');
+  if(!(xmin<xmax && ymin<ymax)) throw new Error('Domenii invalide');
+
+  const compiled=expressions.map(s=>({source:s, fn:compileExpression(s)}));
+  const W=cssW,H=cssH;
+  const px=x=>(x-xmin)/(xmax-xmin)*W;
+  const py=y=>H-(y-ymin)/(ymax-ymin)*H;
+  const colors=['#c92332','#2456b3','#1a8f55','#9a46b8','#d27a00','#008a9b'];
+
+  /* Trig graphs read much better with X gridlines at fractions of π
+     (π/2, π, 3π/2...) than at decimals (1.57, 3.14, 4.71...) — but only
+     makes sense in RAD mode, since in DEG mode x is degrees, not radians. */
+  xAxisInPi = angleMode==='RAD' && expressions.some(s=>/\b(sin|cos|tan|asin|acos|atan)\(/.test(s));
+
+  drawAxes(xmin,xmax,ymin,ymax);
+
+  compiled.forEach((item,idx)=>{
+    ctx.strokeStyle=colors[idx%colors.length];
+    ctx.lineWidth=2;
+    ctx.beginPath();
+
+    let started=false, prevY=null;
+    for(let i=0;i<W;i++){
+      const x=xmin+(i/(W-1))*(xmax-xmin);
+      let y;
+      try{
+        y=item.fn(
+          x,ansValue,Math.PI,Math.E,
+          FN.sin,FN.cos,FN.tan,FN.asin,FN.acos,FN.atan,FN.sqrt,FN.abs,FN.exp,FN.ln,FN.log,
+          FN.floor,FN.ceil,FN.round,FN.min,FN.max,FN.pow,realPow,FN.ncr,FN.npr,FN.fact
+        );
+      }catch{ y=NaN; }
+
+      if(Number.isFinite(y) && y>ymin-100*(ymax-ymin) && y<ymax+100*(ymax-ymin)){
+        const X=px(x),Y=py(y);
+        /* Asymptotes (tan(x), 1/x, etc.) produce a huge jump in Y between
+           two adjacent pixel columns. Connecting them with lineTo drew a
+           near-vertical streak straight through the visible canvas —
+           mathematically wrong, since the function is actually
+           discontinuous there. A jump bigger than the whole visible
+           height can't be a real continuous segment at this resolution,
+           so it breaks the stroke instead of drawing through it. */
+        const jump = prevY!==null && Math.abs(Y-prevY)>H*0.92;
+        if(Y>-H*5 && Y<H*6){
+          if(!started || jump){ctx.moveTo(X,Y)} else {ctx.lineTo(X,Y)}
+          started=true;
+        }else started=false;
+        prevY=Y;
+      }else{ started=false; prevY=null; }
+    }
+    ctx.stroke();
+  });
+
+  graphLegend.innerHTML=expressions.map((s,i)=>
+    `<span><i style="background:${colors[i%colors.length]}"></i>${escapeHtml(s)}</span>`
+  ).join('');
+  graphLegend.classList.add('show');
+
+  statusEl.textContent=expressions.length===1
+    ? 'Grafic: y = '+expressions[0]
+    : expressions.length+' funcții suprapuse';
+  addHistory(source,expressions.length+' grafice','graph');
+}
+
+function run(){
+  try{
+    const source=expr.value.trim();
+    /* The calculator infers what you meant from what you typed, in
+       both directions: an expression with x or a ; (multi-graph)
+       switches to graph mode by itself, and a plain numeric expression
+       switches back to calculator mode by itself — you never have to
+       pick a mode manually before typing. */
+    const needsGraph = source.includes(';') || usesXVariable(source);
+    if(needsGraph && mode!=='graph') setMode('graph');
+    else if(!needsGraph && mode==='graph') setMode('calc');
+    if(mode==='graph') graphIt();
+    else calcIt();
+  }catch(e){
+    statusEl.textContent='Eroare: '+e.message;
+  }
+}
+
+function setMode(next){
+  mode=next;
+  modeIndicator.textContent=next==='graph'?'GRAPH':'CALC';
+  statusEl.textContent=next==='graph'
+    ? 'Mod grafic: expresia este interpretată ca y = f(x).'
+    : 'Mod calculator: expresii numerice; ans păstrează ultimul rezultat.';
+  if(next==='graph'){
+    try{drawAxes(val('xmin'),val('xmax'),val('ymin'),val('ymax'))}
+    catch{drawAxes(-10,10,-5,5)}
+  }else{
+    graphLegend.classList.remove('show');
+    graphLegend.innerHTML='';
+    drawAxes(-10,10,-5,5);
+  }
+}
+
+function navigateHistory(delta){
+  if(!historyItems.length) return;
+  historyCursor=Math.max(0,Math.min(historyItems.length-1,historyCursor+delta));
+  expr.value=historyItems[historyCursor].expression;
+  expr.focus();
+  expr.setSelectionRange(expr.value.length,expr.value.length);
+}
+
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button');
+  if(!b) return;
+
+  if(b.id==='enterBtn'){run();return}
+  if(b.id==='graphMode'){setMode('graph');return}
+  if(b.id==='calcMode'){setMode('calc');return}
+  if(b.id==='resetView'){
+    document.getElementById('xmin').value=-10;
+    document.getElementById('xmax').value=10;
+    document.getElementById('ymin').value=-5;
+    document.getElementById('ymax').value=5;
+    if(mode==='graph') drawAxes(-10,10,-5,5);
+    statusEl.textContent='Domeniu resetat.';
+    return;
+  }
+  if(b.classList.contains('ex')){
+    expr.value=b.dataset.e;
+    expr.focus();
+    run();
+    return;
+  }
+  if(b.id==='downloadBtn'){
+    const body=historyItems.map(h=>h.type==='graph'?'grafic: y = '+h.expression:h.expression+' = '+h.result).join('\n');
+    const blob=new Blob([body],{type:'text/plain;charset=utf-8'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='istoric-calculator-grafic.txt';
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+    return;
+  }
+  if(b.id==='downloadPng'){
+    canvas.toBlob(blob=>{
+      if(!blob){ statusEl.textContent='Nu s-a putut exporta imaginea.'; return; }
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);
+      a.download='grafic.png';
+      a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+    });
+    return;
+  }
+
+  if(b.classList.contains('nav-btn')){
+    const dir=b.dataset.nav;
+    if(dir==='ok'){run();return}
+    if(dir==='left'){
+      expr.focus();
+      const p=Math.max(0,(expr.selectionStart??0)-1);
+      expr.setSelectionRange(p,p);
+      return;
+    }
+    if(dir==='right'){
+      expr.focus();
+      const p=Math.min(expr.value.length,(expr.selectionStart??0)+1);
+      expr.setSelectionRange(p,p);
+      return;
+    }
+    if(dir==='up'){navigateHistory(-1);return}
+    if(dir==='down'){navigateHistory(1);return}
+  }
+
+  if(b._def){ pressKey(b._def); return; }
+
+  if(b.dataset.menu){
+    const m=b.dataset.menu;
+    if(m==='yeq'){ setMode('graph'); expr.focus(); return; }
+    if(m==='window'){
+      const xmin=document.getElementById('xmin');
+      xmin.scrollIntoView({behavior:'smooth',block:'center'});
+      xmin.focus();
+      statusEl.textContent='Domeniu X/Y — editează valorile de mai jos și apasă ZOOM ca să revii la implicit.';
+      return;
+    }
+    if(m==='zoom'){ document.getElementById('resetView').click(); return; }
+    if(m==='trace'){
+      expr.focus(); expr.select();
+      statusEl.textContent='Expresia curentă e selectată, gata de editat.';
+      return;
+    }
+    if(m==='graph'){ setMode('graph'); run(); return; }
+    return;
+  }
+
+  const act=b.dataset.action;
+  if(act==='history'){hist.scrollIntoView({behavior:'smooth',block:'center'});return}
+  if(act==='doc'){
+    const d=document.getElementById('documentation');
+    d.open=true;
+    d.scrollIntoView({behavior:'smooth',block:'start'});
+    return;
+  }
+  if(act==='reset'){resetAll();return}
+});
+
+function toggleAngle(){
+  angleMode=angleMode==='RAD'?'DEG':'RAD';
+  angleIndicator.textContent=angleMode;
+  statusEl.textContent='Unghiuri: '+angleMode;
+}
+
+expr.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){e.preventDefault();run()}
+  else if(e.key==='ArrowUp'){e.preventDefault();navigateHistory(-1)}
+  else if(e.key==='ArrowDown'){e.preventDefault();navigateHistory(1)}
+});
+
+/* Canvas used to be drawn at a fixed 360×225 while CSS stretched it to
+   fill the (variable-width) display area — any mismatch between that
+   fixed bitmap and the actual box distorted the plot. Now the canvas'
+   backing store is sized to the real box × devicePixelRatio, and all
+   drawing math uses CSS pixels (cssW/cssH) via a scaled context. */
+const displayEl = document.querySelector('.display');
+let cssW=360, cssH=225;
+
+function resizeCanvasToDisplay(){
+  const rect=displayEl.getBoundingClientRect();
+  const dpr=window.devicePixelRatio||1;
+  cssW=Math.max(1,Math.round(rect.width));
+  cssH=Math.max(1,Math.round(rect.height));
+  canvas.width=Math.round(cssW*dpr);
+  canvas.height=Math.round(cssH*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+
+function redraw(){
+  if(mode==='graph' && expr.value.trim()){
+    try{ graphIt(); return; }catch{ /* fall through to plain axes */ }
+  }
+  try{
+    drawAxes(val('xmin'),val('xmax'),val('ymin'),val('ymax'));
+  }catch{
+    const v=lastViewport;
+    drawAxes(v.xmin,v.xmax,v.ymin,v.ymax);
+  }
+}
+
+window.addEventListener('resize',()=>{ resizeCanvasToDisplay(); redraw(); });
+if(window.ResizeObserver) new ResizeObserver(()=>{ resizeCanvasToDisplay(); redraw(); }).observe(displayEl);
+
+/* Drag-to-pan and scroll/pinch-to-zoom on the graph — the canvas was
+   purely a static image before, with no way to explore a graph beyond
+   typing new domain numbers by hand. Works with mouse, and with touch
+   (one finger pans, two fingers pinch-zoom), via the Pointer Events API
+   so both input types share one code path. */
+function setDomainInputs(xmin,xmax,ymin,ymax){
+  document.getElementById('xmin').value=fmt(xmin);
+  document.getElementById('xmax').value=fmt(xmax);
+  document.getElementById('ymin').value=fmt(ymin);
+  document.getElementById('ymax').value=fmt(ymax);
+}
+
+const MIN_RANGE=1e-9, MAX_RANGE=1e15;
+function clampRange(lo,hi){
+  let range=hi-lo;
+  if(!(range>MIN_RANGE)){ const mid=(lo+hi)/2; lo=mid-MIN_RANGE/2; hi=mid+MIN_RANGE/2; }
+  else if(range>MAX_RANGE){ const mid=(lo+hi)/2; lo=mid-MAX_RANGE/2; hi=mid+MAX_RANGE/2; }
+  return [lo,hi];
+}
+
+const activePointers=new Map(); // pointerId -> {x,y} in canvas CSS-pixel coords
+let pinchStartDist=null, pinchStartRange=null;
+
+function canvasPoint(e){
+  const rect=canvas.getBoundingClientRect();
+  return {x:e.clientX-rect.left, y:e.clientY-rect.top};
+}
+
+canvas.addEventListener('pointerdown',e=>{
+  canvas.setPointerCapture(e.pointerId);
+  activePointers.set(e.pointerId, canvasPoint(e));
+  canvas.classList.add('dragging');
+  if(activePointers.size===2){
+    const pts=[...activePointers.values()];
+    pinchStartDist=Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
+    pinchStartRange={x:lastViewport.xmax-lastViewport.xmin, y:lastViewport.ymax-lastViewport.ymin};
+  }
+});
+
+canvas.addEventListener('pointermove',e=>{
+  if(!activePointers.has(e.pointerId)) return;
+  const prev=activePointers.get(e.pointerId);
+  const cur=canvasPoint(e);
+  activePointers.set(e.pointerId, cur);
+
+  if(activePointers.size===2 && pinchStartDist){
+    const pts=[...activePointers.values()];
+    const dist=Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
+    const scale=pinchStartDist/Math.max(1,dist); // fingers apart => zoom in (smaller range)
+    const midX=(pts[0].x+pts[1].x)/2, midY=(pts[0].y+pts[1].y)/2;
+    const v=lastViewport;
+    const fx=v.xmin+(midX/cssW)*(v.xmax-v.xmin);
+    const fy=v.ymin+(1-midY/cssH)*(v.ymax-v.ymin);
+    const rx=pinchStartRange.x*scale, ry=pinchStartRange.y*scale;
+    let [xmin,xmax]=clampRange(fx-(midX/cssW)*rx, fx-(midX/cssW)*rx+rx);
+    let [ymin,ymax]=clampRange(fy-(1-midY/cssH)*ry, fy-(1-midY/cssH)*ry+ry);
+    setDomainInputs(xmin,xmax,ymin,ymax);
+    redraw();
+    return;
+  }
+
+  if(activePointers.size===1){
+    const dx=cur.x-prev.x, dy=cur.y-prev.y;
+    if(dx===0 && dy===0) return;
+    const v=lastViewport;
+    const xShift=dx*(v.xmax-v.xmin)/cssW;
+    const yShift=dy*(v.ymax-v.ymin)/cssH;
+    setDomainInputs(v.xmin-xShift, v.xmax-xShift, v.ymin+yShift, v.ymax+yShift);
+    redraw();
+  }
+});
+
+function endPointer(e){
+  activePointers.delete(e.pointerId);
+  pinchStartDist=null;
+  if(activePointers.size===0) canvas.classList.remove('dragging');
+}
+canvas.addEventListener('pointerup',endPointer);
+canvas.addEventListener('pointercancel',endPointer);
+canvas.addEventListener('pointerleave',e=>{ if(e.buttons===0) endPointer(e); });
+
+canvas.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const {x:mx,y:my}=canvasPoint(e);
+  const v=lastViewport;
+  /* deltaY alone isn't comparable across input devices: a trackpad fires
+     many small-magnitude events per gesture, a notched mouse wheel fires
+     few large-magnitude ones — using only the sign (as before) meant a
+     trackpad's rapid stream of events compounded a full 1.15× step on
+     every single one, zooming far faster than a mouse wheel for the same
+     physical gesture. Scaling the step by |deltaY| (normalized across
+     deltaMode, capped) makes small ticks zoom gently and a full wheel
+     notch still zoom a full step. */
+  const rawDelta = e.deltaMode===1 ? e.deltaY*16 : e.deltaY; // line-mode -> approx. pixels
+  const intensity = Math.min(Math.abs(rawDelta),100)/100; // 0..1
+  const step = 1 + 0.15*intensity;
+  const factor = rawDelta>0 ? step : 1/step;
+  const fx=v.xmin+(mx/cssW)*(v.xmax-v.xmin);
+  const fy=v.ymin+(1-my/cssH)*(v.ymax-v.ymin);
+  const rx=(v.xmax-v.xmin)*factor, ry=(v.ymax-v.ymin)*factor;
+  let [xmin,xmax]=clampRange(fx-(mx/cssW)*rx, fx-(mx/cssW)*rx+rx);
+  let [ymin,ymax]=clampRange(fy-(1-my/cssH)*ry, fy-(1-my/cssH)*ry+ry);
+  setDomainInputs(xmin,xmax,ymin,ymax);
+  redraw();
+},{passive:false});
+
+angleIndicator.textContent = angleMode;
+resizeCanvasToDisplay();
+drawAxes(-10,10,-5,5);
+expr.focus();
+</script>
+</div>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Simulator calculator grafic</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

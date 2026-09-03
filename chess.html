@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Șah — Mini Unelte</title>
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="prism.css">
+  <script src="theme.js"></script>
+  <style>
+    :root{
+      --chess-light:linear-gradient(160deg,#f7f0e4 0%,#e8dcc8 55%,#d8c9ac 100%);
+      --chess-dark:linear-gradient(160deg,#8a6a4a 0%,#6b4e34 55%,#523a26 100%);
+      --chess-light-text:#6b4a2f;
+      --chess-dark-text:#1a1108;
+      --chess-accent:#d7b75f;
+      --chess-select:rgba(70,120,190,.42);
+      --chess-move:rgba(25,28,31,.38);
+      --chess-capture:rgba(25,28,31,.58);
+    }
+
+    *{box-sizing:border-box}
+
+    body{
+      margin:0;
+      min-height:100vh;
+      background:var(--bg);
+      color:var(--text);
+      font-family:var(--font-sans);
+    }
+
+    .app{
+      width:min(92vw,760px);
+      margin:0 auto;
+      padding:6px 22px 42px;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      margin-bottom:14px;
+    }
+
+    .title-wrap h1{
+      margin:0;
+      font-size:clamp(24px,4vw,36px);
+      line-height:1;
+      letter-spacing:-.04em;
+      font-weight:700;
+    }
+
+    .title-wrap p{
+      margin:7px 0 0;
+      color:var(--text2);
+      font-size:14px;
+    }
+
+    button{
+      border:1px solid var(--border);
+      background:var(--bg2);
+      color:var(--text);
+      padding:10px 16px;
+      border-radius:10px;
+      font:600 14px/1 var(--font-sans);
+      cursor:pointer;
+      transition:.15s ease;
+    }
+
+    button:hover{
+      background:var(--bg3);
+      border-color:var(--border2);
+      transform:translateY(-1px);
+    }
+
+    .board-shell{
+      background:var(--bg2);
+      padding:14px;
+      border-radius:18px;
+      box-shadow:0 18px 50px var(--shadow);
+      border:1px solid var(--border);
+    }
+
+    .board{
+      position:relative;
+      width:100%;
+      aspect-ratio:1/1;
+      display:grid;
+      grid-template-columns:repeat(8,1fr);
+      grid-template-rows:repeat(8,1fr);
+      overflow:hidden;
+      border-radius:10px;
+      user-select:none;
+      touch-action:none;
+    }
+
+    .square{
+      position:relative;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .square.light{
+      background:var(--chess-light);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.55), inset 0 -3px 5px rgba(120,95,55,.18);
+    }
+    .square.dark{
+      background:var(--chess-dark);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.05), inset 0 -4px 8px rgba(0,0,0,.55);
+    }
+
+    .square.last::after,
+    .square.selected::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+    }
+
+    .square.last::after{background:rgba(222,183,73,.34)}
+    .square.selected::after{background:var(--chess-select)}
+
+    .square.legal-empty::before{
+      content:"";
+      position:absolute;
+      width:18%;
+      height:18%;
+      border-radius:50%;
+      background:var(--chess-move);
+      z-index:2;
+    }
+
+    .square.legal-capture::before{
+      content:"";
+      position:absolute;
+      inset:8%;
+      border:clamp(3px,.6vw,7px) solid var(--chess-capture);
+      border-radius:50%;
+      z-index:2;
+    }
+
+    .piece{
+      width:88%;
+      height:88%;
+      object-fit:contain;
+      z-index:4;
+      cursor:grab;
+      filter:
+        drop-shadow(0 0 1px rgba(245,240,230,.9))
+        drop-shadow(0 0 3px rgba(245,240,230,.5))
+        drop-shadow(0 2px 3px rgba(0,0,0,.4));
+      transition:transform .1s ease;
+      -webkit-user-drag:none;
+      pointer-events:auto;
+    }
+
+    .piece:active{cursor:grabbing}
+
+    .piece.drag-source{
+      opacity:.15;
+    }
+
+    .drag-piece{
+      position:fixed;
+      width:72px;
+      height:72px;
+      object-fit:contain;
+      pointer-events:none;
+      z-index:9999;
+      transform:translate(-50%,-50%);
+      filter:drop-shadow(0 8px 10px rgba(0,0,0,.35));
+    }
+
+    .coord{
+      position:absolute;
+      z-index:3;
+      font-size:clamp(9px,1.4vw,13px);
+      font-weight:700;
+      pointer-events:none;
+    }
+
+    .coord.file{right:5px;bottom:3px}
+    .coord.rank{left:5px;top:3px}
+
+    .light .coord{color:var(--chess-light-text);opacity:.72}
+    .dark .coord{
+      color:var(--chess-dark-text);
+      opacity:1;
+      text-shadow:0 1px 1px rgba(255,255,255,.25);
+    }
+
+    .status{
+      min-height:24px;
+      margin-top:14px;
+      color:var(--text2);
+      font-size:15px;
+    }
+
+    .status strong{
+      color:var(--chess-accent);
+      font-weight:700;
+    }
+
+    @media (max-width:560px){
+      .app{width:100%;padding:12px}
+      .board-shell{padding:8px;border-radius:12px}
+      .topbar{align-items:flex-end}
+      .title-wrap p{display:none}
+      button{padding:9px 12px}
+    }
+  </style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+
+<style id="category-accent-override">
+:root { --accent: #f0a040; }
+</style>
+</head>
+<body data-show-source="true">
+  <button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+  <div class="tool-page">
+    <div class="tool-header"><a class="back" href="index.html">← index</a></div>
+    <main class="app">
+    <div class="topbar">
+      <div class="title-wrap">
+        <h1>Șah</h1>
+        <p>Drag & drop · reguli de bază</p>
+      </div>
+      <button id="newGameBtn" type="button">Joc nou</button>
+    </div>
+
+    <section class="board-shell">
+      <div id="board" class="board" aria-label="Tablă de șah"></div>
+    </section>
+
+    <div id="status" class="status"></div>
+
+  <script>
+    const PIECE_IMAGES = {
+      wK: "pieces/wK.svg",
+      wQ: "pieces/wQ.svg",
+      wR: "pieces/wR.svg",
+      wB: "pieces/wB.svg",
+      wN: "pieces/wN.svg",
+      wP: "pieces/wP.svg",
+      bK: "pieces/bK.svg",
+      bQ: "pieces/bQ.svg",
+      bR: "pieces/bR.svg",
+      bB: "pieces/bB.svg",
+      bN: "pieces/bN.svg",
+      bP: "pieces/bP.svg"
+    };
+
+    const boardEl = document.getElementById("board");
+    const statusEl = document.getElementById("status");
+    const newGameBtn = document.getElementById("newGameBtn");
+
+    let board = [];
+    let turn = "w";
+    let selected = null;
+    let legalTargets = [];
+    let lastMove = null;
+    let dragGhost = null;
+    let dragPointerId = null;
+
+    function initialBoard() {
+      return [
+        ["bR","bN","bB","bQ","bK","bB","bN","bR"],
+        ["bP","bP","bP","bP","bP","bP","bP","bP"],
+        [null,null,null,null,null,null,null,null],
+        [null,null,null,null,null,null,null,null],
+        [null,null,null,null,null,null,null,null],
+        [null,null,null,null,null,null,null,null],
+        ["wP","wP","wP","wP","wP","wP","wP","wP"],
+        ["wR","wN","wB","wQ","wK","wB","wN","wR"]
+      ];
+    }
+
+    function resetGame() {
+      board = initialBoard();
+      turn = "w";
+      selected = null;
+      legalTargets = [];
+      lastMove = null;
+      clearDragGhost();
+      render();
+      updateStatus();
+    }
+
+    function colorOf(piece) {
+      return piece ? piece[0] : null;
+    }
+
+    function typeOf(piece) {
+      return piece ? piece[1] : null;
+    }
+
+    function inside(r, c) {
+      return r >= 0 && r < 8 && c >= 0 && c < 8;
+    }
+
+    function squareName(r, c) {
+      return "abcdefgh"[c] + (8 - r);
+    }
+
+    function isEnemy(piece, color) {
+      return piece && colorOf(piece) !== color;
+    }
+
+    function addSlidingMoves(moves, r, c, color, directions) {
+      for (const [dr, dc] of directions) {
+        let rr = r + dr;
+        let cc = c + dc;
+
+        while (inside(rr, cc)) {
+          if (!board[rr][cc]) {
+            moves.push([rr, cc]);
+          } else {
+            if (isEnemy(board[rr][cc], color)) {
+              moves.push([rr, cc]);
+            }
+            break;
+          }
+          rr += dr;
+          cc += dc;
+        }
+      }
+    }
+
+    function getPseudoLegalMoves(r, c) {
+      const piece = board[r][c];
+      if (!piece) return [];
+
+      const color = colorOf(piece);
+      const type = typeOf(piece);
+      const moves = [];
+
+      if (type === "P") {
+        const dir = color === "w" ? -1 : 1;
+        const startRow = color === "w" ? 6 : 1;
+
+        const one = r + dir;
+        if (inside(one, c) && !board[one][c]) {
+          moves.push([one, c]);
+
+          const two = r + 2 * dir;
+          if (r === startRow && inside(two, c) && !board[two][c]) {
+            moves.push([two, c]);
+          }
+        }
+
+        for (const dc of [-1, 1]) {
+          const rr = r + dir;
+          const cc = c + dc;
+          if (inside(rr, cc) && isEnemy(board[rr][cc], color)) {
+            moves.push([rr, cc]);
+          }
+        }
+      }
+
+      if (type === "N") {
+        const jumps = [
+          [-2,-1],[-2,1],[-1,-2],[-1,2],
+          [1,-2],[1,2],[2,-1],[2,1]
+        ];
+
+        for (const [dr, dc] of jumps) {
+          const rr = r + dr;
+          const cc = c + dc;
+          if (!inside(rr, cc)) continue;
+
+          if (!board[rr][cc] || isEnemy(board[rr][cc], color)) {
+            moves.push([rr, cc]);
+          }
+        }
+      }
+
+      if (type === "B") {
+        addSlidingMoves(moves, r, c, color, [
+          [-1,-1],[-1,1],[1,-1],[1,1]
+        ]);
+      }
+
+      if (type === "R") {
+        addSlidingMoves(moves, r, c, color, [
+          [-1,0],[1,0],[0,-1],[0,1]
+        ]);
+      }
+
+      if (type === "Q") {
+        addSlidingMoves(moves, r, c, color, [
+          [-1,-1],[-1,1],[1,-1],[1,1],
+          [-1,0],[1,0],[0,-1],[0,1]
+        ]);
+      }
+
+      if (type === "K") {
+        for (let dr = -1; dr <= 1; dr++) {
+          for (let dc = -1; dc <= 1; dc++) {
+            if (dr === 0 && dc === 0) continue;
+
+            const rr = r + dr;
+            const cc = c + dc;
+            if (!inside(rr, cc)) continue;
+
+            if (!board[rr][cc] || isEnemy(board[rr][cc], color)) {
+              moves.push([rr, cc]);
+            }
+          }
+        }
+      }
+
+      return moves;
+    }
+
+    function findKing(color, position = board) {
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          if (position[r][c] === color + "K") return [r, c];
+        }
+      }
+      return null;
+    }
+
+    function cloneBoard(position = board) {
+      return position.map(row => row.slice());
+    }
+
+    function attacksSquare(fromR, fromC, targetR, targetC, position) {
+      const piece = position[fromR][fromC];
+      if (!piece) return false;
+
+      const color = colorOf(piece);
+      const type = typeOf(piece);
+      const dr = targetR - fromR;
+      const dc = targetC - fromC;
+
+      if (type === "P") {
+        const dir = color === "w" ? -1 : 1;
+        return dr === dir && Math.abs(dc) === 1;
+      }
+
+      if (type === "N") {
+        return (Math.abs(dr) === 2 && Math.abs(dc) === 1) ||
+               (Math.abs(dr) === 1 && Math.abs(dc) === 2);
+      }
+
+      if (type === "K") {
+        return Math.max(Math.abs(dr), Math.abs(dc)) === 1;
+      }
+
+      const diagonal = Math.abs(dr) === Math.abs(dc) && dr !== 0;
+      const straight = (dr === 0 || dc === 0) && !(dr === 0 && dc === 0);
+
+      if (type === "B" && !diagonal) return false;
+      if (type === "R" && !straight) return false;
+      if (type === "Q" && !diagonal && !straight) return false;
+
+      if (["B","R","Q"].includes(type)) {
+        const stepR = Math.sign(dr);
+        const stepC = Math.sign(dc);
+        let rr = fromR + stepR;
+        let cc = fromC + stepC;
+
+        while (rr !== targetR || cc !== targetC) {
+          if (position[rr][cc]) return false;
+          rr += stepR;
+          cc += stepC;
+        }
+        return true;
+      }
+
+      return false;
+    }
+
+    function isSquareAttacked(r, c, byColor, position = board) {
+      for (let rr = 0; rr < 8; rr++) {
+        for (let cc = 0; cc < 8; cc++) {
+          const piece = position[rr][cc];
+          if (!piece || colorOf(piece) !== byColor) continue;
+
+          if (attacksSquare(rr, cc, r, c, position)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    function isKingInCheck(color, position = board) {
+      const king = findKing(color, position);
+      if (!king) return true;
+      const enemy = color === "w" ? "b" : "w";
+      return isSquareAttacked(king[0], king[1], enemy, position);
+    }
+
+    function simulateMove(fromR, fromC, toR, toC) {
+      const copy = cloneBoard();
+      let piece = copy[fromR][fromC];
+      copy[fromR][fromC] = null;
+
+      if (typeOf(piece) === "P" && (toR === 0 || toR === 7)) {
+        piece = colorOf(piece) + "Q";
+      }
+
+      copy[toR][toC] = piece;
+      return copy;
+    }
+
+    function getLegalMoves(r, c) {
+      const piece = board[r][c];
+      if (!piece) return [];
+
+      const color = colorOf(piece);
+
+      return getPseudoLegalMoves(r, c).filter(([toR, toC]) => {
+        const position = simulateMove(r, c, toR, toC);
+        return !isKingInCheck(color, position);
+      });
+    }
+
+    function hasAnyLegalMove(color) {
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          if (board[r][c] && colorOf(board[r][c]) === color) {
+            if (getLegalMoves(r, c).length > 0) return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    function isTargetLegal(r, c) {
+      return legalTargets.some(([rr, cc]) => rr === r && cc === c);
+    }
+
+    function makeMove(fromR, fromC, toR, toC) {
+      let piece = board[fromR][fromC];
+
+      board[fromR][fromC] = null;
+
+      if (typeOf(piece) === "P" && (toR === 0 || toR === 7)) {
+        piece = colorOf(piece) + "Q";
+      }
+
+      board[toR][toC] = piece;
+
+      lastMove = {
+        from: [fromR, fromC],
+        to: [toR, toC]
+      };
+
+      selected = null;
+      legalTargets = [];
+      turn = turn === "w" ? "b" : "w";
+
+      render();
+      updateStatus();
+    }
+
+    function updateStatus() {
+      const inCheck = isKingInCheck(turn);
+      const hasMove = hasAnyLegalMove(turn);
+      const side = turn === "w" ? "Alb" : "Negru";
+
+      if (!hasMove && inCheck) {
+        statusEl.innerHTML = `<strong>Șah mat.</strong> ${turn === "w" ? "Negrul" : "Albul"} câștigă.`;
+        return;
+      }
+
+      if (!hasMove && !inCheck) {
+        statusEl.innerHTML = `<strong>Remiză.</strong> Pat.`;
+        return;
+      }
+
+      statusEl.innerHTML = inCheck
+        ? `<strong>${side} este în șah.</strong>`
+        : `La mutare: <strong>${side}</strong>`;
+    }
+
+    function selectSquare(r, c) {
+      const piece = board[r][c];
+
+      if (!piece || colorOf(piece) !== turn) {
+        selected = null;
+        legalTargets = [];
+        render();
+        return false;
+      }
+
+      selected = [r, c];
+      legalTargets = getLegalMoves(r, c);
+      render();
+      return true;
+    }
+
+    function render() {
+      boardEl.innerHTML = "";
+
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const square = document.createElement("div");
+          square.className = `square ${(r + c) % 2 === 0 ? "light" : "dark"}`;
+          square.dataset.r = r;
+          square.dataset.c = c;
+
+          if (selected && selected[0] === r && selected[1] === c) {
+            square.classList.add("selected");
+          }
+
+          if (lastMove) {
+            const isLast =
+              (lastMove.from[0] === r && lastMove.from[1] === c) ||
+              (lastMove.to[0] === r && lastMove.to[1] === c);
+            if (isLast) square.classList.add("last");
+          }
+
+          if (selected && isTargetLegal(r, c)) {
+            square.classList.add(board[r][c] ? "legal-capture" : "legal-empty");
+          }
+
+          if (c === 0) {
+            const rank = document.createElement("span");
+            rank.className = "coord rank";
+            rank.textContent = 8 - r;
+            square.appendChild(rank);
+          }
+
+          if (r === 7) {
+            const file = document.createElement("span");
+            file.className = "coord file";
+            file.textContent = "abcdefgh"[c];
+            square.appendChild(file);
+          }
+
+          const piece = board[r][c];
+          if (piece) {
+            const img = document.createElement("img");
+            img.className = "piece";
+            img.src = PIECE_IMAGES[piece];
+            img.alt = piece;
+            img.draggable = false;
+            img.dataset.r = r;
+            img.dataset.c = c;
+
+            if (selected &&
+                selected[0] === r &&
+                selected[1] === c &&
+                dragPointerId !== null) {
+              img.classList.add("drag-source");
+            }
+
+            img.addEventListener("pointerdown", onPiecePointerDown);
+            square.appendChild(img);
+          }
+
+          square.addEventListener("pointerdown", onSquarePointerDown);
+          boardEl.appendChild(square);
+        }
+      }
+    }
+
+    function onSquarePointerDown(event) {
+      if (event.target.classList.contains("piece")) return;
+
+      const r = Number(event.currentTarget.dataset.r);
+      const c = Number(event.currentTarget.dataset.c);
+
+      if (selected && isTargetLegal(r, c)) {
+        makeMove(selected[0], selected[1], r, c);
+        return;
+      }
+
+      selectSquare(r, c);
+    }
+
+    function onPiecePointerDown(event) {
+      event.preventDefault();
+
+      const r = Number(event.currentTarget.dataset.r);
+      const c = Number(event.currentTarget.dataset.c);
+      const piece = board[r][c];
+
+      if (!piece) return;
+
+      // Dacă avem deja o piesă selectată și apăsăm pe o piesă adversă
+      // aflată pe o destinație legală, executăm captura.
+      if (colorOf(piece) !== turn) {
+        if (selected && isTargetLegal(r, c)) {
+          const [fromR, fromC] = selected;
+          makeMove(fromR, fromC, r, c);
+        }
+        return;
+      }
+
+      selectSquare(r, c);
+
+      dragPointerId = event.pointerId;
+
+      dragGhost = document.createElement("img");
+      dragGhost.className = "drag-piece";
+      dragGhost.src = event.currentTarget.src;
+      document.body.appendChild(dragGhost);
+
+      moveDragGhost(event.clientX, event.clientY);
+
+      window.addEventListener("pointermove", onPointerMove);
+      window.addEventListener("pointerup", onPointerUp, { once:true });
+
+      render();
+    }
+
+    function moveDragGhost(x, y) {
+      if (!dragGhost) return;
+      dragGhost.style.left = x + "px";
+      dragGhost.style.top = y + "px";
+
+      const rect = boardEl.getBoundingClientRect();
+      const size = rect.width / 8;
+      dragGhost.style.width = size * 0.88 + "px";
+      dragGhost.style.height = size * 0.88 + "px";
+    }
+
+    function onPointerMove(event) {
+      if (dragPointerId === null) return;
+      moveDragGhost(event.clientX, event.clientY);
+    }
+
+    function onPointerUp(event) {
+      window.removeEventListener("pointermove", onPointerMove);
+
+      if (dragPointerId === null || !selected) {
+        clearDragGhost();
+        render();
+        return;
+      }
+
+      const target = document.elementFromPoint(event.clientX, event.clientY);
+      const square = target?.closest(".square");
+
+      if (square) {
+        const r = Number(square.dataset.r);
+        const c = Number(square.dataset.c);
+
+        if (isTargetLegal(r, c)) {
+          const [fromR, fromC] = selected;
+          clearDragGhost();
+          makeMove(fromR, fromC, r, c);
+          return;
+        }
+      }
+
+      clearDragGhost();
+      render();
+    }
+
+    function clearDragGhost() {
+      if (dragGhost) {
+        dragGhost.remove();
+        dragGhost = null;
+      }
+      dragPointerId = null;
+      window.removeEventListener("pointermove", onPointerMove);
+    }
+
+    newGameBtn.addEventListener("click", resetGame);
+
+    resetGame();
+  </script>
+    </main>
+  </div>
+<script src="prism.js"></script>
+  <script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Șah</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+
+
+</body>
+</html>

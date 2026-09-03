@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drum Machine — Step Sequencer</title>
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+<style>
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text)}
+.seq-page{max-width:1280px;margin:0 auto;padding:0 18px 40px}
+.machine-wrap{
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  padding:18px;
+  background:
+    radial-gradient(circle at 20% 0%,rgba(255,170,70,.08),transparent 38%),
+    radial-gradient(circle at 80% 100%,rgba(100,180,255,.06),transparent 34%),
+    #171717;
+  overflow:hidden
+}
+.machine{
+  width:100%;
+  min-width:0;
+  border:2px solid #3d3d3d;
+  border-radius:18px;
+  background:linear-gradient(180deg,#2c2c2c,#1d1d1d 55%,#181818);
+  box-shadow:0 20px 60px rgba(0,0,0,.45), inset 0 1px rgba(255,255,255,.05);
+  padding:20px
+}
+.top{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+  flex-wrap:wrap;
+  padding-bottom:16px;border-bottom:1px solid #414141
+}
+.brand h1{
+  margin:0;
+  color:#f1d8a0;
+  font:700 24px/1.1 var(--font-mono);
+  letter-spacing:.08em
+}
+.brand div{margin-top:4px;color:#8e7f65;font:10px var(--font-mono);letter-spacing:.2em}
+.controls{display:flex;align-items:center;justify-content:flex-end;gap:9px;flex-wrap:wrap;flex:1 1 640px}
+.control{
+  background:#202020;border:1px solid #474747;border-radius:8px;
+  padding:7px 8px;color:#bdbdbd;font:10px var(--font-mono)
+}
+.control label{display:block;color:#777;margin-bottom:5px;text-transform:uppercase;letter-spacing:.12em}
+.control input[type=range]{width:105px}
+.control strong{color:#f3c86d}
+.btn{
+  border:1px solid #555;background:#242424;color:#bbb;border-radius:7px;
+  padding:9px 12px;font:700 10px var(--font-mono);letter-spacing:.08em;cursor:pointer
+}
+.btn:hover{border-color:#d09a43;color:#f0cf8c}
+.btn.primary{background:#3b2612;border-color:#7b5429;color:#f4c56e}
+.btn.active{background:#542018;border-color:#b44d39;color:#ffd2c8}
+.display{
+  min-width:120px;padding:10px 14px;border-radius:6px;border:1px solid #493f31;
+  background:#100f0b;color:#f4b94f;text-align:center;
+  box-shadow:inset 0 0 14px rgba(255,170,60,.08);
+  font:700 18px var(--font-mono)
+}
+.display small{display:block;margin-top:2px;color:#665b47;font-size:8px;letter-spacing:.14em}
+.grid-head,.track{
+  display:grid;
+  grid-template-columns:104px repeat(16,minmax(0,1fr));
+  gap:5px;align-items:center
+}
+.grid-head{margin:16px 0 8px}
+.grid-head span{
+  color:#666;text-align:center;font:9px var(--font-mono)
+}
+.grid-head .blank{text-align:left}
+.track{margin:8px 0}
+.track-name{
+  display:flex;align-items:center;justify-content:space-between;
+  color:#c9c9c9;font:700 11px var(--font-mono);letter-spacing:.08em
+}
+.track-name small{color:#666;font-size:8px}
+.step{
+  aspect-ratio:1/1;
+  min-height:30px;
+  max-height:44px;
+  border:1px solid #4a4a4a;border-radius:5px;
+  background:linear-gradient(180deg,#292929,#1d1d1d);
+  cursor:pointer;position:relative;
+  box-shadow:inset 0 1px rgba(255,255,255,.04)
+}
+.step:hover{border-color:#777}
+.step:nth-child(5n+2){margin-left:2px}
+.step.on{
+  background:linear-gradient(180deg,#91572e,#61371c);
+  border-color:#c57b3d;
+  box-shadow:0 0 12px rgba(211,123,54,.18),inset 0 1px rgba(255,255,255,.08)
+}
+.track[data-track="snare"] .step.on{
+  background:linear-gradient(180deg,#7a4c54,#4f2f35);border-color:#a76572
+}
+.track[data-track="hat"] .step.on{
+  background:linear-gradient(180deg,#596b6f,#384447);border-color:#81989d
+}
+.track[data-track="perc"] .step.on{
+  background:linear-gradient(180deg,#5f5579,#3e3652);border-color:#8678a8
+}
+.step.playing::after{
+  content:'';position:absolute;inset:4px;border-radius:3px;border:2px solid #f5dca4;
+  box-shadow:0 0 12px rgba(255,220,160,.45)
+}
+.footer-row{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  margin-top:18px;padding-top:14px;border-top:1px solid #414141
+}
+.legend{color:#6f6f6f;font:9px/1.5 var(--font-mono)}
+.pattern-name{color:#8c7b5e;font:10px var(--font-mono);letter-spacing:.08em}
+@media(max-width:1050px){
+  .brand{flex:1 1 100%}
+  .controls{justify-content:flex-start;flex-basis:100%}
+  .grid-head,.track{
+    grid-template-columns:88px repeat(16,minmax(0,1fr));
+    gap:4px;
+  }
+  .track-name{font-size:10px}
+}
+@media(max-width:760px){
+  .machine-wrap{padding:8px;overflow-x:auto}
+  .machine{min-width:760px}
+  .seq-page{padding-inline:8px}
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+
+<style id="category-accent-override">
+:root { --accent: #7fc8f8; }
+</style>
+</head>
+<body data-show-source="true">
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+<div class="tool-page">
+  <div class="tool-header"><a class="back" href="index.html">← index</a></div>
+  <main class="seq-page">
+    <div class="machine-wrap">
+      <section class="machine">
+        <div class="top">
+          <div class="brand">
+            <h1>RHYTHM 16</h1>
+            <div>STEP SEQUENCER · TONE.JS</div>
+          </div>
+
+          <div class="controls">
+            <div class="display"><span id="bpmDisplay">120</span><small>BPM</small></div>
+            <div class="control">
+              <label>Tempo</label>
+              <input id="tempo" type="range" min="60" max="190" value="120">
+            </div>
+            <div class="control">
+              <label>Swing <strong id="swingVal">0%</strong></label>
+              <input id="swing" type="range" min="0" max="60" value="0">
+            </div>
+            <button class="btn primary" id="startBtn">▶ START</button>
+            <button class="btn" id="clearBtn">CLEAR</button>
+            <button class="btn" id="randomBtn">RANDOM</button>
+          </div>
+        </div>
+
+        <div class="grid-head">
+          <span class="blank">TRACK</span>
+          <span>1</span><span>2</span><span>3</span><span>4</span>
+          <span>5</span><span>6</span><span>7</span><span>8</span>
+          <span>9</span><span>10</span><span>11</span><span>12</span>
+          <span>13</span><span>14</span><span>15</span><span>16</span>
+        </div>
+
+        <div id="tracks"></div>
+
+        <div class="footer-row">
+          <div class="legend">Click pe pași pentru activare · spațiu = start/stop · modelul rulează în browser</div>
+          <div class="pattern-name" id="patternInfo">PATTERN A</div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script>
+(()=>{
+  const trackDefs=[
+    {id:'kick',name:'KICK',sub:'low'},
+    {id:'snare',name:'SNARE',sub:'noise'},
+    {id:'hat',name:'HI-HAT',sub:'metal'},
+    {id:'perc',name:'PERC',sub:'fm'}
+  ];
+
+  const state={kick:Array(16).fill(false),snare:Array(16).fill(false),hat:Array(16).fill(false),perc:Array(16).fill(false)};
+  let currentStep=0;
+  let running=false;
+  let loop=null;
+
+  const tracksEl=document.getElementById('tracks');
+  const tempo=document.getElementById('tempo');
+  const bpmDisplay=document.getElementById('bpmDisplay');
+  const swing=document.getElementById('swing');
+  const swingVal=document.getElementById('swingVal');
+  const startBtn=document.getElementById('startBtn');
+
+  trackDefs.forEach(td=>{
+    const row=document.createElement('div');
+    row.className='track';
+    row.dataset.track=td.id;
+
+    const label=document.createElement('div');
+    label.className='track-name';
+    label.innerHTML=`<span>${td.name}</span><small>${td.sub}</small>`;
+    row.appendChild(label);
+
+    for(let i=0;i<16;i++){
+      const s=document.createElement('button');
+      s.className='step';
+      s.dataset.step=i;
+      s.setAttribute('aria-label',`${td.name} pas ${i+1}`);
+      s.onclick=()=>{
+        state[td.id][i]=!state[td.id][i];
+        s.classList.toggle('on',state[td.id][i]);
+      };
+      row.appendChild(s);
+    }
+
+    tracksEl.appendChild(row);
+  });
+
+  // Starter pattern
+  [0,4,8,12].forEach(i=>state.kick[i]=true);
+  [4,12].forEach(i=>state.snare[i]=true);
+  [0,2,4,6,8,10,12,14].forEach(i=>state.hat[i]=true);
+  [3,11].forEach(i=>state.perc[i]=true);
+  refresh();
+
+  const kick=new Tone.MembraneSynth({
+    pitchDecay:0.04,
+    octaves:6,
+    oscillator:{type:'sine'},
+    envelope:{attack:0.001,decay:0.28,sustain:0,release:0.08}
+  }).toDestination();
+  kick.volume.value=-3;
+
+  const snareFilter=new Tone.Filter(1700,'highpass').toDestination();
+  const snare=new Tone.NoiseSynth({
+    noise:{type:'white'},
+    envelope:{attack:0.001,decay:0.16,sustain:0}
+  }).connect(snareFilter);
+  snare.volume.value=-8;
+
+  const hat=new Tone.MetalSynth({
+    frequency:220,
+    envelope:{attack:0.001,decay:0.06,release:0.01},
+    harmonicity:5.1,
+    modulationIndex:24,
+    resonance:3200,
+    octaves:1.5
+  }).toDestination();
+  hat.volume.value=-16;
+
+  const perc=new Tone.FMSynth({
+    harmonicity:2.2,
+    modulationIndex:6,
+    oscillator:{type:'sine'},
+    envelope:{attack:0.001,decay:0.08,sustain:0,release:0.05},
+    modulation:{type:'square'},
+    modulationEnvelope:{attack:0.001,decay:0.04,sustain:0,release:0.02}
+  }).toDestination();
+  perc.volume.value=-13;
+
+  function refresh(){
+    document.querySelectorAll('.track').forEach(row=>{
+      const id=row.dataset.track;
+      row.querySelectorAll('.step').forEach((el,i)=>el.classList.toggle('on',state[id][i]));
+    });
+  }
+
+  function clearPlaying(){
+    document.querySelectorAll('.step.playing').forEach(el=>el.classList.remove('playing'));
+  }
+
+  function highlightStep(i){
+    clearPlaying();
+    document.querySelectorAll(`.step[data-step="${i}"]`).forEach(el=>el.classList.add('playing'));
+  }
+
+  function trigger(i,time){
+    if(state.kick[i]) kick.triggerAttackRelease('C1','16n',time);
+    if(state.snare[i]) snare.triggerAttackRelease('16n',time);
+    if(state.hat[i]) hat.triggerAttackRelease('C5','32n',time);
+    if(state.perc[i]) perc.triggerAttackRelease(i%4===3?'G4':'C4','32n',time);
+  }
+
+  function createLoop(){
+    if(loop)loop.dispose();
+    loop=new Tone.Loop(time=>{
+      const step=currentStep;
+      trigger(step,time);
+      Tone.Draw.schedule(()=>highlightStep(step),time);
+      currentStep=(currentStep+1)%16;
+    },'16n');
+  }
+
+  createLoop();
+
+  async function toggle(){
+    await Tone.start();
+
+    if(!running){
+      currentStep=0;
+      Tone.Transport.bpm.value=+tempo.value;
+      Tone.Transport.swing=+swing.value/100;
+      Tone.Transport.swingSubdivision='8n';
+      loop.start(0);
+      Tone.Transport.start();
+      running=true;
+      startBtn.textContent='■ STOP';
+      startBtn.classList.add('active');
+    }else{
+      Tone.Transport.stop();
+      loop.stop();
+      Tone.Transport.position=0;
+      currentStep=0;
+      clearPlaying();
+      running=false;
+      startBtn.textContent='▶ START';
+      startBtn.classList.remove('active');
+    }
+  }
+
+  startBtn.onclick=toggle;
+
+  tempo.oninput=()=>{
+    bpmDisplay.textContent=tempo.value;
+    Tone.Transport.bpm.rampTo(+tempo.value,0.05);
+  };
+
+  swing.oninput=()=>{
+    swingVal.textContent=swing.value+'%';
+    Tone.Transport.swing=+swing.value/100;
+  };
+
+  document.getElementById('clearBtn').onclick=()=>{
+    trackDefs.forEach(t=>state[t.id].fill(false));
+    refresh();
+  };
+
+  document.getElementById('randomBtn').onclick=()=>{
+    state.kick=state.kick.map((_,i)=>Math.random()<(i%4===0?.72:.12));
+    state.snare=state.snare.map((_,i)=>Math.random()<(i===4||i===12?.7:.12));
+    state.hat=state.hat.map(()=>Math.random()<.48);
+    state.perc=state.perc.map(()=>Math.random()<.18);
+    refresh();
+  };
+
+  document.addEventListener('keydown',e=>{
+    if(e.code==='Space' && !['INPUT','TEXTAREA','SELECT','BUTTON'].includes(document.activeElement.tagName)){
+      e.preventDefault();
+      toggle();
+    }
+  });
+})();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Drum Machine</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

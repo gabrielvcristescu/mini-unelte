@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arpeggiator — Tone.js</title>
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+<style>
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text)}
+.page{max-width:1220px;margin:0 auto;padding:0 18px 40px}
+.shell{
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  background:
+    radial-gradient(circle at 15% 0%,rgba(100,180,255,.08),transparent 36%),
+    radial-gradient(circle at 85% 100%,rgba(255,160,90,.07),transparent 36%),
+    #11161a;
+  padding:18px
+}
+.unit{
+  border:2px solid #364149;
+  border-radius:16px;
+  background:linear-gradient(180deg,#20272c,#171d21 58%,#13181c);
+  box-shadow:0 18px 50px rgba(0,0,0,.42),inset 0 1px rgba(255,255,255,.04);
+  padding:18px
+}
+.head{
+  display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;
+  padding-bottom:14px;border-bottom:1px solid #374149
+}
+.brand h1{margin:0;color:#d8ecff;font:700 22px/1.1 var(--font-mono);letter-spacing:.08em}
+.brand div{margin-top:4px;color:#6e8190;font:9px var(--font-mono);letter-spacing:.18em}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{
+  border:1px solid #46535c;background:#192126;color:#9eb0ba;border-radius:7px;
+  padding:9px 12px;font:700 10px var(--font-mono);letter-spacing:.06em;cursor:pointer
+}
+.btn:hover{border-color:#7ebee4;color:#dff5ff}
+.btn.primary{background:#163144;border-color:#467ea1;color:#bfeaff}
+.btn.active{background:#4a2419;border-color:#a85b3c;color:#ffd2c0}
+.main{
+  display:grid;grid-template-columns:370px 1fr;gap:14px;margin-top:14px
+}
+.card{
+  border:1px solid #303a42;border-radius:12px;background:#12181c;padding:14px
+}
+.card h2{margin:0 0 10px;color:#90a6b4;font:700 11px var(--font-mono);letter-spacing:.12em;text-transform:uppercase}
+.control{
+  display:grid;grid-template-columns:110px 1fr 76px;gap:9px;align-items:center;
+  padding:9px 0;border-bottom:1px solid #263139
+}
+.control:last-child{border-bottom:none}
+.control label{color:#8396a3;font:10px var(--font-mono)}
+.control input[type=range],.control select{width:100%}
+.control select{
+  background:#161e23;color:#b9c8d1;border:1px solid #39464f;border-radius:6px;
+  padding:6px;font:10px var(--font-mono)
+}
+.val{text-align:right;color:#c8edff;font:700 10px var(--font-mono);font-variant-numeric:tabular-nums}
+.chords{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:8px}
+.chord{
+  border:1px solid #3a464f;background:#171f24;color:#8fa0aa;border-radius:6px;padding:8px 5px;
+  font:700 9px var(--font-mono);cursor:pointer
+}
+.chord.active{background:#263346;border-color:#6485af;color:#deecff}
+.sequence{
+  display:flex;gap:7px;align-items:flex-end;min-height:180px;padding:15px 8px 8px;
+  border:1px solid #28343c;border-radius:9px;background:#090e11;overflow:hidden
+}
+.note-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px}
+.bar{
+  width:100%;max-width:42px;border-radius:6px 6px 2px 2px;
+  background:linear-gradient(180deg,#597ea0,#2c4d66);
+  border:1px solid #6d93b3;min-height:24px;transition:.08s
+}
+.note-col.playing .bar{
+  background:linear-gradient(180deg,#e0a65d,#9a5b28);
+  border-color:#ffc57c;
+  box-shadow:0 0 16px rgba(255,185,105,.3)
+}
+.note-label{color:#6e8290;font:8px var(--font-mono);text-align:center;white-space:nowrap}
+.note-col.playing .note-label{color:#ffd39b}
+.pattern{
+  margin-top:12px;padding:10px;border:1px solid #2d3941;border-radius:8px;
+  background:#10161a;color:#7f929e;font:10px/1.5 var(--font-mono)
+}
+.explain{
+  margin-top:12px;color:#71838f;font:9px/1.55 var(--font-mono)
+}
+.explain b{color:#9bb7c7}
+@media(max-width:900px){.main{grid-template-columns:1fr}.control{grid-template-columns:100px 1fr 70px}}
+@media(max-width:600px){.chords{grid-template-columns:repeat(2,1fr)}.control{grid-template-columns:1fr}.val{text-align:left}}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+
+<style id="category-accent-override">
+:root { --accent: #7fc8f8; }
+</style>
+</head>
+<body data-show-source="true">
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+<div class="tool-page">
+  <div class="tool-header"><a class="back" href="index.html">← index</a></div>
+
+  <main class="page">
+    <section class="shell">
+      <div class="unit">
+        <div class="head">
+          <div class="brand">
+            <h1>ARPEGGIATOR</h1>
+            <div>CHORD → PATTERN → MOTION · TONE.JS</div>
+          </div>
+          <div class="actions">
+            <button class="btn primary" id="startBtn">▶ START</button>
+            <button class="btn" id="randomBtn">RANDOM CHORD</button>
+          </div>
+        </div>
+
+        <div class="main">
+          <section class="card">
+            <h2>Setări</h2>
+
+            <div class="control">
+              <label>Root</label>
+              <select id="root">
+                <option>C</option><option>C#</option><option>D</option><option>D#</option>
+                <option>E</option><option>F</option><option>F#</option><option>G</option>
+                <option>G#</option><option>A</option><option>A#</option><option>B</option>
+              </select>
+              <div class="val" id="rootVal">C</div>
+            </div>
+
+            <div class="control">
+              <label>Octave</label>
+              <input id="octave" type="range" min="2" max="5" value="3">
+              <div class="val" id="octaveVal">3</div>
+            </div>
+
+            <div class="control">
+              <label>Tempo</label>
+              <input id="tempo" type="range" min="50" max="200" value="110">
+              <div class="val" id="tempoVal">110 BPM</div>
+            </div>
+
+            <div class="control">
+              <label>Octave span</label>
+              <input id="span" type="range" min="1" max="3" value="2">
+              <div class="val" id="spanVal">2</div>
+            </div>
+
+            <div class="control">
+              <label>Gate</label>
+              <input id="gate" type="range" min="15" max="95" value="55">
+              <div class="val" id="gateVal">55%</div>
+            </div>
+
+            <div class="control">
+              <label>Pattern</label>
+              <select id="pattern">
+                <option value="up">Up</option>
+                <option value="down">Down</option>
+                <option value="updown">Up / Down</option>
+                <option value="random">Random</option>
+              </select>
+              <div class="val" id="patternVal">UP</div>
+            </div>
+
+            <h2 style="margin-top:14px">Acord</h2>
+            <div class="chords" id="chords"></div>
+
+            <div class="explain">
+              <b>Arpegiul</b> desface un acord în note individuale cântate pe rând.
+              Ordinea poate urca, coborî, oscila sau fi aleatoare. Extinderea pe mai multe octave face modelul mai amplu fără a schimba acordul de bază.
+            </div>
+          </section>
+
+          <section class="card">
+            <h2>Secvență</h2>
+            <div class="sequence" id="sequence"></div>
+            <div class="pattern" id="patternText">C3 → E3 → G3 → C4 → E4 → G4</div>
+
+            <div class="explain">
+              <b>Ce se întâmplă:</b> acordul ales furnizează mulțimea de note.
+              Arpeggiatorul le ordonează după pattern și le repetă sincronizat la tempo.
+              Parametrul <b>Gate</b> stabilește cât timp rămâne fiecare notă activă în interiorul pasului.<br><br>
+              Notele sunt afișate în ambele convenții: notația internațională
+              <b>C–D–E–F–G–A–B</b> și denumirile europene
+              <b>Do–Re–Mi–Fa–Sol–La–Si</b>.
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+(()=>{
+  const chordDefs={
+    'MAJ':[0,4,7],
+    'MIN':[0,3,7],
+    '7':[0,4,7,10],
+    'm7':[0,3,7,10],
+    'MAJ7':[0,4,7,11],
+    'SUS2':[0,2,7],
+    'SUS4':[0,5,7],
+    'DIM':[0,3,6]
+  };
+
+  const root=document.getElementById('root');
+  const octave=document.getElementById('octave');
+  const tempo=document.getElementById('tempo');
+  const span=document.getElementById('span');
+  const gate=document.getElementById('gate');
+  const pattern=document.getElementById('pattern');
+
+  const rootVal=document.getElementById('rootVal');
+  const octaveVal=document.getElementById('octaveVal');
+  const tempoVal=document.getElementById('tempoVal');
+  const spanVal=document.getElementById('spanVal');
+  const gateVal=document.getElementById('gateVal');
+  const patternVal=document.getElementById('patternVal');
+
+  const seqEl=document.getElementById('sequence');
+  const patternText=document.getElementById('patternText');
+  const chordsEl=document.getElementById('chords');
+  const startBtn=document.getElementById('startBtn');
+
+  let chordName='MAJ';
+  let running=false;
+  let seq=[];
+  let index=0;
+  let loop=null;
+
+  const synth=new Tone.PolySynth(Tone.Synth,{
+    oscillator:{type:'triangle'},
+    envelope:{attack:0.01,decay:0.08,sustain:0.35,release:0.25}
+  }).toDestination();
+  synth.volume.value=-10;
+
+  const SOLFEGE = {
+    'C':'Do','C#':'Do♯',
+    'D':'Re','D#':'Re♯',
+    'E':'Mi',
+    'F':'Fa','F#':'Fa♯',
+    'G':'Sol','G#':'Sol♯',
+    'A':'La','A#':'La♯',
+    'B':'Si'
+  };
+
+  function solfegeName(note){
+    const m = /^([A-G]#?)(-?\d+)$/.exec(note);
+    if(!m) return note;
+    return `${SOLFEGE[m[1]] || m[1]}${m[2]}`;
+  }
+
+  function dualName(note){
+    return `${note} · ${solfegeName(note)}`;
+  }
+
+  Object.keys(chordDefs).forEach(name=>{
+    const b=document.createElement('button');
+    b.className='chord'+(name===chordName?' active':'');
+    b.textContent=name;
+    b.onclick=()=>{
+      chordName=name;
+      document.querySelectorAll('.chord').forEach(x=>x.classList.toggle('active',x===b));
+      rebuild();
+    };
+    chordsEl.appendChild(b);
+  });
+
+  function midiToName(midi){
+    return Tone.Frequency(midi,'midi').toNote();
+  }
+
+  function buildNotes(){
+    const rootMidi=Tone.Frequency(root.value+(+octave.value)).toMidi();
+    const base=chordDefs[chordName];
+    const notes=[];
+
+    for(let o=0;o<+span.value;o++){
+      base.forEach(interval=>notes.push(midiToName(rootMidi+interval+12*o)));
+    }
+
+    const mode=pattern.value;
+    if(mode==='down') notes.reverse();
+    else if(mode==='updown'){
+      const tail=notes.slice(1,-1).reverse();
+      notes.push(...tail);
+    }
+
+    return notes;
+  }
+
+  function rebuild(){
+    seq=buildNotes();
+    index=0;
+
+    rootVal.textContent=`${root.value} · ${SOLFEGE[root.value] || root.value}`;
+    octaveVal.textContent=octave.value;
+    tempoVal.textContent=tempo.value+' BPM';
+    spanVal.textContent=span.value;
+    gateVal.textContent=gate.value+'%';
+    patternVal.textContent=pattern.value.toUpperCase();
+
+    Tone.Transport.bpm.rampTo(+tempo.value,.05);
+
+    seqEl.innerHTML='';
+    const mids=seq.map(n=>Tone.Frequency(n).toMidi());
+    const min=Math.min(...mids),max=Math.max(...mids);
+    const range=Math.max(1,max-min);
+
+    seq.forEach((note,i)=>{
+      const m=mids[i];
+      const h=34+((m-min)/range)*110;
+
+      const col=document.createElement('div');
+      col.className='note-col';
+      col.dataset.i=i;
+
+      const bar=document.createElement('div');
+      bar.className='bar';
+      bar.style.height=h+'px';
+
+      const lab=document.createElement('div');
+      lab.className='note-label';
+      lab.textContent=dualName(note);
+
+      col.appendChild(bar);
+      col.appendChild(lab);
+      seqEl.appendChild(col);
+    });
+
+    patternText.textContent=seq.map(dualName).join(' → ');
+  }
+
+  function highlight(i){
+    document.querySelectorAll('.note-col').forEach((el,j)=>el.classList.toggle('playing',j===i));
+  }
+
+  function makeLoop(){
+    if(loop)loop.dispose();
+    loop=new Tone.Loop(time=>{
+      if(!seq.length)return;
+
+      const playIndex=pattern.value==='random'
+        ? Math.floor(Math.random()*seq.length)
+        : index;
+
+      const note=seq[playIndex];
+      const stepSeconds=Tone.Time('8n').toSeconds();
+      const dur=stepSeconds*(+gate.value/100);
+
+      synth.triggerAttackRelease(note,dur,time);
+      Tone.Draw.schedule(()=>highlight(playIndex),time);
+
+      if(pattern.value!=='random')index=(index+1)%seq.length;
+    },'8n');
+  }
+
+  async function toggle(){
+    await Tone.start();
+
+    if(!running){
+      rebuild();
+      makeLoop();
+      Tone.Transport.bpm.value=+tempo.value;
+      loop.start(0);
+      Tone.Transport.start();
+      running=true;
+      startBtn.textContent='■ STOP';
+      startBtn.classList.add('active');
+    }else{
+      Tone.Transport.stop();
+      if(loop)loop.stop();
+      Tone.Transport.position=0;
+      running=false;
+      index=0;
+      highlight(-1);
+      startBtn.textContent='▶ START';
+      startBtn.classList.remove('active');
+    }
+  }
+
+  [root,octave,tempo,span,gate,pattern].forEach(el=>el.addEventListener('input',rebuild));
+  pattern.addEventListener('change',rebuild);
+
+  startBtn.onclick=toggle;
+
+  document.getElementById('randomBtn').onclick=()=>{
+    const roots=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+    const chords=Object.keys(chordDefs);
+    root.value=roots[Math.floor(Math.random()*roots.length)];
+    chordName=chords[Math.floor(Math.random()*chords.length)];
+    document.querySelectorAll('.chord').forEach(b=>b.classList.toggle('active',b.textContent===chordName));
+    rebuild();
+  };
+
+  document.addEventListener('keydown',e=>{
+    if(e.code==='Space' && !['INPUT','SELECT','TEXTAREA','BUTTON'].includes(document.activeElement.tagName)){
+      e.preventDefault();
+      toggle();
+    }
+  });
+
+  rebuild();
+})();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Arpeggiator</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

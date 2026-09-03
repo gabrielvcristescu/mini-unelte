@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Laborator interactiv pentru compararea metodelor de compresie și transpoziție spectrală.">
+<title>Frequency Compression Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+
+<style>
+.tool-page { --accent:#d070f0; --accent-dim:rgba(215,166,255,.10); --accent-border:rgba(215,166,255,.28); }
+.freq-lab{width:100%}
+.upload-card{
+  background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:14px 16px;margin-bottom:var(--content-gap)
+}
+.tabs{display:flex;gap:7px;margin-bottom:var(--content-gap);flex-wrap:wrap}
+.tab,.ps{
+  border:1px solid var(--border2);background:var(--bg2);color:var(--text2);
+  border-radius:var(--radius-sm);font-family:var(--font-mono);cursor:pointer;
+  transition:.12s ease;touch-action:manipulation
+}
+.tab{padding:8px 12px;font-size:.68rem}
+.ps{padding:6px 9px;font-size:.61rem}
+.tab:hover,.ps:hover{background:var(--bg3);color:var(--text)}
+.tab.on,.ps.on{background:var(--accent-dim);border-color:var(--accent-border);color:var(--accent)}
+.panel{display:none}
+.panel.on{display:block}
+.psets{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:var(--content-gap)}
+.params{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-bottom:var(--content-gap)}
+.pc,.cw{
+  background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:11px 12px
+}
+.pc{min-width:0}
+.pl,.cl,.note,.stat,#finfo,.leg{
+  font-family:var(--font-mono);font-size:.61rem;color:var(--text3)
+}
+.pl{margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em}
+.pr{display:flex;align-items:center;gap:8px}
+.pr input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
+.pv{font-family:var(--font-mono);font-size:.66rem;font-weight:700;color:var(--text);min-width:62px;text-align:right}
+.info{
+  background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--accent);
+  border-radius:var(--radius-sm);padding:10px 12px;font-family:var(--font-mono);
+  font-size:.64rem;color:var(--text2);line-height:1.6;margin-bottom:var(--content-gap)
+}
+.info b{color:var(--text)}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.btns button{
+  display:inline-flex;align-items:center;gap:5px;padding:8px 14px;border-radius:var(--radius-sm);
+  border:1px solid var(--border2);background:var(--bg3);color:var(--text2);
+  font-family:var(--font-mono);font-size:.68rem;cursor:pointer
+}
+.btns button:hover{background:var(--bg4);color:var(--text)}
+.btns button.prim{background:var(--accent);border-color:var(--accent);color:#0b0d10;font-weight:700}
+.btns button:disabled{opacity:.4;cursor:not-allowed}
+.cw{margin-top:12px}
+canvas{width:100%;display:block}
+.leg{display:flex;gap:14px;margin-top:6px;flex-wrap:wrap}
+.ld{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:middle}
+.file-block{
+  background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:13px 15px;margin-bottom:var(--content-gap)
+}
+.file-block label{
+  display:block;font-family:var(--font-mono);font-size:.62rem;color:var(--text3);
+  text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px
+}
+input[type=file]{max-width:100%;color:var(--text2);font-family:var(--font-mono);font-size:.68rem}
+@media(max-width:620px){
+  .params{grid-template-columns:1fr}
+  .tab{flex:1 1 150px;min-height:44px}
+  .ps{min-height:40px}
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+<div class="tool-page">
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Frequency Compression Lab</h1>
+    <p>Compară trei strategii de coborâre a informației spectrale: AM + LSB, transpoziție FFT și compresie non-liniară.</p>
+  </div>
+<div class="freq-lab">
+
+<div class="file-block">
+  <label for="fi">Fișier audio (WAV/MP3)</label>
+  <div class="file-drop" id="fileDrop" role="button" tabindex="0" aria-controls="fi" aria-label="Deschide sau trage aici un fișier audio">
+    <div class="file-drop-icon">↥</div>
+    <div>
+      <div class="file-drop-main">Trage fișierul audio aici sau click pentru a-l alege</div>
+      <div class="file-drop-sub">WAV, MP3 și alte formate audio acceptate de browser</div>
+    </div>
+  </div>
+  <input type="file" accept="audio/*" id="fi">
+  <p id="finfo">Niciun fișier selectat</p>
+</div>
+
+<div class="tabs">
+  <div class="tab on" onclick="sw('am')">1 · AM + LSB</div>
+  <div class="tab" onclick="sw('fft')">2 · Transpoziție FFT</div>
+  <div class="tab" onclick="sw('nl')">3 · Non-liniar (envelope)</div>
+</div>
+
+<div id="p-am" class="panel on">
+  <div class="info"><b>LSB cu spectru inversat:</b> x(t)·cos(2πfct) → filtru trece-jos → banda inferioară. O frecvență f apare la fc−f. Consonantele înalte (s,f,ș) cad în registrul jos accesibil.</div>
+  <div class="psets" id="pam">
+    <div class="ps on" onclick="aAM(this,'gen')">Generic</div>
+    <div class="ps" onclick="aAM(this,'ana80')">Analog ~1980</div>
+    <div class="ps" onclick="aAM(this,'sta')">Starkey Transp.</div>
+    <div class="ps" onclick="aAM(this,'sie')">Siemens analog</div>
+  </div>
+  <div class="params">
+    <div class="pc"><div class="pl">Purtătoare fc (Hz)</div><div class="pr"><input type="range" min="500" max="6000" step="50" value="1500" id="amFc" oninput="uAM()"><span class="pv" id="vamFc">1500 Hz</span></div></div>
+    <div class="pc"><div class="pl">Filtru trece-jos BW (Hz)</div><div class="pr"><input type="range" min="200" max="4000" step="50" value="1000" id="amBW" oninput="uAM()"><span class="pv" id="vamBW">1000 Hz</span></div></div>
+    <div class="pc"><div class="pl">Mix LSB (%)</div><div class="pr"><input type="range" min="0" max="100" step="1" value="70" id="amL" oninput="uAM()"><span class="pv" id="vamL">70 %</span></div></div>
+    <div class="pc"><div class="pl">Mix original (%)</div><div class="pr"><input type="range" min="0" max="100" step="1" value="30" id="amO" oninput="uAM()"><span class="pv" id="vamO">30 %</span></div></div>
+    <div class="pc"><div class="pl">Purtătoare reziduală (%)</div><div class="pr"><input type="range" min="0" max="30" step="1" value="5" id="amC" oninput="uAM()"><span class="pv" id="vamC">5 %</span></div></div>
+    <div class="pc"><div class="pl">FIR taps</div><div class="pr"><input type="range" min="16" max="128" step="8" value="64" id="amF" oninput="uAM()"><span class="pv" id="vamF">64</span></div></div>
+  </div>
+  <p class="note" id="nAM">fc=1500 Hz: 1200 Hz → 300 Hz · 800 Hz → 700 Hz</p>
+  <div class="btns">
+    <button class="prim" id="bAM" onclick="play('am')" disabled><i class="ti ti-player-play" aria-hidden="true"></i> Redă AM</button>
+    <button onclick="stopAll()"><i class="ti ti-player-pause" aria-hidden="true"></i> Stop</button>
+  </div>
+  <div class="stat" id="stAM"></div>
+</div>
+
+<div id="p-fft" class="panel">
+  <div class="info"><b>Transpoziție liniară FFT:</b> Blocuri de 2048 samples. Binii ≥ prag sunt deplasați la destinație cu raport fix. Modelul Phonak SoundRecover gen1.</div>
+  <div class="psets" id="pfft">
+    <div class="ps on" onclick="aFFT(this,'gen')">Generic</div>
+    <div class="ps" onclick="aFFT(this,'pho')">Phonak SoundRecover</div>
+    <div class="ps" onclick="aFFT(this,'wid')">Widex FreqCompose</div>
+    <div class="ps" onclick="aFFT(this,'oti')">Oticon Speech Rescue</div>
+    <div class="ps" onclick="aFFT(this,'sig')">Signia SpeechMaster</div>
+  </div>
+  <div class="params">
+    <div class="pc"><div class="pl">Prag transpoziție (Hz)</div><div class="pr"><input type="range" min="1000" max="7000" step="100" value="3000" id="fTh" oninput="uFFT()"><span class="pv" id="vfTh">3000 Hz</span></div></div>
+    <div class="pc"><div class="pl">Frecvență destinație (Hz)</div><div class="pr"><input type="range" min="500" max="4000" step="100" value="1500" id="fDs" oninput="uFFT()"><span class="pv" id="vfDs">1500 Hz</span></div></div>
+    <div class="pc"><div class="pl">Mix transpus (%)</div><div class="pr"><input type="range" min="0" max="100" step="1" value="70" id="fTM" oninput="uFFT()"><span class="pv" id="vfTM">70 %</span></div></div>
+    <div class="pc"><div class="pl">Mix original (%)</div><div class="pr"><input type="range" min="0" max="100" step="1" value="30" id="fOM" oninput="uFFT()"><span class="pv" id="vfOM">30 %</span></div></div>
+  </div>
+  <p class="note" id="nFFT">Prag 3000 Hz → dest 1500 Hz: raport 2.00×</p>
+  <div class="btns">
+    <button class="prim" id="bFFT" onclick="play('fft')" disabled><i class="ti ti-player-play" aria-hidden="true"></i> Redă FFT</button>
+    <button onclick="stopAll()"><i class="ti ti-player-pause" aria-hidden="true"></i> Stop</button>
+  </div>
+  <div class="stat" id="stFFT"></div>
+</div>
+
+<div id="p-nl" class="panel">
+  <div class="info"><b>Compresie non-liniară pe envelope spectral:</b> Se calculează envelope-ul spectrului (LPC sau smoothing logaritmic). Frecvențele sub prag rămân pe loc. Cele de deasupra sunt comprimate cu o curbă putere — <b>γ &lt; 1</b> comprimă agresiv înaltele, <b>γ → 1</b> devine aproape liniar. Vârfurile formantice (energie mare) sunt detectate și ancorate preferențial, mimând comportamentul Phonak SoundRecover 2 și Bernafon Frequency Composition.</div>
+  <div class="psets" id="pnl">
+    <div class="ps on" onclick="aNL(this,'gen')">Generic</div>
+    <div class="ps" onclick="aNL(this,'pho2')">Phonak SR2</div>
+    <div class="ps" onclick="aNL(this,'ber')">Bernafon FreqComp</div>
+    <div class="ps" onclick="aNL(this,'res')">ReSound LiNX</div>
+    <div class="ps" onclick="aNL(this,'mild')">Pierdere ușoară</div>
+    <div class="ps" onclick="aNL(this,'sev')">Pierdere severă</div>
+  </div>
+  <div class="params">
+    <div class="pc"><div class="pl">Prag start compresie (Hz)</div><div class="pr"><input type="range" min="500" max="5000" step="100" value="2000" id="nlTh" oninput="uNL()"><span class="pv" id="vnlTh">2000 Hz</span></div></div>
+    <div class="pc"><div class="pl">Frecvență destinație maximă (Hz)</div><div class="pr"><input type="range" min="500" max="4000" step="100" value="4000" id="nlDst" oninput="uNL()"><span class="pv" id="vnlDst">4000 Hz</span></div></div>
+    <div class="pc"><div class="pl">Exponent curbă γ (0.1–1.0)</div><div class="pr"><input type="range" min="0.1" max="1.0" step="0.05" value="0.5" id="nlG" oninput="uNL()"><span class="pv" id="vnlG">0.50</span></div></div>
+    <div class="pc"><div class="pl">Smoothing envelope (ms)</div><div class="pr"><input type="range" min="1" max="50" step="1" value="10" id="nlSm" oninput="uNL()"><span class="pv" id="vnlSm">10 ms</span></div></div>
+    <div class="pc"><div class="pl">Ancorare formante (%)</div><div class="pr"><input type="range" min="0" max="100" step="5" value="50" id="nlFm" oninput="uNL()"><span class="pv" id="vnlFm">50 %</span></div></div>
+    <div class="pc"><div class="pl">Mix original (%)</div><div class="pr"><input type="range" min="0" max="100" step="1" value="20" id="nlOr" oninput="uNL()"><span class="pv" id="vnlOr">20 %</span></div></div>
+  </div>
+  <p class="note" id="nNL">γ=0.50: 3000 Hz → 2000+(4000-2000)·((3000-2000)/(8000-2000))^0.50 ≈ 2577 Hz</p>
+  <div class="btns">
+    <button class="prim" id="bNL" onclick="play('nl')" disabled><i class="ti ti-player-play" aria-hidden="true"></i> Redă Non-liniar</button>
+    <button onclick="stopAll()"><i class="ti ti-player-pause" aria-hidden="true"></i> Stop</button>
+  </div>
+  <div class="stat" id="stNL"></div>
+</div>
+
+<div class="cw" style="margin-top:10px">
+  <div class="cl">Spectru frecvențe · <span id="clabel" style="color:#1D9E75">verde = procesat</span></div>
+  <canvas id="sc" style="height:120px"></canvas>
+  <div class="leg">
+    <span><span class="ld" style="background:#7F77DD"></span>Original</span>
+    <span><span class="ld" style="background:#1D9E75"></span>Procesat</span>
+    <span id="tlegAM" style="display:none"><span class="ld" style="background:#D85A30"></span>fc purtătoare</span>
+    <span id="tlegFFT" style="display:none"><span class="ld" style="background:#EF9F27"></span>Prag FFT</span>
+    <span id="tlegNL" style="display:none"><span class="ld" style="background:#378ADD"></span>Curbă compresie</span>
+  </div>
+</div>
+</div>
+
+<script>
+let AC=null,BUF=null,SRC=null,AID=null,AN_O=null,AN_P=null,CUR_TAB='am';
+
+const PAM={
+  gen:{fc:1500,bw:1000,l:70,o:30,c:5,f:64},
+  ana80:{fc:1000,bw:800,l:100,o:0,c:15,f:32},
+  sta:{fc:2000,bw:1500,l:80,o:20,c:3,f:64},
+  sie:{fc:1200,bw:900,l:90,o:10,c:10,f:32}
+};
+const PFFT={
+  gen:{th:3000,ds:1500,tm:70,om:30},
+  pho:{th:2700,ds:1350,tm:75,om:25},
+  wid:{th:3500,ds:2000,tm:65,om:35},
+  oti:{th:4000,ds:2200,tm:60,om:40},
+  sig:{th:3000,ds:1800,tm:70,om:30}
+};
+const PNL={
+  gen:{th:2000,dst:4000,g:0.5,sm:10,fm:50,or:20},
+  pho2:{th:1700,dst:3800,g:0.4,sm:8,fm:70,or:15},
+  ber:{th:2200,dst:4000,g:0.55,sm:12,fm:60,or:20},
+  res:{th:2500,dst:4200,g:0.6,sm:10,fm:45,or:25},
+  mild:{th:3000,dst:5000,g:0.7,sm:15,fm:30,or:35},
+  sev:{th:1500,dst:3000,g:0.3,sm:6,fm:80,or:10}
+};
+
+function sw(t){
+  CUR_TAB=t;
+  document.querySelectorAll('.tab').forEach((e,i)=>e.classList.toggle('on',['am','fft','nl'][i]===t));
+  document.querySelectorAll('.panel').forEach(e=>e.classList.remove('on'));
+  document.getElementById('p-'+t).classList.add('on');
+  ['tlegAM','tlegFFT','tlegNL'].forEach((id,i)=>document.getElementById(id).style.display=['am','fft','nl'][i]===t?'inline':'none');
+  stopAll();
+}
+
+function uAM(){
+  const fc=+document.getElementById('amFc').value;
+  document.getElementById('vamFc').textContent=fc+' Hz';
+  document.getElementById('vamBW').textContent=document.getElementById('amBW').value+' Hz';
+  document.getElementById('vamL').textContent=document.getElementById('amL').value+' %';
+  document.getElementById('vamO').textContent=document.getElementById('amO').value+' %';
+  document.getElementById('vamC').textContent=document.getElementById('amC').value+' %';
+  document.getElementById('vamF').textContent=document.getElementById('amF').value;
+  const ex=Math.round(fc*0.8);
+  document.getElementById('nAM').textContent='fc='+fc+' Hz: '+ex+' Hz → '+(fc-ex)+' Hz · '+Math.round(fc*0.5)+' Hz → '+Math.round(fc*0.5)+' Hz';
+}
+function uFFT(){
+  const th=+document.getElementById('fTh').value, ds=+document.getElementById('fDs').value;
+  document.getElementById('vfTh').textContent=th+' Hz';
+  document.getElementById('vfDs').textContent=ds+' Hz';
+  document.getElementById('vfTM').textContent=document.getElementById('fTM').value+' %';
+  document.getElementById('vfOM').textContent=document.getElementById('fOM').value+' %';
+  document.getElementById('nFFT').textContent='Prag '+th+' Hz → dest '+ds+' Hz: raport '+(th/ds).toFixed(2)+'×';
+}
+function uNL(){
+  const th=+document.getElementById('nlTh').value, dst=+document.getElementById('nlDst').value, g=+document.getElementById('nlG').value;
+  document.getElementById('vnlTh').textContent=th+' Hz';
+  document.getElementById('vnlDst').textContent=dst+' Hz';
+  document.getElementById('vnlG').textContent=g.toFixed(2);
+  document.getElementById('vnlSm').textContent=document.getElementById('nlSm').value+' ms';
+  document.getElementById('vnlFm').textContent=document.getElementById('nlFm').value+' %';
+  document.getElementById('vnlOr').textContent=document.getElementById('nlOr').value+' %';
+  const fEx=th+1000, fRange=8000-th, dRange=dst-th;
+  const mapped=Math.round(th + dRange*Math.pow((fEx-th)/fRange, g));
+  document.getElementById('nNL').textContent='γ='+g.toFixed(2)+': '+fEx+' Hz → ~'+mapped+' Hz · curba e concavă (γ<1) → înaltele se comprimă mai tare';
+}
+
+function aAM(el,k){
+  document.querySelectorAll('#pam .ps').forEach(e=>e.classList.remove('on')); el.classList.add('on');
+  const p=PAM[k];
+  document.getElementById('amFc').value=p.fc; document.getElementById('amBW').value=p.bw;
+  document.getElementById('amL').value=p.l; document.getElementById('amO').value=p.o;
+  document.getElementById('amC').value=p.c; document.getElementById('amF').value=p.f;
+  uAM();
+}
+function aFFT(el,k){
+  document.querySelectorAll('#pfft .ps').forEach(e=>e.classList.remove('on')); el.classList.add('on');
+  const p=PFFT[k];
+  document.getElementById('fTh').value=p.th; document.getElementById('fDs').value=p.ds;
+  document.getElementById('fTM').value=p.tm; document.getElementById('fOM').value=p.om;
+  uFFT();
+}
+function aNL(el,k){
+  document.querySelectorAll('#pnl .ps').forEach(e=>e.classList.remove('on')); el.classList.add('on');
+  const p=PNL[k];
+  document.getElementById('nlTh').value=p.th; document.getElementById('nlDst').value=p.dst;
+  document.getElementById('nlG').value=p.g; document.getElementById('nlSm').value=p.sm;
+  document.getElementById('nlFm').value=p.fm; document.getElementById('nlOr').value=p.or;
+  uNL();
+}
+
+async function loadAudioFile(f){
+  if(!f)return;
+  const info=document.getElementById('finfo');
+  info.textContent='Se încarcă '+f.name+'…';
+  try{
+    if(!AC) AC=new(window.AudioContext||window.webkitAudioContext)();
+    const ab=await f.arrayBuffer();
+    BUF=await AC.decodeAudioData(ab);
+    info.textContent=f.name+' ('+(f.size/1024).toFixed(1)+' KB)';
+    ['AM','FFT','NL'].forEach(t=>{
+      document.getElementById('b'+t).disabled=false;
+      document.getElementById('st'+t).textContent='✓ '+BUF.duration.toFixed(2)+'s · '+BUF.sampleRate+' Hz';
+    });
+  }catch(err){
+    BUF=null;
+    info.textContent='Fișierul nu a putut fi decodat.';
+    ['AM','FFT','NL'].forEach(t=>document.getElementById('b'+t).disabled=true);
+  }
+}
+
+const fi=document.getElementById('fi');
+const fileDrop=document.getElementById('fileDrop');
+fi.addEventListener('change',e=>loadAudioFile(e.target.files[0]));
+fileDrop.addEventListener('click',()=>fi.click());
+fileDrop.addEventListener('keydown',e=>{
+  if(e.key==='Enter'||e.key===' '){e.preventDefault();fi.click();}
+});
+['dragenter','dragover'].forEach(type=>fileDrop.addEventListener(type,e=>{
+  e.preventDefault();e.stopPropagation();fileDrop.classList.add('drag');
+}));
+['dragleave','drop'].forEach(type=>fileDrop.addEventListener(type,e=>{
+  e.preventDefault();e.stopPropagation();fileDrop.classList.remove('drag');
+}));
+fileDrop.addEventListener('drop',e=>{
+  const f=e.dataTransfer.files&&e.dataTransfer.files[0];
+  if(f)loadAudioFile(f);
+});
+
+function makeFIR(fc,bw,taps,sr){
+  const h=new Float32Array(taps), M=(taps-1)/2, cut=Math.min(bw,fc)/sr;
+  for(let i=0;i<taps;i++){
+    const n=i-M, sinc=n===0?2*cut:Math.sin(2*Math.PI*cut*n)/(Math.PI*n);
+    h[i]=sinc*(0.54-0.46*Math.cos(2*Math.PI*i/(taps-1)));
+  }
+  return h;
+}
+function conv(x,h){
+  const o=new Float32Array(x.length);
+  for(let i=0;i<x.length;i++){let s=0;for(let j=0;j<h.length;j++)if(i-j>=0)s+=x[i-j]*h[j];o[i]=s;}
+  return o;
+}
+
+function procAM(inp,sr){
+  const fc=+document.getElementById('amFc').value, bw=+document.getElementById('amBW').value;
+  const lm=+document.getElementById('amL').value/100, om=+document.getElementById('amO').value/100;
+  const cl=+document.getElementById('amC').value/100, tp=+document.getElementById('amF').value;
+  const mod=new Float32Array(inp.length), ph=2*Math.PI*fc/sr;
+  for(let i=0;i<inp.length;i++) mod[i]=inp[i]*Math.cos(ph*i);
+  const lsb=conv(mod,makeFIR(fc,bw,tp,sr));
+  const o=new Float32Array(inp.length);
+  for(let i=0;i<inp.length;i++) o[i]=(lm*lsb[i]*2+om*inp[i]+cl*Math.cos(ph*i)*0.15)*0.8;
+  return o;
+}
+
+function fft_r(re,im){
+  const n=re.length; if(n<=1)return;
+  const h=n>>1,reE=new Float32Array(h),imE=new Float32Array(h),reO=new Float32Array(h),imO=new Float32Array(h);
+  for(let i=0;i<h;i++){reE[i]=re[2*i];imE[i]=im[2*i];reO[i]=re[2*i+1];imO[i]=im[2*i+1];}
+  fft_r(reE,imE);fft_r(reO,imO);
+  for(let k=0;k<h;k++){
+    const a=-2*Math.PI*k/n,c=Math.cos(a),s=Math.sin(a),tr=c*reO[k]-s*imO[k],ti=c*imO[k]+s*reO[k];
+    re[k]=reE[k]+tr;im[k]=imE[k]+ti;re[k+h]=reE[k]-tr;im[k+h]=imE[k]-ti;
+  }
+}
+function ifft_r(re,im){
+  for(let i=0;i<im.length;i++)im[i]=-im[i];
+  fft_r(re,im);
+  const n=re.length;
+  for(let i=0;i<n;i++){re[i]/=n;im[i]=-im[i]/n;}
+}
+
+function procFFT(inp,sr){
+  const th=+document.getElementById('fTh').value, ds=+document.getElementById('fDs').value;
+  const tm=+document.getElementById('fTM').value/100, om=+document.getElementById('fOM').value/100;
+  const ratio=th/ds, N=2048, o=new Float32Array(inp.length);
+  for(let st=0;st<inp.length;st+=N){
+    const en=Math.min(st+N,inp.length);
+    const re=new Float32Array(N),im=new Float32Array(N);
+    for(let i=0;i<en-st;i++) re[i]=inp[st+i];
+    fft_r(re,im);
+    const rT=new Float32Array(N),iT=new Float32Array(N);
+    for(let k=1;k<N/2;k++){
+      const freq=k*sr/N;
+      if(freq<th){rT[k]+=re[k]*om;iT[k]+=im[k]*om;rT[N-k]+=re[N-k]*om;iT[N-k]+=im[N-k]*om;}
+      else{const kN=Math.round(k/ratio);if(kN>0&&kN<N/2){rT[kN]+=re[k]*tm;iT[kN]+=im[k]*tm;rT[N-kN]+=re[N-k]*tm;iT[N-kN]+=im[N-k]*tm;}}
+    }
+    ifft_r(rT,iT);
+    for(let i=0;i<en-st;i++) o[st+i]=rT[i]*0.7;
+  }
+  return o;
+}
+
+function procNL(inp,sr){
+  const th=+document.getElementById('nlTh').value;
+  const dst=+document.getElementById('nlDst').value;
+  const g=+document.getElementById('nlG').value;
+  const smMs=+document.getElementById('nlSm').value;
+  const fmW=+document.getElementById('nlFm').value/100;
+  const orM=+document.getElementById('nlOr').value/100;
+  const N=2048, o=new Float32Array(inp.length);
+  const smSamples=Math.max(1,Math.round(smMs*sr/1000/N));
+
+  for(let st=0;st<inp.length;st+=N){
+    const en=Math.min(st+N,inp.length);
+    const re=new Float32Array(N),im=new Float32Array(N);
+    for(let i=0;i<en-st;i++) re[i]=inp[st+i];
+    fft_r(re,im);
+
+    const mag=new Float32Array(N/2);
+    for(let k=0;k<N/2;k++) mag[k]=Math.sqrt(re[k]*re[k]+im[k]*im[k]);
+
+    const env=new Float32Array(N/2);
+    for(let k=0;k<N/2;k++){
+      let s=0,cnt=0;
+      for(let j=Math.max(0,k-smSamples);j<=Math.min(N/2-1,k+smSamples);j++){s+=mag[j];cnt++;}
+      env[k]=s/cnt;
+    }
+
+    const formants=new Uint8Array(N/2);
+    for(let k=1;k<N/2-1;k++) if(env[k]>env[k-1]&&env[k]>env[k+1]&&(k*sr/N)>th) formants[k]=1;
+
+    const rT=new Float32Array(N),iT=new Float32Array(N);
+    const fRange=8000-th, dRange=dst-th;
+
+    for(let k=1;k<N/2;k++){
+      const freq=k*sr/N;
+      if(freq<th){
+        rT[k]+=re[k]; iT[k]+=im[k];
+        rT[N-k]+=re[N-k]; iT[N-k]+=im[N-k];
+      } else {
+        const norm=Math.min(1,(freq-th)/fRange);
+        let mapped=th+dRange*Math.pow(norm,g);
+        if(formants[k]){
+          const linMapped=th+dRange*norm;
+          mapped=mapped*(1-fmW)+linMapped*fmW;
+        }
+        const kNew=Math.max(1,Math.min(N/2-1,Math.round(mapped*N/sr)));
+        rT[kNew]+=re[k]; iT[kNew]+=im[k];
+        rT[N-kNew]+=re[N-k]; iT[N-kNew]+=im[N-k];
+      }
+    }
+
+    ifft_r(rT,iT);
+    for(let i=0;i<en-st;i++) o[st+i]=rT[i]*0.65*(1-orM)+inp[st+i]*orM;
+  }
+  return o;
+}
+
+function stopAll(){
+  if(SRC){try{SRC.stop();}catch(e){}SRC=null;}
+  if(AID){cancelAnimationFrame(AID);AID=null;}
+}
+
+function playBuf(data,sr,tab,orig){
+  const b=AC.createBuffer(1,data.length,sr); b.copyToChannel(data,0);
+  SRC=AC.createBufferSource(); SRC.buffer=b;
+  AN_O=AC.createAnalyser(); AN_O.fftSize=2048;
+  AN_P=AC.createAnalyser(); AN_P.fftSize=2048;
+  const ob=AC.createBuffer(1,orig.length,sr); ob.copyToChannel(orig,0);
+  const os=AC.createBufferSource(); os.buffer=ob;
+  os.connect(AN_O); SRC.connect(AN_P); SRC.connect(AC.destination);
+  os.start(); SRC.start();
+  const tU=tab.toUpperCase();
+  SRC.onended=()=>document.getElementById('st'+tU).textContent='✓ Terminat';
+  drawSpec(tab,sr);
+}
+
+function play(tab){
+  if(!BUF)return; stopAll();
+  if(AC.state==='suspended') AC.resume();
+  const inp=BUF.getChannelData(0), sr=BUF.sampleRate;
+  const tU=tab.toUpperCase();
+  if(tab==='nl'){
+    document.getElementById('stNL').textContent='⏳ Procesare non-liniară...';
+    setTimeout(()=>{
+      const d=procNL(inp,sr);
+      document.getElementById('stNL').textContent='▶ Redare';
+      playBuf(d,sr,tab,inp);
+    },40);
+  } else if(tab==='fft'){
+    document.getElementById('stFFT').textContent='⏳ Procesare FFT...';
+    setTimeout(()=>{
+      const d=procFFT(inp,sr);
+      document.getElementById('stFFT').textContent='▶ Redare';
+      playBuf(d,sr,tab,inp);
+    },40);
+  } else {
+    document.getElementById('stAM').textContent='▶ Redare AM';
+    playBuf(procAM(inp,sr),sr,tab,inp);
+  }
+}
+
+function drawSpec(tab,sr){
+  const cv=document.getElementById('sc');
+  const cx=cv.getContext('2d');
+  cv.width=cv.offsetWidth*devicePixelRatio; cv.height=cv.offsetHeight*devicePixelRatio;
+  cx.scale(devicePixelRatio,devicePixelRatio);
+  const W=cv.offsetWidth, H=cv.offsetHeight;
+  const bl=AN_O.frequencyBinCount;
+  const dO=new Uint8Array(bl), dP=new Uint8Array(bl);
+  const thFFT=+document.getElementById('fTh').value;
+  const fcAM=+document.getElementById('amFc').value;
+  const thNL=+document.getElementById('nlTh').value;
+  const dstNL=+document.getElementById('nlDst').value;
+  const gNL=+document.getElementById('nlG').value;
+
+  function draw(){
+    AID=requestAnimationFrame(draw);
+    AN_O.getByteFrequencyData(dO); AN_P.getByteFrequencyData(dP);
+    cx.clearRect(0,0,W,H);
+    const mB=Math.min(bl,Math.round(8000/(sr/2)*bl));
+    for(let i=0;i<mB;i++){
+      const x=(i/mB)*W, bw=Math.max(1,W/mB);
+      cx.fillStyle='rgba(127,119,221,0.4)';
+      cx.fillRect(x,H-(dO[i]/255)*H,bw-0.5,(dO[i]/255)*H);
+      cx.fillStyle='rgba(29,158,117,0.55)';
+      cx.fillRect(x+bw*0.25,H-(dP[i]/255)*H,bw*0.5,(dP[i]/255)*H);
+    }
+    cx.font='9px sans-serif';
+    if(tab==='fft'){
+      const tx=(thFFT/8000)*W;
+      cx.strokeStyle='rgba(239,159,39,0.85)'; cx.lineWidth=1.5; cx.setLineDash([4,3]);
+      cx.beginPath();cx.moveTo(tx,0);cx.lineTo(tx,H);cx.stroke();cx.setLineDash([]);
+      cx.fillStyle='rgba(239,159,39,0.9)'; cx.fillText(thFFT+'Hz',tx+3,11);
+    }
+    if(tab==='am'){
+      const tx=(fcAM/8000)*W;
+      cx.strokeStyle='rgba(216,90,48,0.75)'; cx.lineWidth=1; cx.setLineDash([3,3]);
+      cx.beginPath();cx.moveTo(tx,0);cx.lineTo(tx,H);cx.stroke();cx.setLineDash([]);
+      cx.fillStyle='rgba(216,90,48,0.85)'; cx.fillText('fc='+fcAM,tx+3,11);
+    }
+    if(tab==='nl'){
+      cx.strokeStyle='rgba(55,138,221,0.6)'; cx.lineWidth=1.5; cx.setLineDash([]);
+      cx.beginPath();
+      const fRange=8000-thNL, dRange=dstNL-thNL;
+      for(let px=0;px<W;px++){
+        const freq=(px/W)*8000;
+        let mapped;
+        if(freq<thNL) mapped=freq;
+        else mapped=thNL+dRange*Math.pow(Math.min(1,(freq-thNL)/fRange),gNL);
+        const my=H-(mapped/8000)*H;
+        if(px===0) cx.moveTo(px,my); else cx.lineTo(px,my);
+      }
+      cx.stroke();
+      const tx=(thNL/8000)*W;
+      cx.strokeStyle='rgba(55,138,221,0.4)'; cx.lineWidth=1; cx.setLineDash([3,3]);
+      cx.beginPath();cx.moveTo(tx,0);cx.lineTo(tx,H);cx.stroke();cx.setLineDash([]);
+      cx.fillStyle='rgba(55,138,221,0.9)'; cx.fillText(thNL+'Hz',tx+3,11);
+    }
+    cx.fillStyle='#999';
+    [500,1000,2000,4000,8000].forEach(f=>{
+      if(f<=sr/2){const lx=(f/8000)*W;cx.fillText(f>=1000?(f/1000)+'k':f,lx,H-1);}
+    });
+  }
+  draw();
+}
+</script>
+
+</div>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Frequency Compression Lab</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

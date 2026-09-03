@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transformare Litere — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #60a0f0;
+  --accent-dim: rgba(96,160,240,0.10);
+  --accent-border: rgba(96,160,240,0.28);
+}
+
+.big-textarea {
+  width: 100%;
+  min-height: 140px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  color: var(--text);
+  outline: none;
+  resize: vertical;
+  line-height: 1.6;
+  margin-bottom: var(--content-gap);
+}
+.big-textarea:focus { border-color: var(--accent-border); box-shadow: 0 0 0 3px var(--accent-dim); }
+
+.area-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.area-name { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; }
+.mini-btn {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.mini-btn:hover { border-color: var(--accent-border); color: var(--accent); }
+
+.transform-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+@media (max-width: 500px) { .transform-grid { grid-template-columns: 1fr; } }
+
+.transform-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.transform-card:hover { border-color: var(--accent-border); background: var(--accent-dim); }
+.transform-name {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+.transform-preview {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Transformare litere</h1>
+    <p>MAJUSCULE, minuscule, Titlu, sEnTeNcE — click pentru a aplica</p>
+  </div>
+
+  <div class="area-label">
+    <span class="area-name">Text</span>
+    <div style="display:flex;gap:6px">
+      <button class="mini-btn" onclick="pasteInto()">Lipește</button>
+      <button class="mini-btn" onclick="copyText()">Copiază</button>
+      <button class="mini-btn" onclick="clearInput()">Șterge</button>
+    </div>
+  </div>
+  <textarea class="big-textarea" id="input-area" placeholder="Scrie sau lipește text aici..." oninput="updatePreviews()">Exemplu de Text pentru Transformare</textarea>
+
+  <div class="transform-grid" id="transform-grid"></div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+const TRANSFORMS = [
+  { name: 'MAJUSCULE', fn: t => t.toLocaleUpperCase('ro') },
+  { name: 'minuscule', fn: t => t.toLocaleLowerCase('ro') },
+  { name: 'Titlu De Fiecare Cuvânt', fn: t => t.replace(/\p{L}[\p{L}'-]*/gu, w => w.charAt(0).toLocaleUpperCase('ro') + w.slice(1).toLocaleLowerCase('ro')) },
+  { name: 'Prima literă mare', fn: t => t.charAt(0).toLocaleUpperCase('ro') + t.slice(1).toLocaleLowerCase('ro') },
+  { name: 'sEnTeNcE aLtErNaT', fn: t => [...t].map((c,i) => i % 2 === 0 ? c.toLocaleLowerCase('ro') : c.toLocaleUpperCase('ro')).join('') },
+  { name: 'InVeRs (Toggle Case)', fn: t => [...t].map(c => c === c.toLocaleUpperCase('ro') && c !== c.toLocaleLowerCase('ro') ? c.toLocaleLowerCase('ro') : c.toLocaleUpperCase('ro')).join('') },
+  { name: 'snake_case', fn: t => t.trim().toLocaleLowerCase('ro').replace(/[^\p{L}\p{N}]+/gu, '_').replace(/^_+|_+$/g, '') },
+  { name: 'kebab-case', fn: t => t.trim().toLocaleLowerCase('ro').replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '') },
+  { name: 'camelCase', fn: t => {
+      const words = t.trim().split(/[^\p{L}\p{N}]+/gu).filter(w => w);
+      if (words.length === 0) return '';
+      return words[0].toLocaleLowerCase('ro') + words.slice(1).map(w => w.charAt(0).toLocaleUpperCase('ro') + w.slice(1).toLocaleLowerCase('ro')).join('');
+    }
+  },
+  { name: 'PascalCase', fn: t => {
+      const words = t.trim().split(/[^\p{L}\p{N}]+/gu).filter(w => w);
+      return words.map(w => w.charAt(0).toLocaleUpperCase('ro') + w.slice(1).toLocaleLowerCase('ro')).join('');
+    }
+  },
+];
+
+function updatePreviews() {
+  const text = document.getElementById('input-area').value;
+  TRANSFORMS.forEach((t, i) => {
+    const preview = document.getElementById('preview-' + i);
+    if (preview) {
+      const result = text ? t.fn(text) : '';
+      preview.textContent = result.length > 40 ? result.slice(0,40) + '…' : result || '—';
+    }
+  });
+}
+
+function applyTransform(i) {
+  const text = document.getElementById('input-area').value;
+  if (!text) return;
+  const result = TRANSFORMS[i].fn(text);
+  document.getElementById('input-area').value = result;
+  updatePreviews();
+  showToast('Aplicat: ' + TRANSFORMS[i].name);
+}
+
+function buildGrid() {
+  const grid = document.getElementById('transform-grid');
+  TRANSFORMS.forEach((t, i) => {
+    const card = document.createElement('div');
+    card.className = 'transform-card';
+    card.innerHTML = `
+      <div class="transform-name">${t.name}</div>
+      <div class="transform-preview" id="preview-${i}">—</div>
+    `;
+    card.onclick = () => applyTransform(i);
+    grid.appendChild(card);
+  });
+}
+
+function clearInput() {
+  document.getElementById('input-area').value = '';
+  updatePreviews();
+}
+
+function pasteInto() {
+  navigator.clipboard.readText().then(text => {
+    document.getElementById('input-area').value = text;
+    updatePreviews();
+  }).catch(() => showToast('Nu s-a putut accesa clipboard-ul'));
+}
+
+function copyText() {
+  const text = document.getElementById('input-area').value;
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => showToast('Copiat!'));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+buildGrid();
+updatePreviews();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Transformare litere</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

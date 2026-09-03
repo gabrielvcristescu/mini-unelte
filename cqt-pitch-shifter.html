@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CQT Pitch Shifter — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root{--accent:#d070f0;--accent-dim:rgba(181,140,255,.10);--accent-border:rgba(181,140,255,.30)}
+.tool-page{max-width:1100px}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+<div class="tool-page">
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>CQT Pitch Shifter</h1>
+    <p>Explorează schimbarea înălțimii prin Constant-Q Transform și generează cod Python cu librosa.</p>
+  </div>
+  <style>
+*{box-sizing:border-box}
+
+.wrap{padding:0;max-width:none}
+h2{font-size:18px;font-weight:500;color:var(--text);margin-bottom:4px}
+.sub{font-size:13px;color:var(--text2);margin-bottom:1.5rem}
+.card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem}
+.card-title{font-size:13px;font-weight:500;color:var(--text2);margin-bottom:1rem;display:flex;align-items:center;gap:6px}
+.row{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.row label{font-size:13px;color:var(--text2);min-width:110px}
+.row input[type=range]{flex:1}
+.val{font-size:13px;font-weight:500;min-width:52px;text-align:right;color:var(--text)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem}
+.select-wrap{display:flex;flex-direction:column;gap:4px}
+.select-wrap label{font-size:12px;color:var(--text2)}
+select{width:100%;padding:6px 10px;border-radius:var(--radius-sm);border:0.5px solid var(--border);background:var(--bg3);color:var(--text);font-size:13px}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500}
+.badge-purple{background:#EEEDFE;color:#3C3489}
+.badge-teal{background:#E1F5EE;color:#0F6E56}
+.badge-pink{background:#FBEAF0;color:#72243E}
+.badge-amber{background:#FAEEDA;color:#633806}
+.code-block{background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:1rem;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text);line-height:1.7;overflow-x:auto;white-space:pre}
+.kw{color:#534AB7}.fn{color:#0F6E56}.cm{color:#888780}.st{color:#993C1D}
+.copy-btn{float:right;font-size:11px;padding:2px 8px;margin-top:-2px;border-radius:var(--radius-sm);border:0.5px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer}
+.copy-btn:hover{background:var(--bg3)}
+.semitone-display{text-align:center;padding:0.75rem;background:var(--bg3);border-radius:var(--radius-sm);margin-bottom:1rem}
+.semitone-big{font-size:28px;font-weight:500;color:var(--text)}
+.semitone-label{font-size:12px;color:var(--text2);margin-top:2px}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:1rem}
+
+.pitch-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pitch-summary div{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px}
+.pitch-summary span{display:block;font-family:'JetBrains Mono',monospace;font-size:.56rem;color:var(--text3);margin-bottom:4px}
+.pitch-summary strong{font-family:'JetBrains Mono',monospace;font-size:.9rem;color:var(--text)}
+@media(max-width:620px){.pitch-summary{grid-template-columns:1fr}}
+</style>
+<div class="wrap">
+  <h2 style="color:var(--text)">CQT Pitch Shifter</h2>
+  <p class="sub">Schimbarea frecvenței prin Constant-Q Transform directă + inversă cu librosa</p>
+
+  <div class="tags">
+    <span class="badge badge-purple">CQT / ICQT</span>
+    <span class="badge badge-teal">librosa</span>
+    <span class="badge badge-pink">soundfile</span>
+    <span class="badge badge-amber">Python 3.11</span>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><i class="ti ti-sliders" aria-hidden="true" style="font-size:15px"></i>Parametri interactivi</div>
+    <div class="semitone-display" id="semi-display">
+      <div class="semitone-big" id="semi-big">+0</div>
+      <div class="semitone-label">semitonuri (shift)</div>
+    </div>
+    <div class="row">
+      <label>Shift (semitonuri)</label>
+      <input type="range" id="semi" min="-24" max="24" value="0" step="1">
+      <span class="val" id="semi-val">0</span>
+    </div>
+    <div class="row">
+      <label>Bins per octavă</label>
+      <input type="range" id="bins" min="12" max="96" value="36" step="12">
+      <span class="val" id="bins-val">36</span>
+    </div>
+    <div class="row">
+      <label>Hop length</label>
+      <input type="range" id="hop" min="64" max="1024" value="256" step="64">
+      <span class="val" id="hop-val">256</span>
+    </div>
+    <div class="grid2">
+      <div class="select-wrap">
+        <label>Fereastră</label>
+        <select id="win"><option>hann</option><option>hamming</option><option>blackman</option></select>
+      </div>
+      <div class="select-wrap">
+        <label>Metodă scalare</label>
+        <select id="method"><option value="cqt">CQT raw</option><option value="pseudo">Pseudo CQT</option><option value="hybrid">Hybrid CQT</option></select>
+      </div>
+    </div>
+  </div>
+
+  
+<div class="card">
+  <div class="card-title">Efectul transpoziției</div>
+  <div class="pitch-summary">
+    <div><span>Raport frecvență</span><strong id="freq-ratio">1.000×</strong></div>
+    <div><span>440 Hz devine</span><strong id="a4-shift">440.0 Hz</strong></div>
+    <div><span>Octave</span><strong id="oct-shift">+0.00</strong></div>
+  </div>
+</div>
+
+<div class="card">
+    <div class="card-title">
+      <i class="ti ti-code" aria-hidden="true" style="font-size:15px"></i>Cod generat
+      <button class="copy-btn" onclick="copyCode()" id="copybtn">copiază</button>
+    </div>
+    <div class="code-block" id="codebox"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><i class="ti ti-info-circle" aria-hidden="true" style="font-size:15px"></i>Cum funcționează</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <div style="background:#EEEDFE;border-radius:var(--radius-sm);padding:10px 12px">
+        <div style="font-size:11px;font-weight:500;color:#3C3489;margin-bottom:4px">1 · CQT</div>
+        <div style="font-size:12px;color:#534AB7">Transformatǎ cu Q constant → spectru logaritmic pe frecvențǎ</div>
+      </div>
+      <div style="background:#E1F5EE;border-radius:var(--radius-sm);padding:10px 12px">
+        <div style="font-size:11px;font-weight:500;color:#0F6E56;margin-bottom:4px">2 · Shift</div>
+        <div style="font-size:12px;color:#1D9E75">Reindexare bins pe axa frecvenței cu n semitonuri</div>
+      </div>
+      <div style="background:#FBEAF0;border-radius:var(--radius-sm);padding:10px 12px">
+        <div style="font-size:11px;font-weight:500;color:#72243E;margin-bottom:4px">3 · ICQT</div>
+        <div style="font-size:12px;color:#993556">Transformatǎ inversǎ → semnal în timp cu tonul modificat</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const semi=document.getElementById('semi');
+const binsEl=document.getElementById('bins');
+const hopEl=document.getElementById('hop');
+const winEl=document.getElementById('win');
+const methodEl=document.getElementById('method');
+
+function render(){
+  const s=parseInt(semi.value);
+  const b=parseInt(binsEl.value);
+  const h=parseInt(hopEl.value);
+  const w=winEl.value;
+  const m=methodEl.value;
+  document.getElementById('semi-val').textContent=s;
+  document.getElementById('bins-val').textContent=b;
+  document.getElementById('hop-val').textContent=h;
+  const ratio=Math.pow(2,s/12);
+  const fr=document.getElementById('freq-ratio');
+  const a4=document.getElementById('a4-shift');
+  const oct=document.getElementById('oct-shift');
+  if(fr) fr.textContent=ratio.toFixed(3)+'×';
+  if(a4) a4.textContent=(440*ratio).toFixed(1)+' Hz';
+  if(oct) oct.textContent=(s>=0?'+':'')+(s/12).toFixed(2);
+  const sb=document.getElementById('semi-big');
+  sb.textContent=(s>=0?'+':'')+s;
+  sb.style.color=s>0?'#0F6E56':s<0?'#993C1D':'var(--text)';
+
+  const cqtFn=m==='pseudo'?'pseudo_cqt':m==='hybrid'?'hybrid_cqt':'cqt';
+  const code=`<span class="cm"># pip install librosa soundfile numpy</span>
+<span class="kw">import</span> librosa
+<span class="kw">import</span> librosa.display
+<span class="kw">import</span> soundfile <span class="kw">as</span> sf
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="cm"># ── parametri ──────────────────────────────────────</span>
+INPUT_FILE  = <span class="st">"input.wav"</span>
+OUTPUT_FILE = <span class="st">"output_shifted.wav"</span>
+N_SEMITONES = <span class="st">${s}</span>          <span class="cm"># semitonuri (+/−)</span>
+BINS_OCT    = <span class="st">${b}</span>         <span class="cm"># bins per octavă</span>
+HOP_LENGTH  = <span class="st">${h}</span>        <span class="cm"># hop length</span>
+WINDOW      = <span class="st">"${w}"</span>      <span class="cm"># fereastră analiză</span>
+
+<span class="cm"># ── încărcare ──────────────────────────────────────</span>
+y, sr = librosa.<span class="fn">load</span>(INPUT_FILE, sr=<span class="kw">None</span>, mono=<span class="kw">True</span>)
+<span class="kw">print</span>(f<span class="st">"Fișier: {INPUT_FILE} | sr={sr} Hz | durată={len(y)/sr:.2f}s"</span>)
+
+<span class="cm"># ── CQT directă ────────────────────────────────────</span>
+C = librosa.<span class="fn">${cqtFn}</span>(
+    y,
+    sr=sr,
+    hop_length=HOP_LENGTH,
+    bins_per_octave=BINS_OCT,
+    window=WINDOW,
+    scale=<span class="kw">True</span>,
+)
+<span class="kw">print</span>(f<span class="st">"CQT shape: {C.shape}  (bins × frames)"</span>)
+
+<span class="cm"># ── pitch shift: reindexare bins ──────────────────</span>
+<span class="cm"># bins_per_semitone = BINS_OCT / 12</span>
+bins_shift = <span class="kw">int</span>(np.<span class="fn">round</span>(N_SEMITONES * BINS_OCT / 12))
+C_shifted  = np.<span class="fn">roll</span>(C, shift=bins_shift, axis=0)
+
+<span class="cm"># curăță bins extrapolate la capete</span>
+<span class="kw">if</span> bins_shift > 0:
+    C_shifted[:bins_shift, :] = 0
+<span class="kw">elif</span> bins_shift < 0:
+    C_shifted[bins_shift:, :] = 0
+
+<span class="cm"># ── ICQT inversă ──────────────────────────────────</span>
+y_shifted = librosa.<span class="fn">icqt</span>(
+    C_shifted,
+    sr=sr,
+    hop_length=HOP_LENGTH,
+    bins_per_octave=BINS_OCT,
+    window=WINDOW,
+    scale=<span class="kw">True</span>,
+)
+
+<span class="cm"># normalizare anti-clip</span>
+peak = np.<span class="fn">max</span>(np.<span class="fn">abs</span>(y_shifted))
+<span class="kw">if</span> peak > 0:
+    y_shifted = y_shifted / peak * 0.95
+
+<span class="cm"># ── salvare ────────────────────────────────────────</span>
+sf.<span class="fn">write</span>(OUTPUT_FILE, y_shifted, sr)
+<span class="kw">print</span>(f<span class="st">"Salvat: {OUTPUT_FILE}  (shift={N_SEMITONES:+d} semitonuri)"</span>)`;
+  document.getElementById('codebox').innerHTML=code;
+}
+
+async function copyCode(){
+  const plain=document.getElementById('codebox').textContent;
+  let ok=false;
+  try{
+    if(navigator.clipboard && window.isSecureContext){
+      await navigator.clipboard.writeText(plain);
+      ok=true;
+    }
+  }catch(e){}
+
+  if(!ok){
+    const ta=document.createElement('textarea');
+    ta.value=plain;
+    ta.setAttribute('readonly','');
+    ta.style.position='fixed';
+    ta.style.opacity='0';
+    document.body.appendChild(ta);
+    ta.select();
+    try{ok=document.execCommand('copy');}catch(e){ok=false;}
+    ta.remove();
+  }
+
+  const b=document.getElementById('copybtn');
+  b.textContent=ok?'copiat ✓':'selectează codul';
+  setTimeout(()=>b.textContent='copiază',1800);
+}
+
+[semi,binsEl,hopEl,winEl,methodEl].forEach(el=>el.addEventListener('input',render));
+render();
+</script>
+</div>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>CQT Pitch Shifter</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

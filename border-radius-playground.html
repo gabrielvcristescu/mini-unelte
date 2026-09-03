@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Border-Radius Playground — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #f0c040;
+  --accent-dim: rgba(240,192,64,0.10);
+  --accent-border: rgba(240,192,64,0.28);
+}
+
+.link-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text2);
+  cursor: pointer;
+  margin-bottom: var(--content-gap);
+}
+
+.preview-wrap {
+  background: var(--bg3);
+  border-radius: var(--radius);
+  padding: 50px 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: var(--content-gap);
+  min-height: 220px;
+}
+.preview-shape {
+  width: 180px;
+  height: 180px;
+  background: linear-gradient(135deg, #8a5cf6, #f0608a);
+  transition: border-radius 0.1s;
+}
+
+.corners-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: var(--content-gap); }
+@media (max-width: 500px) { .corners-grid { grid-template-columns: 1fr; } }
+.corner-item {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.corner-label { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text2); margin-bottom: 8px; display: block; }
+.corner-item input[type=range] { width: 100%; accent-color: var(--accent); }
+.corner-val { font-family: var(--font-mono); font-size: 0.7rem; color: var(--accent); text-align: right; display: block; margin-top: 2px; }
+
+.preset-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: var(--content-gap); }
+.preset-btn {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  padding: 5px 12px;
+  border-radius: 99px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text2);
+  cursor: pointer;
+}
+.preset-btn:hover { border-color: var(--accent-border); color: var(--accent); }
+
+.code-box {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text2);
+  word-break: break-all;
+  position: relative;
+}
+.copy-btn {
+  position: absolute;
+  top: 10px; right: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  padding: 4px 10px;
+  border-radius: 5px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text2);
+  cursor: pointer;
+}
+.copy-btn:hover { border-color: var(--accent-border); color: var(--accent); }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Border-Radius Playground</h1>
+    <p>Colțuri simetrice sau asimetrice → cod CSS</p>
+  </div>
+
+  <div class="preview-wrap">
+    <div class="preview-shape" id="preview-shape"></div>
+  </div>
+
+  <label class="link-toggle">
+    <input type="checkbox" id="link-corners" checked onchange="onLinkToggle()">
+    Colțuri legate (simetrice)
+  </label>
+
+  <div class="corners-grid" id="corners-grid"></div>
+
+  <div class="card" style="margin-bottom:var(--content-gap)">
+    <div class="field-label" style="margin-bottom:8px">Forme predefinite</div>
+    <div class="preset-row" id="preset-row"></div>
+  </div>
+
+  <div class="code-box">
+    <button class="copy-btn" onclick="copyCss()">Copiază</button>
+    <div id="css-output">—</div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+const CORNERS = [
+  { key: 'tl', label: 'Sus-Stânga' },
+  { key: 'tr', label: 'Sus-Dreapta' },
+  { key: 'br', label: 'Jos-Dreapta' },
+  { key: 'bl', label: 'Jos-Stânga' },
+];
+
+let linked = true;
+let values = { tl: 20, tr: 20, br: 20, bl: 20 };
+
+const PRESETS = [
+  { name: 'Pătrat', v: {tl:0,tr:0,br:0,bl:0} },
+  { name: 'Card ușor', v: {tl:12,tr:12,br:12,bl:12} },
+  { name: 'Rotunjit', v: {tl:24,tr:24,br:24,bl:24} },
+  { name: 'Cerc/Pilulă', v: {tl:100,tr:100,br:100,bl:100} },
+  { name: 'Picătură', v: {tl:60,tr:60,br:60,bl:0} },
+  { name: 'Frunză', v: {tl:0,tr:60,br:0,bl:60} },
+  { name: 'Blob organic', v: {tl:70,tr:30,br:70,bl:30} },
+];
+
+function buildCorners() {
+  const grid = document.getElementById('corners-grid');
+  grid.innerHTML = CORNERS.map(c => `
+    <div class="corner-item">
+      <span class="corner-label">${c.label}</span>
+      <input type="range" id="corner-${c.key}" min="0" max="100" value="${values[c.key]}" oninput="onCornerChange('${c.key}')">
+      <span class="corner-val" id="corner-${c.key}-val">${values[c.key]}%</span>
+    </div>
+  `).join('');
+}
+
+function onCornerChange(key) {
+  const val = +document.getElementById('corner-'+key).value;
+  if (linked) {
+    CORNERS.forEach(c => { values[c.key] = val; });
+    CORNERS.forEach(c => {
+      document.getElementById('corner-'+c.key).value = val;
+      document.getElementById('corner-'+c.key+'-val').textContent = val+'%';
+    });
+  } else {
+    values[key] = val;
+    document.getElementById('corner-'+key+'-val').textContent = val+'%';
+  }
+  update();
+}
+
+function onLinkToggle() {
+  linked = document.getElementById('link-corners').checked;
+  if (linked) {
+    const avg = Math.round((values.tl+values.tr+values.br+values.bl)/4);
+    CORNERS.forEach(c => { values[c.key] = avg; });
+    buildCorners();
+    update();
+  }
+}
+
+function update() {
+  const css = `${values.tl}% ${values.tr}% ${values.br}% ${values.bl}%`;
+  document.getElementById('preview-shape').style.borderRadius = css;
+  document.getElementById('css-output').textContent = `border-radius: ${css};`;
+}
+
+function applyPreset(v) {
+  values = {...v};
+  const allSame = v.tl===v.tr && v.tr===v.br && v.br===v.bl;
+  linked = allSame;
+  document.getElementById('link-corners').checked = linked;
+  buildCorners();
+  update();
+}
+
+function buildPresets() {
+  const wrap = document.getElementById('preset-row');
+  PRESETS.forEach(p => {
+    const btn = document.createElement('div');
+    btn.className = 'preset-btn';
+    btn.textContent = p.name;
+    btn.onclick = () => applyPreset(p.v);
+    wrap.appendChild(btn);
+  });
+}
+
+function copyCss() {
+  const css = document.getElementById('css-output').textContent;
+  navigator.clipboard.writeText(css).then(() => showToast('Copiat!'));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+buildCorners();
+buildPresets();
+update();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Border-radius playground</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

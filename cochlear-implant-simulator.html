@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Simulator audio-vizual interactiv al procesării pe canale dintr-un implant cohlear.">
+<title>Simulator implant cohlear</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+
+<style>
+.tool-page { --accent:#d070f0; --accent-dim:rgba(215,166,255,.10); --accent-border:rgba(215,166,255,.28); }
+.section-label{
+  font-family:var(--font-mono);font-size:.64rem;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--text2)
+}
+.panel{
+  background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:14px 16px;margin-bottom:var(--content-gap)
+}
+.label{font-family:var(--font-mono);font-size:.64rem;color:var(--text3);margin-bottom:5px}
+.val{font-family:var(--font-mono);font-size:.72rem;font-weight:600;color:var(--text);min-width:58px;text-align:right}
+.row{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.info{font-family:var(--font-mono);font-size:.62rem;color:var(--text3);margin-top:6px;line-height:1.5}
+.mic-row{display:none}
+.file-row{display:block}
+.source-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+  margin-bottom:12px;
+}
+.source-card{
+  appearance:none;
+  border:1px solid var(--border);
+  background:var(--bg3);
+  color:var(--text2);
+  border-radius:var(--radius-sm);
+  padding:11px 10px;
+  min-height:62px;
+  cursor:pointer;
+  text-align:left;
+  transition:all .14s;
+  font-family:var(--font-mono);
+}
+.source-card:hover{
+  border-color:var(--accent-border);
+  color:var(--text);
+}
+.source-card.active{
+  border-color:var(--accent-border);
+  background:var(--accent-dim);
+  color:var(--accent);
+  box-shadow:inset 0 0 0 1px var(--accent-border);
+}
+.source-card .src-title{
+  display:block;
+  font-size:.7rem;
+  font-weight:700;
+  margin-bottom:3px;
+}
+.source-card .src-desc{
+  display:block;
+  font-size:.56rem;
+  line-height:1.35;
+  color:var(--text3);
+  font-weight:400;
+}
+.source-card.active .src-desc{color:var(--text2)}
+.file-drop{
+  border:2px dashed var(--border2);
+  border-radius:var(--radius);
+  padding:28px 18px;
+  text-align:center;
+  font-family:var(--font-mono);
+  font-size:.76rem;
+  color:var(--text3);
+  cursor:pointer;
+  transition:all .15s;
+  margin-bottom:12px;
+}
+.file-drop:hover,.file-drop.dragover{
+  border-color:var(--accent-border);
+  color:var(--accent);
+  background:var(--accent-dim);
+}
+.file-drop.loaded{
+  border-style:solid;
+  border-color:var(--accent-border);
+  background:var(--accent-dim);
+}
+.file-drop.active-source{
+  border-color:var(--accent-border);
+  color:var(--accent);
+  background:var(--accent-dim);
+  box-shadow:inset 0 0 0 1px var(--accent-border);
+}
+.file-name{
+  display:block;
+  margin-top:6px;
+  font-size:.62rem;
+  color:var(--text2);
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+#viz,#channels-viz{
+  width:100%;display:block;border-radius:var(--radius-sm);background:var(--bg3);
+  border:1px solid var(--border)
+}
+#viz{height:100px}
+#channels-viz{height:72px}
+select{min-width:0}
+input[type=range]{accent-color:var(--accent);min-width:0}
+.status-badge,.mode-badge{
+  display:inline-block;padding:3px 8px;border:1px solid var(--accent-border);
+  border-radius:4px;background:var(--accent-dim);color:var(--accent);
+  font-family:var(--font-mono);font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em
+}
+@media(max-width:620px){
+  .grid2{grid-template-columns:1fr}
+  .source-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .row{flex-wrap:wrap}
+  .row > input[type=range]{flex:1 1 170px !important}
+  .row > select{flex:1 1 180px !important}
+  #viz{height:90px}
+}
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+<div class="tool-page">
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Simulator implant cohlear</h1>
+    <p>Explorează efectul numărului de canale, zgomotului și interacțiunii dintre electrozi asupra semnalului.</p>
+  </div>
+<div style="padding: 0.5rem 0 1rem;">
+
+<div class="panel">
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+    <span class="section-label">Control audio</span>
+    <span class="status-badge" id="status-badge">inactiv</span>
+  </div>
+
+  <div class="file-row" id="file-row">
+    <div class="file-drop" id="file-drop" onclick="document.getElementById('file-input').click()" role="button" tabindex="0">
+      <strong>Fișier audio</strong> — trage aici sau click pentru selecție
+      <span class="file-name" id="file-name">WAV, MP3, OGG, M4A/AAC, FLAC — în funcție de suportul browserului</span>
+      <input type="file" id="file-input" accept="audio/*,.wav,.mp3,.ogg,.oga,.m4a,.aac,.flac" style="display:none">
+    </div>
+  </div>
+
+  <div class="source-grid" aria-label="Surse audio">
+    <button class="source-card active" type="button" data-source="osc">
+      <span class="src-title">∿ Ton sinusoidal</span>
+      <span class="src-desc">440 Hz + armonice</span>
+    </button>
+    <button class="source-card" type="button" data-source="noise">
+      <span class="src-title">≋ Zgomot roz</span>
+      <span class="src-desc">semnal larg în frecvență</span>
+    </button>
+    <button class="source-card" type="button" data-source="speech">
+      <span class="src-title">Aa Vocale sintetice</span>
+      <span class="src-desc">formanți simpli modulați</span>
+    </button>
+    <button class="source-card" type="button" data-source="mic">
+      <span class="src-title">● Microfon</span>
+      <span class="src-desc">intrare live</span>
+    </button>
+  </div>
+
+  <div class="row mic-row" id="mic-gain-row">
+    <span class="label" style="white-space:nowrap; margin:0;">Amplificare mic</span>
+    <input type="range" id="mic-gain" min="1" max="20" value="6" step="0.5" style="flex:1;">
+    <span class="val" id="mic-gain-out">×6</span>
+  </div>
+
+  <div class="row">
+    <button class="btn btn-primary btn-play" id="btn-toggle">▶ Pornește</button>
+    <button class="btn btn-secondary" id="btn-bypass">Normal / CI</button>
+    <span id="mode-label" class="mode-badge">mod CI</span>
+  </div>
+
+  <canvas id="viz"></canvas>
+  <div class="info">Spectrul semnalului procesat (gri = original, portocaliu = CI)</div>
+</div>
+
+<div class="panel">
+  <div class="label" style="margin-bottom:8px; font-size:14px; font-weight:500;">Parametri implant</div>
+  <div class="grid2">
+    <div>
+      <div class="label">Canale active</div>
+      <div class="row" style="margin-bottom:0;">
+        <input type="range" id="n-channels" min="1" max="22" value="8" step="1" style="flex:1;">
+        <span class="val" id="n-channels-out">8</span>
+      </div>
+      <div class="info">CI real: 12–22 canale</div>
+    </div>
+    <div>
+      <div class="label">Zgomot de fond (dB)</div>
+      <div class="row" style="margin-bottom:0;">
+        <input type="range" id="noise-level" min="0" max="40" value="10" step="1" style="flex:1;">
+        <span class="val" id="noise-level-out">10 dB</span>
+      </div>
+      <div class="info">Perturbații electrice</div>
+    </div>
+    <div>
+      <div class="label">Smearing temporal (ms)</div>
+      <div class="row" style="margin-bottom:0;">
+        <input type="range" id="smear" min="0" max="50" value="8" step="1" style="flex:1;">
+        <span class="val" id="smear-out">8 ms</span>
+      </div>
+      <div class="info">Interacțiune canale</div>
+    </div>
+    <div>
+      <div class="label">Frecv. maximă (Hz)</div>
+      <div class="row" style="margin-bottom:0;">
+        <input type="range" id="max-freq" min="2000" max="8000" value="5000" step="100" style="flex:1;">
+        <span class="val" id="max-freq-out">5000 Hz</span>
+      </div>
+      <div class="info">Limita de sus a electrozilor</div>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="label" style="margin-bottom:8px; font-size:14px; font-weight:500;">Activitate canale (electrozi)</div>
+  <canvas id="channels-viz" style="width:100%; height:60px; display:block; border-radius:var(--radius-sm); background:var(--bg3);"></canvas>
+  <div class="info">Fiecare coloană = un electrod, înălțimea = energie</div>
+</div>
+</div>
+<script>
+let audioCtx = null, sourceNode = null, micPreamp = null, isRunning = false, bypassMode = false;
+let analyserOrig = null, analyserCI = null;
+let outputGain = null;
+let animId = null, micStream = null;
+let ciFreqs = [];
+let selectedAudioArrayBuffer = null;
+let selectedAudioName = '';
+let currentSource = 'osc';
+
+const BTN = document.getElementById('btn-toggle');
+const BYPASS_BTN = document.getElementById('btn-bypass');
+const MODE_LABEL = document.getElementById('mode-label');
+const STATUS = document.getElementById('status-badge');
+const vizCanvas = document.getElementById('viz');
+const chCanvas = document.getElementById('channels-viz');
+const vizCtx = vizCanvas.getContext('2d');
+const chCtx = chCanvas.getContext('2d');
+const SOURCE_CARDS = [...document.querySelectorAll('.source-card')];
+const FILE_ROW = document.getElementById('file-row');
+const FILE_DROP = document.getElementById('file-drop');
+const FILE_INPUT = document.getElementById('file-input');
+const FILE_NAME = document.getElementById('file-name');
+
+function updateSourceUI() {
+  SOURCE_CARDS.forEach(card => card.classList.toggle('active', card.dataset.source === currentSource));
+  document.getElementById('mic-gain-row').style.display = currentSource === 'mic' ? 'flex' : 'none';
+  FILE_DROP.classList.toggle('active-source', currentSource === 'file');
+}
+
+async function selectSource(source) {
+  currentSource = source;
+  updateSourceUI();
+  if(isRunning) {
+    stop();
+    await start();
+  }
+}
+
+SOURCE_CARDS.forEach(card => {
+  card.addEventListener('click', () => selectSource(card.dataset.source));
+});
+
+async function handleAudioFile(file) {
+  if(!file) return;
+
+  const looksAudio = file.type.startsWith('audio/') ||
+    /\.(wav|mp3|ogg|oga|m4a|aac|flac)$/i.test(file.name);
+
+  if(!looksAudio) {
+    STATUS.textContent = 'fișier invalid';
+    FILE_NAME.textContent = 'Selectează un fișier audio valid';
+    return;
+  }
+
+  try {
+    selectedAudioArrayBuffer = await file.arrayBuffer();
+    selectedAudioName = file.name;
+    FILE_NAME.textContent = file.name;
+    FILE_DROP.classList.add('loaded');
+    currentSource = 'file';
+    updateSourceUI();
+    STATUS.textContent = 'fișier pregătit';
+
+    if(isRunning) {
+      stop();
+      await start();
+    }
+  } catch(e) {
+    selectedAudioArrayBuffer = null;
+    selectedAudioName = '';
+    FILE_DROP.classList.remove('loaded');
+    FILE_NAME.textContent = 'Nu am putut citi fișierul';
+    STATUS.textContent = 'eroare fișier';
+  }
+}
+
+FILE_INPUT.addEventListener('change', e => handleAudioFile(e.target.files[0]));
+FILE_DROP.addEventListener('dragover', e => {
+  e.preventDefault();
+  FILE_DROP.classList.add('dragover');
+});
+FILE_DROP.addEventListener('dragleave', () => FILE_DROP.classList.remove('dragover'));
+FILE_DROP.addEventListener('keydown', e => {
+  if(e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    FILE_INPUT.click();
+  }
+});
+FILE_DROP.addEventListener('drop', e => {
+  e.preventDefault();
+  FILE_DROP.classList.remove('dragover');
+  handleAudioFile(e.dataTransfer.files[0]);
+});
+
+updateSourceUI();
+
+const micGainSlider = document.getElementById('mic-gain');
+const micGainOut = document.getElementById('mic-gain-out');
+micGainSlider.addEventListener('input', () => {
+  micGainOut.textContent = '×' + parseFloat(micGainSlider.value).toFixed(1).replace('.0','');
+  if(micPreamp) micPreamp.gain.value = parseFloat(micGainSlider.value);
+});
+
+function getParam(id) { return parseFloat(document.getElementById(id).value); }
+
+function linkSlider(id, outId, suffix) {
+  const el = document.getElementById(id);
+  const out = document.getElementById(outId);
+  el.addEventListener('input', () => {
+    out.textContent = el.value + (suffix||'');
+    if(isRunning) rebuildCI();
+  });
+}
+linkSlider('n-channels','n-channels-out','');
+linkSlider('noise-level','noise-level-out',' dB');
+linkSlider('smear','smear-out',' ms');
+linkSlider('max-freq','max-freq-out',' Hz');
+
+function gammatoneFreqs(n, fLow, fHigh) {
+  const freqs = [];
+  for(let i=0;i<n;i++) freqs.push(fLow * Math.pow(fHigh/fLow, i/(n-1)));
+  return freqs;
+}
+
+function buildCI(inputNode) {
+  const n = Math.round(getParam('n-channels'));
+  const maxF = getParam('max-freq');
+  const freqs = gammatoneFreqs(n, 200, maxF);
+
+  const merger = audioCtx.createGain();
+  // Compensație de nivel pentru vocoderul CI: versiunea anterioară era mult
+  // mai încetă decât bypass-ul. Păstrăm normalizarea în funcție de nr. canale,
+  // dar cu aproximativ +9 dB față de valoarea veche.
+  merger.gain.value = 3.5 / n;
+
+  for(let i=0;i<n;i++) {
+    const f = freqs[i];
+    const bp = audioCtx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = f;
+    bp.Q.value = f / (f * 0.25);
+
+    const smear = getParam('smear');
+    const env = audioCtx.createBiquadFilter();
+    env.type = 'lowpass';
+    env.frequency.value = 1000 / Math.max(1, smear);
+
+    const carrier = audioCtx.createOscillator();
+    carrier.frequency.value = f;
+    carrier.type = 'sine';
+    carrier.start();
+
+    const ampMod = audioCtx.createGain();
+    ampMod.gain.value = 0;
+
+    const rectifier = audioCtx.createWaveShaper();
+    const curve = new Float32Array(256);
+    for(let k=0;k<256;k++) curve[k] = k<128 ? 0 : (k-128)/128;
+    rectifier.curve = curve;
+
+    inputNode.connect(bp);
+    bp.connect(rectifier);
+    rectifier.connect(env);
+    env.connect(ampMod.gain);
+    carrier.connect(ampMod);
+    ampMod.connect(merger);
+  }
+
+  const noiseDb = getParam('noise-level');
+  if(noiseDb > 0) {
+    const bufSize = audioCtx.sampleRate * 2;
+    const noiseBuffer = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+    const data = noiseBuffer.getChannelData(0);
+    for(let k=0;k<bufSize;k++) data[k] = Math.random()*2-1;
+    const noiseSrc = audioCtx.createBufferSource();
+    noiseSrc.buffer = noiseBuffer; noiseSrc.loop = true; noiseSrc.start();
+    const ng = audioCtx.createGain();
+    ng.gain.value = Math.pow(10, (noiseDb - 60)/20);
+    noiseSrc.connect(ng);
+    ng.connect(merger);
+  }
+
+  // Limitare blândă a vârfurilor după compensarea de nivel.
+  const limiter = audioCtx.createDynamicsCompressor();
+  limiter.threshold.value = -8;
+  limiter.knee.value = 6;
+  limiter.ratio.value = 8;
+  limiter.attack.value = 0.003;
+  limiter.release.value = 0.12;
+
+  analyserCI = audioCtx.createAnalyser();
+  analyserCI.fftSize = 2048;
+  merger.connect(limiter);
+  limiter.connect(analyserCI);
+  limiter.connect(outputGain);
+
+  return freqs;
+}
+
+function rebuildCI() {
+  if(!audioCtx || !sourceNode) return;
+  const inputNode = micPreamp || sourceNode;
+  outputGain = audioCtx.createGain();
+  outputGain.gain.value = bypassMode ? 0 : 1;
+  outputGain.connect(audioCtx.destination);
+  ciFreqs = buildCI(inputNode);
+  if(bypassMode) {
+    inputNode.connect(outputGain);
+  }
+}
+
+async function start() {
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const src = currentSource;
+  micPreamp = null;
+
+  if(src === 'mic') {
+    try {
+      micStream = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation:false, noiseSuppression:false, autoGainControl:false}});
+      const rawMic = audioCtx.createMediaStreamSource(micStream);
+      micPreamp = audioCtx.createGain();
+      micPreamp.gain.value = parseFloat(micGainSlider.value);
+      rawMic.connect(micPreamp);
+      sourceNode = rawMic;
+    } catch(e) {
+      STATUS.textContent = 'microfon blocat';
+      audioCtx.close(); audioCtx=null; isRunning=false;
+      BTN.textContent = '▶ Pornește';
+      return;
+    }
+  } else if(src === 'file') {
+    if(!selectedAudioArrayBuffer) {
+      STATUS.textContent = 'alege un fișier';
+      audioCtx.close(); audioCtx=null; isRunning=false;
+      BTN.textContent = '▶ Pornește';
+      return;
+    }
+
+    try {
+      const decoded = await audioCtx.decodeAudioData(selectedAudioArrayBuffer.slice(0));
+      const bsrc = audioCtx.createBufferSource();
+      bsrc.buffer = decoded;
+      bsrc.loop = true;
+      bsrc.start();
+      sourceNode = bsrc;
+    } catch(e) {
+      STATUS.textContent = 'format nesuportat';
+      FILE_NAME.textContent = selectedAudioName
+        ? selectedAudioName + ' — browserul nu îl poate decoda'
+        : 'Format audio nesuportat';
+      audioCtx.close(); audioCtx=null; isRunning=false;
+      BTN.textContent = '▶ Pornește';
+      return;
+    }
+  } else {
+    const bufSize = audioCtx.sampleRate * 4;
+    const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+    const d = buf.getChannelData(0);
+    if(src === 'osc') {
+      for(let i=0;i<bufSize;i++) d[i] = 0.4*Math.sin(2*Math.PI*440*i/audioCtx.sampleRate)
+        + 0.2*Math.sin(2*Math.PI*880*i/audioCtx.sampleRate)
+        + 0.1*Math.sin(2*Math.PI*1760*i/audioCtx.sampleRate);
+    } else if(src === 'noise') {
+      let prev = 0;
+      for(let i=0;i<bufSize;i++) { prev = 0.99*prev + 0.01*(Math.random()*2-1); d[i]=prev*3; }
+    } else {
+      const vowels = [220,440,880,1320,2640];
+      for(let i=0;i<bufSize;i++) {
+        let v=0; vowels.forEach(f=>{ v+=0.15*Math.sin(2*Math.PI*f*i/audioCtx.sampleRate); });
+        v *= 0.5+0.5*Math.sin(2*Math.PI*4*i/audioCtx.sampleRate);
+        d[i]=v;
+      }
+    }
+    const bsrc = audioCtx.createBufferSource();
+    bsrc.buffer = buf; bsrc.loop = true; bsrc.start();
+    sourceNode = bsrc;
+  }
+
+  const inputNode = micPreamp || sourceNode;
+
+  analyserOrig = audioCtx.createAnalyser();
+  analyserOrig.fftSize = 2048;
+  inputNode.connect(analyserOrig);
+
+  outputGain = audioCtx.createGain();
+  outputGain.gain.value = 1;
+  outputGain.connect(audioCtx.destination);
+
+  if(bypassMode) {
+    inputNode.connect(outputGain);
+    analyserCI = audioCtx.createAnalyser();
+    analyserCI.fftSize = 2048;
+    inputNode.connect(analyserCI);
+    ciFreqs = [];
+  } else {
+    ciFreqs = buildCI(inputNode);
+  }
+
+  STATUS.textContent = src === 'file'
+    ? (bypassMode ? 'fișier · normal' : 'fișier · CI')
+    : (bypassMode ? 'mod normal' : 'mod CI');
+  STATUS.style.background = bypassMode ? 'var(--bg3)' : 'var(--accent-dim)';
+  STATUS.style.color = bypassMode ? 'var(--text3)' : 'var(--accent)';
+
+  isRunning = true;
+  BTN.textContent = '⏹ Oprește';
+  drawLoop();
+}
+
+function stop() {
+  isRunning = false;
+  if(animId) cancelAnimationFrame(animId);
+  if(audioCtx) { audioCtx.close(); audioCtx=null; }
+  if(micStream) { micStream.getTracks().forEach(t=>t.stop()); micStream=null; }
+  micPreamp = null; sourceNode = null;
+  BTN.textContent = '▶ Pornește';
+  STATUS.textContent = 'inactiv';
+  STATUS.style.background = 'var(--bg3)';
+  STATUS.style.color = 'var(--text3)';
+}
+
+BTN.addEventListener('click', async () => { if(isRunning) stop(); else await start(); });
+
+BYPASS_BTN.addEventListener('click', () => {
+  bypassMode = !bypassMode;
+  MODE_LABEL.textContent = bypassMode ? 'mod normal' : 'mod CI';
+  MODE_LABEL.style.background = bypassMode ? 'var(--bg3)' : 'var(--accent-dim)';
+  MODE_LABEL.style.color = bypassMode ? 'var(--text3)' : 'var(--accent)';
+  if(isRunning) { stop(); start(); }
+});
+
+function drawLoop() {
+  if(!isRunning) return;
+  animId = requestAnimationFrame(drawLoop);
+  const dpr = window.devicePixelRatio||1;
+  const W = vizCanvas.offsetWidth, H = 80;
+  vizCanvas.width = W*dpr; vizCanvas.height = H*dpr;
+  vizCtx.scale(dpr,dpr);
+
+  const bufLen = analyserOrig ? analyserOrig.frequencyBinCount : 1024;
+  const origData = new Uint8Array(bufLen);
+  const ciData = new Uint8Array(bufLen);
+  if(analyserOrig) analyserOrig.getByteFrequencyData(origData);
+  if(analyserCI) analyserCI.getByteFrequencyData(ciData);
+
+  vizCtx.fillStyle = 'var(--bg3)';
+  vizCtx.fillRect(0,0,W,H);
+
+  function drawSpectrum(data, color, alpha) {
+    vizCtx.beginPath();
+    vizCtx.strokeStyle = color;
+    vizCtx.globalAlpha = alpha;
+    vizCtx.lineWidth = 1.5;
+    for(let i=0;i<bufLen;i++) {
+      const x = (i/bufLen)*W;
+      const y = H - (data[i]/255)*H;
+      i===0 ? vizCtx.moveTo(x,y) : vizCtx.lineTo(x,y);
+    }
+    vizCtx.stroke();
+    vizCtx.globalAlpha = 1;
+  }
+
+  drawSpectrum(origData, '#888', 0.5);
+  drawSpectrum(ciData, '#D85A30', 0.9);
+
+  const cW = chCanvas.offsetWidth, cH = 60;
+  chCanvas.width = cW*dpr; chCanvas.height = cH*dpr;
+  chCtx.scale(dpr,dpr);
+  chCtx.fillStyle = 'var(--bg3)';
+  chCtx.fillRect(0,0,cW,cH);
+
+  const n = Math.round(getParam('n-channels'));
+  const maxF = getParam('max-freq');
+  const freqs = gammatoneFreqs(n, 200, maxF);
+  const nyq = audioCtx ? audioCtx.sampleRate/2 : 22050;
+  const bw = Math.max(2, Math.floor(cW/n) - 2);
+
+  for(let i=0;i<n;i++) {
+    const f = freqs[i];
+    const bin = Math.round((f/nyq) * bufLen);
+    const lo = Math.max(0, bin-2), hi = Math.min(bufLen-1, bin+2);
+    let energy = 0;
+    for(let b=lo;b<=hi;b++) energy = Math.max(energy, ciData[b]);
+    const norm = energy/255;
+    const x = Math.round(i*(cW/n));
+    const h = Math.round(norm*(cH-6));
+    const t = i/n;
+    chCtx.fillStyle = `rgb(${Math.round(55+t*200)},${Math.round(90-t*60)},${Math.round(200-t*180)})`;
+    chCtx.fillRect(x, cH-h-3, bw, h);
+  }
+}
+</script>
+
+</div>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Cochlear Implant Simulator</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

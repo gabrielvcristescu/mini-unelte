@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASCII Art din Imagine — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #f08060;
+  --accent-dim: rgba(240,128,96,0.10);
+  --accent-border: rgba(240,128,96,0.28);
+}
+
+.file-drop {
+  border: 2px dashed var(--border2);
+  border-radius: var(--radius);
+  padding: 40px 20px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text3);
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: var(--content-gap);
+}
+.file-drop:hover, .file-drop.dragover { border-color: var(--accent-border); color: var(--accent); background: var(--accent-dim); }
+
+.ascii-wrap {
+  display: none;
+  background: #0a0a0a;
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-bottom: var(--content-gap);
+  overflow-x: auto;
+}
+.ascii-wrap.show { display: block; }
+#ascii-output {
+  font-family: 'Courier New', monospace;
+  font-size: 6px;
+  line-height: 1;
+  white-space: pre;
+  color: #e0e0e0;
+  letter-spacing: 0;
+}
+#ascii-output.color-mode span { display: inline; }
+
+.options-row { display: flex; gap: 16px; margin-bottom: var(--content-gap); align-items: center; flex-wrap: wrap; }
+.option-item { display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 0.72rem; color: var(--text2); }
+
+.slider-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.slider-row label { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text2); width: 100px; flex-shrink: 0; }
+.slider-row input[type=range] { flex: 1; accent-color: var(--accent); }
+.slider-row .val { font-family: var(--font-mono); font-size: 0.72rem; color: var(--accent); width: 45px; text-align: right; }
+
+.action-row { display: flex; gap: 8px; }
+.action-btn {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.action-btn:hover { filter: brightness(1.15); }
+.action-btn:disabled { opacity: 0.4; cursor: default; }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>ASCII art din imagine</h1>
+    <p>Convertește orice imagine în artă din caractere text, local</p>
+  </div>
+
+  <div class="file-drop" id="file-drop" onclick="document.getElementById('file-input').click()">
+    Trage o imagine aici sau click pentru a o încărca
+    <input type="file" id="file-input" accept="image/*" style="display:none">
+  </div>
+
+  <div class="ascii-wrap" id="ascii-wrap">
+    <div id="ascii-output"></div>
+  </div>
+
+  <div class="slider-row">
+    <label>Lățime (caractere)</label>
+    <input type="range" id="s-width" min="40" max="200" value="100" oninput="render()">
+    <span class="val" id="v-width">100</span>
+  </div>
+
+  <div class="options-row">
+    <label class="option-item">
+      <input type="checkbox" id="opt-color" onchange="render()">
+      Culoare (păstrează culorile originale)
+    </label>
+    <label class="option-item">
+      <input type="checkbox" id="opt-invert" onchange="render()">
+      Inversează (fundal închis)
+    </label>
+  </div>
+
+  <div class="action-row">
+    <button class="action-btn" id="copy-btn" onclick="copyAscii()" disabled>Copiază text</button>
+    <button class="action-btn" id="download-txt-btn" onclick="downloadAsciiText()" disabled>⬇ .txt (fără culori)</button>
+    <button class="action-btn" id="download-png-btn" onclick="downloadAsciiImage()" disabled>⬇ .png (cu culori)</button>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">
+</div>
+
+<script>
+const CHARS_LIGHT_TO_DARK = ' .:-=+*#%@';
+let originalImg = null;
+let lastGrid = null; // { cols, rows, cells: [{ch, r,g,b}] } — reutilizat la exportul PNG
+
+function handleFile(file) {
+  if (!file || !file.type.startsWith('image/')) {
+    showToast('Te rog selectează un fișier imagine valid');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      originalImg = img;
+      document.getElementById('ascii-wrap').classList.add('show');
+      document.getElementById('copy-btn').disabled = false;
+      document.getElementById('download-txt-btn').disabled = false;
+      document.getElementById('download-png-btn').disabled = false;
+      render();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function render() {
+  if (!originalImg) return;
+
+  const cols = parseInt(document.getElementById('s-width').value);
+  const useColor = document.getElementById('opt-color').checked;
+  const invert = document.getElementById('opt-invert').checked;
+  document.getElementById('v-width').textContent = cols;
+
+  // Caracterele monospace sunt de obicei ~2× mai înalte decât late — compensăm
+  const charAspectCorrection = 0.5;
+  const rows = Math.round((originalImg.height / originalImg.width) * cols * charAspectCorrection);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = cols;
+  canvas.height = rows;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(originalImg, 0, 0, cols, rows);
+  const imgData = ctx.getImageData(0, 0, cols, rows).data;
+
+  const chars = invert ? [...CHARS_LIGHT_TO_DARK].reverse().join('') : CHARS_LIGHT_TO_DARK;
+  const output = document.getElementById('ascii-output');
+  output.className = useColor ? 'color-mode' : '';
+
+  let html = '';
+  const cells = [];
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      const idx = (y*cols + x) * 4;
+      const r = imgData[idx], g = imgData[idx+1], b = imgData[idx+2];
+      const brightness = (r*0.299 + g*0.587 + b*0.114) / 255;
+      const charIdx = Math.min(chars.length-1, Math.floor(brightness * chars.length));
+      const chRaw = chars[charIdx];
+      const ch = chRaw === ' ' ? '&nbsp;' : chRaw;
+      cells.push({ ch: chRaw, r, g, b });
+
+      if (useColor) {
+        html += `<span style="color:rgb(${r},${g},${b})">${ch}</span>`;
+      } else {
+        html += ch;
+      }
+    }
+    html += '\n';
+  }
+
+  output.innerHTML = html;
+  lastGrid = { cols, rows, cells, useColor, invert };
+}
+
+function copyAscii() {
+  const output = document.getElementById('ascii-output');
+  const text = output.innerText;
+  navigator.clipboard.writeText(text).then(() => showToast('Text copiat!'));
+}
+
+function downloadAsciiText() {
+  // Text simplu — nu poate stoca culoare, indiferent de "Culoare" fiind bifat sau nu
+  if (!lastGrid) return;
+  let text = '';
+  for (let y = 0; y < lastGrid.rows; y++) {
+    for (let x = 0; x < lastGrid.cols; x++) {
+      text += lastGrid.cells[y*lastGrid.cols + x].ch;
+    }
+    text += '\n';
+  }
+  const blob = new Blob([text], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'ascii-art.txt';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Descărcat (.txt, fără culori)');
+}
+
+function downloadAsciiImage() {
+  // Desenăm grid-ul de caractere pe un canvas real, păstrând culoarea fiecărui pixel
+  if (!lastGrid) return;
+  const { cols, rows, cells, useColor, invert } = lastGrid;
+
+  const cellW = 7, cellH = 12; // dimensiuni monospace tipice
+  const canvas = document.createElement('canvas');
+  canvas.width = cols * cellW;
+  canvas.height = rows * cellH;
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = invert ? '#ffffff' : '#0a0a0a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.font = `${cellH}px "Courier New", monospace`;
+  ctx.textBaseline = 'top';
+
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      const cell = cells[y*cols + x];
+      if (cell.ch === ' ') continue;
+      ctx.fillStyle = useColor ? `rgb(${cell.r},${cell.g},${cell.b})` : (invert ? '#0a0a0a' : '#e0e0e0');
+      ctx.fillText(cell.ch, x*cellW, y*cellH);
+    }
+  }
+
+  canvas.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ascii-art.png';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Descărcat (.png, cu culori)');
+  });
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+const fileInput = document.getElementById('file-input');
+const fileDrop = document.getElementById('file-drop');
+fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+fileDrop.addEventListener('dragover', e => { e.preventDefault(); fileDrop.classList.add('dragover'); });
+fileDrop.addEventListener('dragleave', () => fileDrop.classList.remove('dragover'));
+fileDrop.addEventListener('drop', e => {
+  e.preventDefault();
+  fileDrop.classList.remove('dragover');
+  handleFile(e.dataTransfer.files[0]);
+});
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>ASCII art din imagine</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>

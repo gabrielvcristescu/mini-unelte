@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cutremure Recente — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<style>
+:root {
+  --accent: #90d060;
+  --accent-dim: rgba(240,112,96,0.10);
+  --accent-border: rgba(240,112,96,0.28);
+}
+
+.filter-row { display: flex; gap: 8px; margin-bottom: var(--content-gap); flex-wrap: wrap; align-items: center; }
+.filter-btn {
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.filter-btn.active {
+  background: var(--accent-dim);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+.filter-btn[data-tip] { position: relative; }
+.filter-btn[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%) translateY(3px);
+  width: max-content;
+  max-width: 250px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text2);
+  box-shadow: 0 6px 18px rgba(0,0,0,.16);
+  font-family: var(--font-mono);
+  font-size: .60rem;
+  font-weight: 400;
+  line-height: 1.35;
+  text-align: center;
+  white-space: normal;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 30;
+  transition: opacity .12s ease, transform .12s ease, visibility .12s ease;
+}
+.filter-btn[data-tip]::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 4px);
+  width: 7px;
+  height: 7px;
+  background: var(--bg3);
+  border-right: 1px solid var(--border2);
+  border-bottom: 1px solid var(--border2);
+  transform: translateX(-50%) rotate(45deg);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 31;
+  transition: opacity .12s ease, visibility .12s ease;
+}
+.filter-btn[data-tip]:hover::after,
+.filter-btn[data-tip]:focus-visible::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+.filter-btn[data-tip]:hover::before,
+.filter-btn[data-tip]:focus-visible::before {
+  opacity: 1;
+  visibility: visible;
+}
+
+.status-bar {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text3);
+  margin-bottom: var(--content-gap);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text3); }
+.status-dot.live { background: #4af0b0; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+.eq-list { display: flex; flex-direction: column; gap: 8px; }
+.eq-row {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.eq-mag {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 700;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.eq-mag.m1 { background: rgba(74,240,176,0.12); color: #4af0b0; }
+.eq-mag.m2 { background: rgba(240,192,64,0.12); color: #f0c040; }
+.eq-mag.m3 { background: rgba(240,160,64,0.12); color: #f0a040; }
+.eq-mag.m4 { background: rgba(240,96,96,0.15); color: #f06060; }
+.eq-info { flex: 1; min-width: 0; }
+.eq-place { font-family: var(--font-mono); font-size: 0.8rem; color: var(--text); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.eq-meta { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text3); margin-top: 3px; }
+.eq-link {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--accent);
+  text-decoration: none;
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border-radius: 5px;
+  border: 1px solid var(--accent-border);
+  transition: background 0.12s;
+}
+.eq-link:hover { background: var(--accent-dim); }
+
+.loading-msg, .empty-msg, .error-msg {
+  text-align: center;
+  padding: 2rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text3);
+}
+.error-msg { color: #f06060; }
+
+.legend-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: var(--content-gap); }
+.legend-item { display: flex; align-items: center; gap: 5px; font-family: var(--font-mono); font-size: 0.62rem; color: var(--text3); }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+</style>
+<style id="tool-about-style">
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+</style>
+</head>
+<body data-show-source="true">
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+
+  <div class="tool-header">
+    <a class="back" href="index.html">← index</a>
+    <h1>Cutremure recente</h1>
+    <p>Date live de la USGS — fără cheie API</p>
+  </div>
+
+  <!-- Filtre -->
+  <div class="filter-row">
+    <button class="filter-btn active" data-period="hour" data-tip="Evenimente înregistrate de USGS în ultima oră" onclick="setPeriod('hour')">Ultima oră</button>
+    <button class="filter-btn" data-period="day" data-tip="Evenimente înregistrate de USGS în ultimele 24 de ore" onclick="setPeriod('day')">Ultimele 24h</button>
+    <button class="filter-btn" data-period="week" data-tip="Evenimente înregistrate de USGS în ultimele 7 zile" onclick="setPeriod('week')">Ultima săptămână</button>
+    <button class="filter-btn" data-mag="all" data-tip="Afișează toate magnitudinile din perioada aleasă" onclick="setMinMag('all')" style="margin-left:auto">Toate</button>
+    <button class="filter-btn" data-mag="2.5" data-tip="Afișează numai cutremure cu magnitudinea 2,5 sau mai mare" onclick="setMinMag('2.5')">M2.5+</button>
+    <button class="filter-btn" data-mag="4.5" data-tip="Afișează numai cutremure cu magnitudinea 4,5 sau mai mare" onclick="setMinMag('4.5')">M4.5+</button>
+    <button class="filter-btn" data-mag="significant" data-tip="Selectate de USGS după magnitudine, impact și numărul de raportări" onclick="setMinMag('significant')">Semnificative</button>
+  </div>
+
+  <div class="status-bar" id="status-bar">
+    <span class="status-dot"></span>
+    <span>Se încarcă...</span>
+  </div>
+
+  <div class="eq-list" id="eq-list"></div>
+
+  <div class="legend-row">
+    <div class="legend-item"><span class="legend-dot" style="background:#4af0b0"></span>M &lt; 3</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#f0c040"></span>M 3–4</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#f0a040"></span>M 4–5</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#f06060"></span>M 5+</div>
+  </div>
+</div>
+
+<script>
+let currentPeriod = 'hour';
+let currentMinMag = 'all';
+let allFeatures = [];
+
+const USGS_URLS = {
+  hour: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson',
+  day:  'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson',
+  week: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson',
+};
+
+const USGS_SIGNIFICANT_URLS = {
+  hour: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_hour.geojson',
+  day:  'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_day.geojson',
+  week: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.geojson',
+};
+
+function magClass(mag) {
+  if (mag < 3) return 'm1';
+  if (mag < 4) return 'm2';
+  if (mag < 5) return 'm3';
+  return 'm4';
+}
+
+function timeAgo(ts) {
+  const diffMs = Date.now() - ts;
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'acum';
+  if (mins < 60) return `acum ${mins} min`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `acum ${hours}h`;
+  const days = Math.floor(hours / 24);
+  return `acum ${days}z`;
+}
+
+async function loadEarthquakes() {
+  const statusBar = document.getElementById('status-bar');
+  const list = document.getElementById('eq-list');
+
+  statusBar.innerHTML = `<span class="status-dot"></span><span>Se încarcă date de la USGS...</span>`;
+  list.innerHTML = `<div class="loading-msg">Se încarcă...</div>`;
+
+  try {
+    const url = currentMinMag === 'significant'
+      ? USGS_SIGNIFICANT_URLS[currentPeriod]
+      : USGS_URLS[currentPeriod];
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Răspuns invalid de la server');
+    const data = await response.json();
+    allFeatures = data.features || [];
+    renderList();
+
+    const genTime = data.metadata?.generated;
+    const genStr = genTime ? new Date(genTime).toLocaleTimeString('ro-RO') : '';
+    statusBar.innerHTML = `<span class="status-dot live"></span><span>Live — actualizat ${genStr} · ${allFeatures.length} evenimente</span>`;
+  } catch (err) {
+    statusBar.innerHTML = `<span class="status-dot"></span><span>Eroare la încărcare</span>`;
+    list.innerHTML = `<div class="error-msg">Nu s-au putut încărca datele. Verifică conexiunea la internet sau încearcă din nou.<br><small>${err.message}</small></div>`;
+  }
+}
+
+function renderList() {
+  const list = document.getElementById('eq-list');
+  let filtered = allFeatures;
+
+  if (currentMinMag !== 'all' && currentMinMag !== 'significant') {
+    const threshold = parseFloat(currentMinMag);
+    filtered = filtered.filter(f => (f.properties.mag ?? 0) >= threshold);
+  }
+
+  filtered = filtered.slice().sort((a,b) => b.properties.time - a.properties.time);
+
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="empty-msg">Niciun eveniment găsit pentru filtrele selectate.</div>`;
+    return;
+  }
+
+  list.innerHTML = '';
+  filtered.slice(0, 100).forEach(f => {
+    const p = f.properties;
+    const mag = p.mag ?? 0;
+    const row = document.createElement('div');
+    row.className = 'eq-row';
+    row.innerHTML = `
+      <div class="eq-mag ${magClass(mag)}">${mag.toFixed(1)}</div>
+      <div class="eq-info">
+        <div class="eq-place">${p.place || 'Locație necunoscută'}</div>
+        <div class="eq-meta">${timeAgo(p.time)} · adâncime ${f.geometry?.coordinates?.[2]?.toFixed(0) ?? '?'}km</div>
+      </div>
+      <a class="eq-link" href="${p.url}" target="_blank" rel="noopener">Detalii →</a>
+    `;
+    list.appendChild(row);
+  });
+}
+
+function setPeriod(period) {
+  currentPeriod = period;
+  document.querySelectorAll('[data-period]').forEach(b => b.classList.toggle('active', b.dataset.period === period));
+  loadEarthquakes();
+}
+
+function setMinMag(mag) {
+  const wasSignificant = currentMinMag === 'significant';
+  currentMinMag = mag;
+  document.querySelectorAll('[data-mag]').forEach(b => b.classList.toggle('active', b.dataset.mag === mag));
+  const isSignificant = mag === 'significant';
+  if (wasSignificant || isSignificant) loadEarthquakes();
+  else renderList();
+}
+
+loadEarthquakes();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  if (!page) return;
+  const note = document.createElement('div');
+  note.className = 'tool-about-note';
+  note.innerHTML = '<strong>Cutremure recente</strong> face parte din colecția <strong>Mini Unelte</strong>, selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>. Implementarea a fost realizată cu asistență AI.';
+  page.appendChild(note);
+})();
+</script>
+
+<script>
+(() => {
+  const page = document.querySelector('.tool-page');
+  const note = document.querySelector('.tool-about-note');
+  if (page && note) page.appendChild(note);
+})();
+</script>
+
+</body>
+</html>
