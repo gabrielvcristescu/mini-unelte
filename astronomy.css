@@ -1,0 +1,49 @@
+/* Shared palette for the Astronomy chapter. */
+:root[data-theme] {
+  --accent: #76b8ee;
+  --accent-dim: rgba(118, 184, 238, .12);
+  --accent-border: rgba(118, 184, 238, .36);
+}
+:root[data-theme="light"] {
+  --accent: #246caa;
+  --accent-dim: rgba(36, 108, 170, .09);
+  --accent-border: rgba(36, 108, 170, .32);
+}
+
+.tool-header h1 { color: var(--accent); }
+
+.astro-playback {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto auto;
+  gap:10px;
+  align-items:end;
+  margin-bottom:12px;
+  padding:13px 15px;
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  background:var(--bg2);
+}
+.astro-playback-main { min-width:0; }
+.astro-playback-head {
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:7px;
+  color:var(--text2);
+  font: .66rem var(--font-mono);
+}
+.astro-playback-head output {
+  color:var(--accent);
+  font-weight:700;
+  font-variant-numeric:tabular-nums;
+}
+.astro-playback input[type="range"] {
+  display:block;
+  width:100%;
+  margin:0;
+  accent-color:var(--accent);
+}
+@media(max-width:620px) {
+  .astro-playback { grid-template-columns:1fr 1fr; }
+  .astro-playback-main { grid-column:1/-1; }
+}

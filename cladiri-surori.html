@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clădiri surori — Palatul Victoria și Butler Library</title>
+<link rel="stylesheet" href="shared.css">
+<script src="theme.js"></script>
+<style>
+  .sisters-page { width:min(100%,1100px); }
+  .sisters-page .byline { margin-top:.65rem; color:var(--text2); }
+  .sisters-figure { margin:0 0 1.65rem; }
+  .sisters-figure img { display:block; width:100%; border:1px solid var(--border2); border-radius:var(--radius-lg); }
+  .sisters-figure figcaption { margin-top:.55rem; color:var(--text2); font-size:.82rem; }
+  .sisters-prose { max-width:70ch; margin-inline:auto; font-size:1rem; line-height:1.72; }
+  .sisters-prose h2 { margin:1.45rem 0 .45rem; font-size:1.1rem; }
+  .sisters-prose p { margin:0 0 .9rem; }
+  .sisters-sources { margin-top:1.5rem; border-top:1px solid var(--border); }
+  .sisters-sources ul { margin:0; padding-left:1.25rem; color:var(--text2); font-size:.88rem; }
+  .sisters-sources li + li { margin-top:.35rem; }
+  .sisters-page a { text-underline-offset:.18em; }
+</style>
+</head>
+<body>
+<button class="theme-toggle" id="theme-btn" type="button" onclick="toggleTheme()"></button>
+<main class="tool-page sisters-page">
+  <article>
+    <header class="tool-header">
+      <a class="back" href="index.html#personal-projects">← Proiecte personale</a>
+      <h1>Clădiri surori</h1>
+      <p>De la New York la București: Paralele arhitecturale neașteptate între Butler Library, Columbia University, New York și Palatul Victoria, București</p>
+      <p class="byline">Gabriel Valentin Cristescu</p>
+    </header>
+    <figure class="sisters-figure">
+      <img src="cladiri-surori.webp" width="1173" height="959" alt="Două fațade privite din față. Sus, Palatul Victoria, cu stâlpi drepți și arcade la parter. Jos, Butler Library, cu coloane ionice și o friză inscripționată.">
+      <figcaption>Sus, Palatul Victoria din București. Jos, Butler Library, Columbia University, New York. Montaj realizat în Photopea. Fațada Palatului Victoria este redată așa cum arăta înainte de 2011.</figcaption>
+    </figure>
+    <div class="sisters-prose">
+      <p>Când am văzut pentru prima dată fațada Bibliotecii Butler din New York, aceasta mi-a amintit de Palatul Victoria din București. Asemănarea mi s-a părut și mai puternică în cadrele nocturne, atunci când lumina scoate în evidență șirul de coloane și lasă restul fațadei în plan secund. Am vrut să văd ce rămâne din această impresie inițială dacă pun cele două construcții una sub alta, într-un exercițiu de comparare vizuală directă.</p>
+      <p>Privite din față, ambele clădiri împărtășesc o compoziție monumentală similară: un front lung, un șir regulat de elemente verticale, capete laterale mai pline și etaje superioare retrase. Detaliile le deosebesc însă repede. La București, stâlpii drepți se întâlnesc cu arcadele de la parter, pe când la New York, coloanele ionice poartă o friză impunătoare cu nume de autori antici, de la Homer și Herodot până la Cicero și Vergiliu.</p>
+      <p>Această similitudine de ritm și proporții devine și mai interesantă prin prisma arhitecților care le-au conceput. Palatul Victoria a fost proiectat de Duiliu Marcu și finalizat în 1952, fiind o lucrare reprezentativă pentru viziunea sa de a combina clasicismul simplificat cu linii moderne, dinamică pe care a perfecționat-o în perioada interbelică. De cealaltă parte, Butler Library a fost proiectată de James Gamble Rogers și deschisă în 1934 sub numele de South Hall. Rogers era un maestru al arhitecturii academice americane, cunoscut pentru capacitatea de a reinterpreta stilurile istorice — de la neogotic la neoclasicism — la o scară monumentală potrivită marilor instituții universitare.</p>
+      <p>Fără a putea confirma o influență directă între cei doi arhitecți, este cert că amândoi au rezonat cu spiritul epocii lor, căutând o arhitectură a autorității, stabilității și ordinii geometrice. Pentru a aduce această paralelă mai aproape de realitate, am aliniat ambele fațade astfel încât să fie privite frontal și să ocupe aproape aceeași lățime în cadru. Am folosit Gemini pentru a izola imobilele din fotografii, eliminând vegetația, vehiculele și trecătorii.</p>
+      <p>Montajul final l-am realizat în Photopea, unde am reconstruit ferestrele de la ultimele două etaje ale Palatului Victoria. În imaginile mai vechi din Street View se zăresc încă ferestrele din colțurile superioare, dispărute în fotografiile mai recente. În această compoziție am ales să redau fațada Palatului Victoria exact așa cum arăta înainte de modificările din 2011, păstrând simetria și intenția tehnică inițială a proiectului.</p>
+      <section class="sisters-sources" aria-labelledby="sisters-sources">
+        <h2 id="sisters-sources">Surse</h2>
+        <ul>
+          <li><a href="https://library.columbia.edu/libraries/butler/about.html">Columbia University Libraries, istoricul Butler Library</a></li>
+          <li><a href="https://www.oar-bucuresti.ro/evenimente/expo_concurs_palatul_victoria/mapa.pdf">Ordinul Arhitecților din România, istoricul Palatului Victoria</a></li>
+        </ul>
+      </section>
+    </div>
+  </article>
+</main>
+</body>
+</html>

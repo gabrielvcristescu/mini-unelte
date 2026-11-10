@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LexRO — Literatura Română Clasică</title>
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="lexro.css">
+<script src="theme.js"></script>
+<style>
+  h2.sec{font-size:0.75rem;text-transform:uppercase;letter-spacing:2.5px;color:var(--text2);margin:2.2rem 0 1rem;padding-bottom:0.4rem;border-bottom:2px solid var(--border)}
+  .g2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:0}
+  table{width:100%;border-collapse:collapse;font-size:0.78rem;background:var(--bg2);border-radius:12px;overflow:hidden;border:1px solid var(--border);margin-bottom:2rem}
+  th{background:var(--bg3);padding:0.45rem 0.55rem;text-align:left;font-size:0.65rem;text-transform:uppercase;letter-spacing:1px;color:var(--text2);border-bottom:1px solid var(--border)}
+  td{padding:0.42rem 0.55rem;border-bottom:1px solid var(--border)}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:var(--bg3)}
+  .nota{font-size:0.7rem;color:var(--text2);margin-top:0.2rem;margin-bottom:1.5rem}
+  .gloss{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:1.5rem 1.8rem;margin-top:1rem}
+  .gloss h2{font-size:1rem;color:var(--text);margin-bottom:1rem;padding-bottom:0.5rem;border-bottom:1px solid var(--border)}
+  .gi{margin-bottom:0.85rem;padding-bottom:0.85rem;border-bottom:1px solid var(--border);font-size:0.84rem}
+  .gi:last-child{border:none;margin:0;padding:0}
+  .gt{font-family:var(--font-mono);font-weight:bold;color:var(--text);font-size:0.88rem}
+  .gd{color:var(--text2);margin-top:0.2rem;line-height:1.55}
+  .obs{background:var(--lex-accent-wash);border-left:3px solid var(--lex-accent);border-radius:0 8px 8px 0;padding:0.6rem 0.9rem;font-size:0.82rem;color:var(--text2);margin-top:0.5rem;margin-bottom:1.5rem}
+  footer{text-align:center;color:var(--text2);font-size:0.75rem;margin-top:2.5rem;font-style:italic}
+  @media(max-width:680px){.g2{grid-template-columns:1fr}}
+</style>
+</head>
+<body class="lexro-report">
+<button class="theme-toggle" id="theme-btn" type="button" onclick="toggleTheme()"></button>
+<main class="tool-page lexro-page">
+
+<header class="tool-header lexro-header">
+  <a class="back" href="index.html#personal-projects">← Proiecte personale</a>
+  <h1>LexRO</h1>
+  <p class="sub">Statistici lingvistice — Literatura Română Clasică (fără cuvinte de umplutură)</p>
+  <div class="pills">
+    <div class="pill"><strong>12</strong>opere</div>
+    <div class="pill"><strong>1,035,353</strong>tokens</div>
+    <div class="pill"><strong>7</strong>autori</div>
+    <div class="pill"><strong>1875–1955</strong>perioadă</div>
+    <div class="pill"><strong>28 June 2026, 08:14</strong>generat</div>
+  </div>
+</header>
+
+<div class="obs">
+  ℹ️ Toate frecvențele de cuvinte și bigramele au fost filtrate cu o listă de <strong>~200 stopwords românești</strong>
+  (prepoziții, conjuncții, pronume, verbe auxiliare, adverbe comune). Ce rămâne reflectă vocabularul
+  <em>specific</em> fiecărui autor — substantivele, verbele de acțiune, adjectivele, termenii proprii stilului.
+</div>
+
+<h2 class="sec">📊 Tabel comparativ</h2>
+<div style="overflow-x:auto">
+<table>
+  <tr>
+    <th>Titlu</th><th>Autor</th><th>An</th><th style="text-align:right">Tokens</th>
+    <th style="text-align:right">Leme</th><th style="text-align:right">MSTTR</th>
+    <th style="text-align:right">MTLD</th><th style="text-align:right">Yule K</th>
+    <th style="text-align:right">Hapax%</th><th style="text-align:right">Dens.lex.</th>
+    <th style="text-align:right">Silabe</th>
+  </tr>
+  <tr>
+      <td><strong>Povești și povestiri</strong></td>
+      <td style="color:var(--text2);font-style:italic">Ion Creangă</td>
+      <td style="text-align:center">1875</td>
+      <td style="text-align:right">64,861</td>
+      <td style="text-align:right">7,807*</td>
+      <td style="text-align:right">0.4406</td>
+      <td style="text-align:right">107.0</td>
+      <td style="text-align:right">86.89</td>
+      <td style="text-align:right">53.1%</td>
+      <td style="text-align:right">—</td>
+      <td style="text-align:right">1.74</td>
+    </tr><tr>
+      <td><strong>Basme</strong></td>
+      <td style="color:var(--text2);font-style:italic">Mihai Eminescu</td>
+      <td style="text-align:center">1880</td>
+      <td style="text-align:right">25,306</td>
+      <td style="text-align:right">2,300</td>
+      <td style="text-align:right">0.4456</td>
+      <td style="text-align:right">102.9</td>
+      <td style="text-align:right">69.31</td>
+      <td style="text-align:right">56.5%</td>
+      <td style="text-align:right">0.46</td>
+      <td style="text-align:right">1.75</td>
+    </tr><tr>
+      <td><strong>Povești</strong></td>
+      <td style="color:var(--text2);font-style:italic">Ioan Slavici</td>
+      <td style="text-align:center">1881</td>
+      <td style="text-align:right">46,805</td>
+      <td style="text-align:right">5,631*</td>
+      <td style="text-align:right">0.4057</td>
+      <td style="text-align:right">77.2</td>
+      <td style="text-align:right">95.52</td>
+      <td style="text-align:right">49.4%</td>
+      <td style="text-align:right">—</td>
+      <td style="text-align:right">1.74</td>
+    </tr><tr>
+      <td><strong>Moara cu noroc</strong></td>
+      <td style="color:var(--text2);font-style:italic">Ioan Slavici</td>
+      <td style="text-align:center">1881</td>
+      <td style="text-align:right">38,333</td>
+      <td style="text-align:right">4,297*</td>
+      <td style="text-align:right">0.4327</td>
+      <td style="text-align:right">105.3</td>
+      <td style="text-align:right">83.05</td>
+      <td style="text-align:right">47.9%</td>
+      <td style="text-align:right">—</td>
+      <td style="text-align:right">1.74</td>
+    </tr><tr>
+      <td><strong>Poezii</strong></td>
+      <td style="color:var(--text2);font-style:italic">Mihai Eminescu</td>
+      <td style="text-align:center">1883</td>
+      <td style="text-align:right">147,743</td>
+      <td style="text-align:right">18,073*</td>
+      <td style="text-align:right">0.5234</td>
+      <td style="text-align:right">187.5</td>
+      <td style="text-align:right">64.41</td>
+      <td style="text-align:right">52.4%</td>
+      <td style="text-align:right">—</td>
+      <td style="text-align:right">1.88</td>
+    </tr><tr>
+      <td><strong>Nuvele</strong></td>
+      <td style="color:var(--text2);font-style:italic">I.L. Caragiale</td>
+      <td style="text-align:center">1890</td>
+      <td style="text-align:right">30,191</td>
+      <td style="text-align:right">3,395</td>
+      <td style="text-align:right">0.5246</td>
+      <td style="text-align:right">139.9</td>
+      <td style="text-align:right">76.32</td>
+      <td style="text-align:right">61.0%</td>
+      <td style="text-align:right">0.494</td>
+      <td style="text-align:right">1.88</td>
+    </tr><tr>
+      <td><strong>Amintiri din copilărie</strong></td>
+      <td style="color:var(--text2);font-style:italic">Ion Creangă</td>
+      <td style="text-align:center">1892</td>
+      <td style="text-align:right">25,162</td>
+      <td style="text-align:right">3,016</td>
+      <td style="text-align:right">0.4914</td>
+      <td style="text-align:right">122.2</td>
+      <td style="text-align:right">90.92</td>
+      <td style="text-align:right">62.0%</td>
+      <td style="text-align:right">0.424</td>
+      <td style="text-align:right">1.77</td>
+    </tr><tr>
+      <td><strong>La hanul lui Mânjoală</strong></td>
+      <td style="color:var(--text2);font-style:italic">I.L. Caragiale</td>
+      <td style="text-align:center">1898</td>
+      <td style="text-align:right">22,245</td>
+      <td style="text-align:right">3,147</td>
+      <td style="text-align:right">0.5432</td>
+      <td style="text-align:right">158.9</td>
+      <td style="text-align:right">71.36</td>
+      <td style="text-align:right">61.7%</td>
+      <td style="text-align:right">0.48</td>
+      <td style="text-align:right">1.91</td>
+    </tr><tr>
+      <td><strong>Momente și schițe</strong></td>
+      <td style="color:var(--text2);font-style:italic">I.L. Caragiale</td>
+      <td style="text-align:center">1901</td>
+      <td style="text-align:right">103,919</td>
+      <td style="text-align:right">16,182*</td>
+      <td style="text-align:right">0.5068</td>
+      <td style="text-align:right">115.2</td>
+      <td style="text-align:right">58.65</td>
+      <td style="text-align:right">54.9%</td>
+      <td style="text-align:right">—</td>
+      <td style="text-align:right">1.95</td>
+    </tr><tr>
+      <td><strong>Țara mea</strong></td>
+      <td style="color:var(--text2);font-style:italic">Regina Maria</td>
+      <td style="text-align:center">1916</td>
+      <td style="text-align:right">45,740</td>
+      <td style="text-align:right">8,392*</td>
+      <td style="text-align:right">0.5475</td>
+      <td style="text-align:right">176.0</td>
+      <td style="text-align:right">70.84</td>
+      <td style="text-align:right">55.9%</td>
+      <td style="text-align:right">—</td>
+      <td style="text-align:right">2.02</td>
+    </tr><tr>
+      <td><strong>Răscoala</strong></td>
+      <td style="color:var(--text2);font-style:italic">Liviu Rebreanu</td>
+      <td style="text-align:center">1932</td>
+      <td style="text-align:right">146,395</td>
+      <td style="text-align:right">16,670*</td>
+      <td style="text-align:right">0.5305</td>
+      <td style="text-align:right">167.1</td>
+      <td style="text-align:right">70.6</td>
+      <td style="text-align:right">50.3%</td>
+      <td style="text-align:right">—</td>
+      <td style="text-align:right">1.96</td>
+    </tr><tr>
+      <td><strong>Moromeții</strong></td>
+      <td style="color:var(--text2);font-style:italic">Marin Preda</td>
+      <td style="text-align:center">1955</td>
+      <td style="text-align:right">338,653</td>
+      <td style="text-align:right">19,452*</td>
+      <td style="text-align:right">0.4549</td>
+      <td style="text-align:right">107.7</td>
+      <td style="text-align:right">85.27</td>
+      <td style="text-align:right">44.4%</td>
+      <td style="text-align:right">—</td>
+      <td style="text-align:right">1.79</td>
+    </tr>
+</table>
+</div>
+<p class="nota">* forme flexionare distincte (fără lemmatizare spaCy)</p>
+
+<h2 class="sec">📈 Comparații</h2>
+<div class="g2"><div><div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.1rem 1.3rem;margin-bottom:1rem">
+  <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.8rem">MTLD — Diversitate lexicală (mai mare = vocabular mai variat)</div>
+  <div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Poezii</em> <span style="color:var(--text2);font-size:0.7rem">– Mihai Eminescu</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">187.5</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:100%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Țara mea</em> <span style="color:var(--text2);font-size:0.7rem">– Regina Maria</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">176.0</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:94%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Răscoala</em> <span style="color:var(--text2);font-size:0.7rem">– Liviu Rebreanu</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">167.1</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:89%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">La hanul lui Mânjoală</em> <span style="color:var(--text2);font-size:0.7rem">– I.L. Caragiale</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">158.9</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:85%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Nuvele</em> <span style="color:var(--text2);font-size:0.7rem">– I.L. Caragiale</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">139.9</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:75%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Amintiri din copilărie</em> <span style="color:var(--text2);font-size:0.7rem">– Ion Creangă</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">122.2</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:65%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Momente și schițe</em> <span style="color:var(--text2);font-size:0.7rem">– I.L. Caragiale</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">115.2</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:61%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Moromeții</em> <span style="color:var(--text2);font-size:0.7rem">– Marin Preda</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">107.7</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:57%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Povești și povestiri</em> <span style="color:var(--text2);font-size:0.7rem">– Ion Creangă</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">107.0</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:57%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Moara cu noroc</em> <span style="color:var(--text2);font-size:0.7rem">– Ioan Slavici</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">105.3</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:56%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Basme</em> <span style="color:var(--text2);font-size:0.7rem">– Mihai Eminescu</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">102.9</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:55%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Povești</em> <span style="color:var(--text2);font-size:0.7rem">– Ioan Slavici</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">77.2</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:41%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div></div></div><div><div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.1rem 1.3rem;margin-bottom:1rem">
+  <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.8rem">Yule K — Concentrare frecvențe (mai mic = distribuție echilibrată)</div>
+  <div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Momente și schițe</em> <span style="color:var(--text2);font-size:0.7rem">– I.L. Caragiale</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">58.65</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:61%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Poezii</em> <span style="color:var(--text2);font-size:0.7rem">– Mihai Eminescu</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">64.41</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:67%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Basme</em> <span style="color:var(--text2);font-size:0.7rem">– Mihai Eminescu</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">69.31</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:73%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Răscoala</em> <span style="color:var(--text2);font-size:0.7rem">– Liviu Rebreanu</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">70.6</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:74%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Țara mea</em> <span style="color:var(--text2);font-size:0.7rem">– Regina Maria</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">70.84</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:74%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">La hanul lui Mânjoală</em> <span style="color:var(--text2);font-size:0.7rem">– I.L. Caragiale</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">71.36</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:75%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Nuvele</em> <span style="color:var(--text2);font-size:0.7rem">– I.L. Caragiale</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">76.32</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:80%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Moara cu noroc</em> <span style="color:var(--text2);font-size:0.7rem">– Ioan Slavici</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">83.05</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:87%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Moromeții</em> <span style="color:var(--text2);font-size:0.7rem">– Marin Preda</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">85.27</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:89%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Povești și povestiri</em> <span style="color:var(--text2);font-size:0.7rem">– Ion Creangă</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">86.89</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:91%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Amintiri din copilărie</em> <span style="color:var(--text2);font-size:0.7rem">– Ion Creangă</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">90.92</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:95%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Povești</em> <span style="color:var(--text2);font-size:0.7rem">– Ioan Slavici</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">95.52</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:100%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div></div></div></div>
+<div class="g2"><div><div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.1rem 1.3rem;margin-bottom:1rem">
+  <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.8rem">% Hapax legomena (cuvinte unice în corpus)</div>
+  <div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Amintiri din copilărie</em> <span style="color:var(--text2);font-size:0.7rem">– Ion Creangă</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">62.0</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:100%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">La hanul lui Mânjoală</em> <span style="color:var(--text2);font-size:0.7rem">– I.L. Caragiale</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">61.7</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:100%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Nuvele</em> <span style="color:var(--text2);font-size:0.7rem">– I.L. Caragiale</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">61.0</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:98%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Basme</em> <span style="color:var(--text2);font-size:0.7rem">– Mihai Eminescu</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">56.5</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:91%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Țara mea</em> <span style="color:var(--text2);font-size:0.7rem">– Regina Maria</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">55.9</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:90%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Momente și schițe</em> <span style="color:var(--text2);font-size:0.7rem">– I.L. Caragiale</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">54.9</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:89%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Povești și povestiri</em> <span style="color:var(--text2);font-size:0.7rem">– Ion Creangă</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">53.1</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:86%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Poezii</em> <span style="color:var(--text2);font-size:0.7rem">– Mihai Eminescu</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">52.4</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:85%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Răscoala</em> <span style="color:var(--text2);font-size:0.7rem">– Liviu Rebreanu</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">50.3</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:81%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Povești</em> <span style="color:var(--text2);font-size:0.7rem">– Ioan Slavici</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">49.4</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:80%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Moara cu noroc</em> <span style="color:var(--text2);font-size:0.7rem">– Ioan Slavici</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">47.9</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:77%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Moromeții</em> <span style="color:var(--text2);font-size:0.7rem">– Marin Preda</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">44.4</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:72%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div></div></div><div><div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.1rem 1.3rem;margin-bottom:1rem">
+  <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.8rem">Silabe medii per cuvânt — complexitate fonetică</div>
+  <div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Țara mea</em> <span style="color:var(--text2);font-size:0.7rem">– Regina Maria</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">2.02</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:100%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Răscoala</em> <span style="color:var(--text2);font-size:0.7rem">– Liviu Rebreanu</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">1.96</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:97%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Momente și schițe</em> <span style="color:var(--text2);font-size:0.7rem">– I.L. Caragiale</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">1.95</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:97%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">La hanul lui Mânjoală</em> <span style="color:var(--text2);font-size:0.7rem">– I.L. Caragiale</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">1.91</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:95%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Nuvele</em> <span style="color:var(--text2);font-size:0.7rem">– I.L. Caragiale</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">1.88</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:93%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Poezii</em> <span style="color:var(--text2);font-size:0.7rem">– Mihai Eminescu</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">1.88</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:93%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Moromeții</em> <span style="color:var(--text2);font-size:0.7rem">– Marin Preda</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">1.79</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:89%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Amintiri din copilărie</em> <span style="color:var(--text2);font-size:0.7rem">– Ion Creangă</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">1.77</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:88%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Basme</em> <span style="color:var(--text2);font-size:0.7rem">– Mihai Eminescu</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">1.75</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:87%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Povești</em> <span style="color:var(--text2);font-size:0.7rem">– Ioan Slavici</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">1.74</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:86%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Povești și povestiri</em> <span style="color:var(--text2);font-size:0.7rem">– Ion Creangă</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">1.74</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:86%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Moara cu noroc</em> <span style="color:var(--text2);font-size:0.7rem">– Ioan Slavici</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">1.74</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:86%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div></div></div></div>
+<div class="g2"><div><div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.1rem 1.3rem;margin-bottom:1rem">
+  <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.8rem">Densitate lexicală (cuvinte de conținut / total)</div>
+  <div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Nuvele</em> <span style="color:var(--text2);font-size:0.7rem">– I.L. Caragiale</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">0.494</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:49%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">La hanul lui Mânjoală</em> <span style="color:var(--text2);font-size:0.7rem">– I.L. Caragiale</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">0.48</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:48%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Basme</em> <span style="color:var(--text2);font-size:0.7rem">– Mihai Eminescu</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">0.46</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:46%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Amintiri din copilărie</em> <span style="color:var(--text2);font-size:0.7rem">– Ion Creangă</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">0.424</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:42%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div></div></div><div><div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.1rem 1.3rem;margin-bottom:1rem">
+  <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.8rem">Virgule per 100 cuvinte — ritmul frazei</div>
+  <div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Amintiri din copilărie</em> <span style="color:var(--text2);font-size:0.7rem">– Ion Creangă</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">13.2</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:100%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Povești și povestiri</em> <span style="color:var(--text2);font-size:0.7rem">– Ion Creangă</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">11.9</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:90%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Poezii</em> <span style="color:var(--text2);font-size:0.7rem">– Mihai Eminescu</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">11.6</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:88%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Povești</em> <span style="color:var(--text2);font-size:0.7rem">– Ioan Slavici</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">10.2</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:77%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Răscoala</em> <span style="color:var(--text2);font-size:0.7rem">– Liviu Rebreanu</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">9.7</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:73%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Momente și schițe</em> <span style="color:var(--text2);font-size:0.7rem">– I.L. Caragiale</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">9.6</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:73%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Nuvele</em> <span style="color:var(--text2);font-size:0.7rem">– I.L. Caragiale</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">9.2</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:70%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Moara cu noroc</em> <span style="color:var(--text2);font-size:0.7rem">– Ioan Slavici</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">8.7</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:66%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Țara mea</em> <span style="color:var(--text2);font-size:0.7rem">– Regina Maria</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">8.5</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:64%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Basme</em> <span style="color:var(--text2);font-size:0.7rem">– Mihai Eminescu</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">8.5</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:64%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">Moromeții</em> <span style="color:var(--text2);font-size:0.7rem">– Marin Preda</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">8.1</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:61%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div><div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span><em style="color:var(--text)">La hanul lui Mânjoală</em> <span style="color:var(--text2);font-size:0.7rem">– I.L. Caragiale</span></span>
+            <strong style="color:var(--text);min-width:50px;text-align:right">7.1</strong>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden"><div style="background:var(--lex-bar);width:54%;height:100%;border-radius:4px;opacity:0.85"></div></div>
+        </div></div></div></div>
+
+<h2 class="sec">📖 Opere individuale</h2>
+
+<div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:1.4rem 1.6rem;margin-bottom:1.8rem;box-shadow:0 2px 10px rgba(0,0,0,0.05)">
+
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.5rem;margin-bottom:1.1rem">
+    <div>
+      <h3 style="font-size:1.15rem;color:var(--text);margin:0;font-family:var(--font-sans)">Povești și povestiri</h3>
+      <div style="color:var(--text2);font-size:0.83rem;font-style:italic;margin-top:2px">Ion Creangă · 1875</div>
+    </div>
+    <div style="display:flex;gap:0.4rem;flex-wrap:wrap;align-items:center">
+      <span style="background:var(--bg3);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text)">64,861 tokens</span>
+      <span style="background:var(--bg3);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text)">7,807* leme</span>
+      <span style="background:var(--lex-accent-wash);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text);opacity:0.85">MTLD 107.0</span>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.2rem">
+
+    <div>
+      <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.5rem;border-bottom:1px solid var(--bg3);padding-bottom:3px">Diversitate & statistici</div>
+      <div style="font-size:0.8rem">
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">MSTTR-1000</span><strong>0.4406</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">MTLD</span><strong>107.0</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Yule K</span><strong>86.89</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Entropie Shannon</span><strong>9.631 b</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Hapax</span><strong>4,147 (53.1%)</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.72rem"><span style="color:var(--text2)">Zipf</span><span style="text-align:right">pantă -1.086 (R²=0.97)</span></div>
+        <div style='padding-top:4px;font-size:0.68rem;color:var(--text2)'>V(N) ≈ 2.35 × N<sup>0.736</sup> R²=0.983</div>
+        
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Diacritice</span><strong>39.5%</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Silabe/cuvânt</span><strong>1.74</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Lung. medie</span><strong>4.11 car.</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Virgule/100w</span><strong>11.9</strong></div>
+      </div>
+    </div>
+
+    <div>
+      <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.5rem;border-bottom:1px solid var(--bg3);padding-bottom:3px">Cuvinte cheie (fără stopwords)</div>
+      <div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">așa</span>
+            <span style="color:var(--text2)">297</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:100%;height:100%;border-radius:4px"></div></div></div>
+    </div>
+
+    <div>
+      
+      <div style='margin-top:0.8rem'><div style='font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.4rem'>Bigrame semnificative</div><span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">harap + alb <span style="color:var(--text2);font-size:0.65rem">138</span></span> <span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">moș + nichifor <span style="color:var(--text2);font-size:0.65rem">98</span></span></div>
+    </div>
+
+  </div>
+</div>
+
+<div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:1.4rem 1.6rem;margin-bottom:1.8rem;box-shadow:0 2px 10px rgba(0,0,0,0.05)">
+
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.5rem;margin-bottom:1.1rem">
+    <div>
+      <h3 style="font-size:1.15rem;color:var(--text);margin:0;font-family:var(--font-sans)">Basme</h3>
+      <div style="color:var(--text2);font-size:0.83rem;font-style:italic;margin-top:2px">Mihai Eminescu · 1880</div>
+    </div>
+    <div style="display:flex;gap:0.4rem;flex-wrap:wrap;align-items:center">
+      <span style="background:var(--bg3);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text)">25,306 tokens</span>
+      <span style="background:var(--bg3);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text)">2,300 leme</span>
+      <span style="background:var(--lex-accent-wash);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text);opacity:0.85">MTLD 102.9</span>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.2rem">
+
+    <div>
+      <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.5rem;border-bottom:1px solid var(--bg3);padding-bottom:3px">Diversitate & statistici</div>
+      <div style="font-size:0.8rem">
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">MSTTR-1000</span><strong>0.4456</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">MTLD</span><strong>102.9</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Yule K</span><strong>69.31</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Entropie Shannon</span><strong>9.688 b</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Hapax</span><strong>2,664 (56.5%)</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.72rem"><span style="color:var(--text2)">Zipf</span><span style="text-align:right">pantă -0.969 (R²=0.963)</span></div>
+        <div style='padding-top:4px;font-size:0.68rem;color:var(--text2)'>V(N) ≈ 2.4 × N<sup>0.751</sup> R²=0.981</div>
+        <div style='display:flex;justify-content:space-between;padding:3px 0'><span style="color:var(--text2)">Densitate lex.</span><strong>0.46</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Diacritice</span><strong>36.7%</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Silabe/cuvânt</span><strong>1.75</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Lung. medie</span><strong>4.17 car.</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Virgule/100w</span><strong>8.5</strong></div>
+      </div>
+    </div>
+
+    <div>
+      <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.5rem;border-bottom:1px solid var(--bg3);padding-bottom:3px">Cuvinte cheie (fără stopwords)</div>
+      <div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">avea</span>
+            <span style="color:var(--text2)">288</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:100%;height:100%;border-radius:4px"></div></div></div><div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">zice</span>
+            <span style="color:var(--text2)">160</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:56%;height:100%;border-radius:4px"></div></div></div><div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">acela</span>
+            <span style="color:var(--text2)">137</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:48%;height:100%;border-radius:4px"></div></div></div><div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">face</span>
+            <span style="color:var(--text2)">137</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:48%;height:100%;border-radius:4px"></div></div></div><div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">lua</span>
+            <span style="color:var(--text2)">116</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:40%;height:100%;border-radius:4px"></div></div></div><div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">fată</span>
+            <span style="color:var(--text2)">106</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:37%;height:100%;border-radius:4px"></div></div></div><div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">așa</span>
+            <span style="color:var(--text2)">88</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:31%;height:100%;border-radius:4px"></div></div></div>
+    </div>
+
+    <div>
+      <div style='font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.5rem;border-bottom:1px solid var(--border);padding-bottom:3px'>Distribuție POS</div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Substantiv</span><span style="font-weight:600;min-width:35px;text-align:right">22.1%</span></div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Auxiliar</span><span style="font-weight:600;min-width:35px;text-align:right">14.2%</span></div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Prepoziție</span><span style="font-weight:600;min-width:35px;text-align:right">11.2%</span></div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Pronume</span><span style="font-weight:600;min-width:35px;text-align:right">10.8%</span></div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Verb</span><span style="font-weight:600;min-width:35px;text-align:right">10.1%</span></div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Adverb</span><span style="font-weight:600;min-width:35px;text-align:right">9.3%</span></div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Determinant</span><span style="font-weight:600;min-width:35px;text-align:right">5.7%</span></div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Conj.</span><span style="font-weight:600;min-width:35px;text-align:right">4.9%</span></div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Adjectiv</span><span style="font-weight:600;min-width:35px;text-align:right">4.5%</span></div>
+      <div style='margin-top:0.8rem'><div style='font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.4rem'>Bigrame semnificative</div><span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">făt + frumos <span style="color:var(--text2);font-size:0.65rem">83</span></span> <span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">de + aur <span style="color:var(--text2);font-size:0.65rem">59</span></span> <span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">călin + nebunul <span style="color:var(--text2);font-size:0.65rem">40</span></span> <span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">într + un <span style="color:var(--text2);font-size:0.65rem">23</span></span> <span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">mă + duc <span style="color:var(--text2);font-size:0.65rem">23</span></span> <span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">de + fier <span style="color:var(--text2);font-size:0.65rem">22</span></span></div>
+    </div>
+
+  </div>
+</div>
+
+<div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:1.4rem 1.6rem;margin-bottom:1.8rem;box-shadow:0 2px 10px rgba(0,0,0,0.05)">
+
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.5rem;margin-bottom:1.1rem">
+    <div>
+      <h3 style="font-size:1.15rem;color:var(--text);margin:0;font-family:var(--font-sans)">Povești</h3>
+      <div style="color:var(--text2);font-size:0.83rem;font-style:italic;margin-top:2px">Ioan Slavici · 1881</div>
+    </div>
+    <div style="display:flex;gap:0.4rem;flex-wrap:wrap;align-items:center">
+      <span style="background:var(--bg3);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text)">46,805 tokens</span>
+      <span style="background:var(--bg3);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text)">5,631* leme</span>
+      <span style="background:var(--lex-accent-wash);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text);opacity:0.85">MTLD 77.2</span>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.2rem">
+
+    <div>
+      <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.5rem;border-bottom:1px solid var(--bg3);padding-bottom:3px">Diversitate & statistici</div>
+      <div style="font-size:0.8rem">
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">MSTTR-1000</span><strong>0.4057</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">MTLD</span><strong>77.2</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Yule K</span><strong>95.52</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Entropie Shannon</span><strong>9.373 b</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Hapax</span><strong>2,784 (49.4%)</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.72rem"><span style="color:var(--text2)">Zipf</span><span style="text-align:right">pantă -1.098 (R²=0.974)</span></div>
+        <div style='padding-top:4px;font-size:0.68rem;color:var(--text2)'>V(N) ≈ 1.76 × N<sup>0.752</sup> R²=0.993</div>
+        
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Diacritice</span><strong>40.4%</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Silabe/cuvânt</span><strong>1.74</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Lung. medie</span><strong>4.12 car.</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Virgule/100w</span><strong>10.2</strong></div>
+      </div>
+    </div>
+
+    <div>
+      <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.5rem;border-bottom:1px solid var(--bg3);padding-bottom:3px">Cuvinte cheie (fără stopwords)</div>
+      <div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">petru</span>
+            <span style="color:var(--text2)">237</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:100%;height:100%;border-radius:4px"></div></div></div><div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">așa</span>
+            <span style="color:var(--text2)">212</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:89%;height:100%;border-radius:4px"></div></div></div><div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">mare</span>
+            <span style="color:var(--text2)">186</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:78%;height:100%;border-radius:4px"></div></div></div>
+    </div>
+
+    <div>
+      
+      <div style='margin-top:0.8rem'><div style='font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.4rem'>Bigrame semnificative</div><span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">de + împărat <span style="color:var(--text2);font-size:0.65rem">105</span></span> <span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">să + facă <span style="color:var(--text2);font-size:0.65rem">59</span></span></div>
+    </div>
+
+  </div>
+</div>
+
+<div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:1.4rem 1.6rem;margin-bottom:1.8rem;box-shadow:0 2px 10px rgba(0,0,0,0.05)">
+
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.5rem;margin-bottom:1.1rem">
+    <div>
+      <h3 style="font-size:1.15rem;color:var(--text);margin:0;font-family:var(--font-sans)">Moara cu noroc</h3>
+      <div style="color:var(--text2);font-size:0.83rem;font-style:italic;margin-top:2px">Ioan Slavici · 1881</div>
+    </div>
+    <div style="display:flex;gap:0.4rem;flex-wrap:wrap;align-items:center">
+      <span style="background:var(--bg3);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text)">38,333 tokens</span>
+      <span style="background:var(--bg3);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text)">4,297* leme</span>
+      <span style="background:var(--lex-accent-wash);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text);opacity:0.85">MTLD 105.3</span>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.2rem">
+
+    <div>
+      <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.5rem;border-bottom:1px solid var(--bg3);padding-bottom:3px">Diversitate & statistici</div>
+      <div style="font-size:0.8rem">
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">MSTTR-1000</span><strong>0.4327</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">MTLD</span><strong>105.3</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Yule K</span><strong>83.05</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Entropie Shannon</span><strong>9.181 b</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Hapax</span><strong>2,057 (47.9%)</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.72rem"><span style="color:var(--text2)">Zipf</span><span style="text-align:right">pantă -1.144 (R²=0.974)</span></div>
+        <div style='padding-top:4px;font-size:0.68rem;color:var(--text2)'>V(N) ≈ 2.69 × N<sup>0.709</sup> R²=0.976</div>
+        
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Diacritice</span><strong>40.8%</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Silabe/cuvânt</span><strong>1.74</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Lung. medie</span><strong>4.1 car.</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Virgule/100w</span><strong>8.7</strong></div>
+      </div>
+    </div>
+
+    <div>
+      <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.5rem;border-bottom:1px solid var(--bg3);padding-bottom:3px">Cuvinte cheie (fără stopwords)</div>
+      <div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">lică</span>
+            <span style="color:var(--text2)">357</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:100%;height:100%;border-radius:4px"></div></div></div><div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">ghiță</span>
+            <span style="color:var(--text2)">355</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:99%;height:100%;border-radius:4px"></div></div></div>
+    </div>
+
+    <div>
+      
+      <div style='margin-top:0.8rem'><div style='font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.4rem'>Bigrame semnificative</div><span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">zise + el <span style="color:var(--text2);font-size:0.65rem">77</span></span> <span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">cu + noroc <span style="color:var(--text2);font-size:0.65rem">69</span></span> <span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">moara + cu <span style="color:var(--text2);font-size:0.65rem">67</span></span> <span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">la + moara <span style="color:var(--text2);font-size:0.65rem">59</span></span></div>
+    </div>
+
+  </div>
+</div>
+
+<div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:1.4rem 1.6rem;margin-bottom:1.8rem;box-shadow:0 2px 10px rgba(0,0,0,0.05)">
+
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.5rem;margin-bottom:1.1rem">
+    <div>
+      <h3 style="font-size:1.15rem;color:var(--text);margin:0;font-family:var(--font-sans)">Poezii</h3>
+      <div style="color:var(--text2);font-size:0.83rem;font-style:italic;margin-top:2px">Mihai Eminescu · 1883</div>
+    </div>
+    <div style="display:flex;gap:0.4rem;flex-wrap:wrap;align-items:center">
+      <span style="background:var(--bg3);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text)">147,743 tokens</span>
+      <span style="background:var(--bg3);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text)">18,073* leme</span>
+      <span style="background:var(--lex-accent-wash);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text);opacity:0.85">MTLD 187.5</span>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.2rem">
+
+    <div>
+      <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.5rem;border-bottom:1px solid var(--bg3);padding-bottom:3px">Diversitate & statistici</div>
+      <div style="font-size:0.8rem">
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">MSTTR-1000</span><strong>0.5234</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">MTLD</span><strong>187.5</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Yule K</span><strong>64.41</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Entropie Shannon</span><strong>10.655 b</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Hapax</span><strong>9,464 (52.4%)</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.72rem"><span style="color:var(--text2)">Zipf</span><span style="text-align:right">pantă -1.07 (R²=0.971)</span></div>
+        <div style='padding-top:4px;font-size:0.68rem;color:var(--text2)'>V(N) ≈ 3.14 × N<sup>0.744</sup> R²=0.969</div>
+        
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Diacritice</span><strong>0.0%</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Silabe/cuvânt</span><strong>1.88</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Lung. medie</span><strong>4.53 car.</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Virgule/100w</span><strong>11.6</strong></div>
+      </div>
+    </div>
+
+    <div>
+      <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.5rem;border-bottom:1px solid var(--bg3);padding-bottom:3px">Cuvinte cheie (fără stopwords)</div>
+      <div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">cand</span>
+            <span style="color:var(--text2)">763</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:100%;height:100%;border-radius:4px"></div></div></div><div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">poezii</span>
+            <span style="color:var(--text2)">727</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:95%;height:100%;border-radius:4px"></div></div></div><div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">opere</span>
+            <span style="color:var(--text2)">657</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:86%;height:100%;border-radius:4px"></div></div></div>
+    </div>
+
+    <div>
+      
+      <div style='margin-top:0.8rem'><div style='font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.4rem'>Bigrame semnificative</div><span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">opere + poezii <span style="color:var(--text2);font-size:0.65rem">325</span></span> <span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">in + volum <span style="color:var(--text2);font-size:0.65rem">307</span></span> <span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">tiparita + in <span style="color:var(--text2);font-size:0.65rem">303</span></span> <span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">poezii + opere <span style="color:var(--text2);font-size:0.65rem">302</span></span> <span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">volum + in <span style="color:var(--text2);font-size:0.65rem">279</span></span> <span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">se + pastreaza <span style="color:var(--text2);font-size:0.65rem">259</span></span> <span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">pastreaza + in <span style="color:var(--text2);font-size:0.65rem">254</span></span> <span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">iv + poezii <span style="color:var(--text2);font-size:0.65rem">224</span></span></div>
+    </div>
+
+  </div>
+</div>
+
+<div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:1.4rem 1.6rem;margin-bottom:1.8rem;box-shadow:0 2px 10px rgba(0,0,0,0.05)">
+
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.5rem;margin-bottom:1.1rem">
+    <div>
+      <h3 style="font-size:1.15rem;color:var(--text);margin:0;font-family:var(--font-sans)">Nuvele</h3>
+      <div style="color:var(--text2);font-size:0.83rem;font-style:italic;margin-top:2px">I.L. Caragiale · 1890</div>
+    </div>
+    <div style="display:flex;gap:0.4rem;flex-wrap:wrap;align-items:center">
+      <span style="background:var(--bg3);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text)">30,191 tokens</span>
+      <span style="background:var(--bg3);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text)">3,395 leme</span>
+      <span style="background:var(--lex-accent-wash);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text);opacity:0.85">MTLD 139.9</span>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.2rem">
+
+    <div>
+      <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.5rem;border-bottom:1px solid var(--bg3);padding-bottom:3px">Diversitate & statistici</div>
+      <div style="font-size:0.8rem">
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">MSTTR-1000</span><strong>0.5246</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">MTLD</span><strong>139.9</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Yule K</span><strong>76.32</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Entropie Shannon</span><strong>10.016 b</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Hapax</span><strong>4,012 (61.0%)</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.72rem"><span style="color:var(--text2)">Zipf</span><span style="text-align:right">pantă -0.885 (R²=0.952)</span></div>
+        <div style='padding-top:4px;font-size:0.68rem;color:var(--text2)'>V(N) ≈ 2.08 × N<sup>0.791</sup> R²=0.988</div>
+        <div style='display:flex;justify-content:space-between;padding:3px 0'><span style="color:var(--text2)">Densitate lex.</span><strong>0.494</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Diacritice</span><strong>39.1%</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Silabe/cuvânt</span><strong>1.88</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Lung. medie</span><strong>4.52 car.</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Virgule/100w</span><strong>9.2</strong></div>
+      </div>
+    </div>
+
+    <div>
+      <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.5rem;border-bottom:1px solid var(--bg3);padding-bottom:3px">Cuvinte cheie (fără stopwords)</div>
+      <div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">avea</span>
+            <span style="color:var(--text2)">149</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:100%;height:100%;border-radius:4px"></div></div></div><div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">erà</span>
+            <span style="color:var(--text2)">82</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:55%;height:100%;border-radius:4px"></div></div></div><div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">face</span>
+            <span style="color:var(--text2)">74</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:50%;height:100%;border-radius:4px"></div></div></div>
+    </div>
+
+    <div>
+      <div style='font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.5rem;border-bottom:1px solid var(--border);padding-bottom:3px'>Distribuție POS</div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Substantiv</span><span style="font-weight:600;min-width:35px;text-align:right">25.6%</span></div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Prepoziție</span><span style="font-weight:600;min-width:35px;text-align:right">13.7%</span></div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Auxiliar</span><span style="font-weight:600;min-width:35px;text-align:right">10.0%</span></div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Adverb</span><span style="font-weight:600;min-width:35px;text-align:right">9.1%</span></div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Verb</span><span style="font-weight:600;min-width:35px;text-align:right">8.3%</span></div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Pronume</span><span style="font-weight:600;min-width:35px;text-align:right">8.0%</span></div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Adjectiv</span><span style="font-weight:600;min-width:35px;text-align:right">6.5%</span></div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Conj.</span><span style="font-weight:600;min-width:35px;text-align:right">4.9%</span></div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Determinant</span><span style="font-weight:600;min-width:35px;text-align:right">4.9%</span></div>
+      <div style='margin-top:0.8rem'><div style='font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.4rem'>Bigrame semnificative</div><span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">pe + urmă <span style="color:var(--text2);font-size:0.65rem">38</span></span> <span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">par + că <span style="color:var(--text2);font-size:0.65rem">27</span></span></div>
+    </div>
+
+  </div>
+</div>
+
+<div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:1.4rem 1.6rem;margin-bottom:1.8rem;box-shadow:0 2px 10px rgba(0,0,0,0.05)">
+
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.5rem;margin-bottom:1.1rem">
+    <div>
+      <h3 style="font-size:1.15rem;color:var(--text);margin:0;font-family:var(--font-sans)">Amintiri din copilărie</h3>
+      <div style="color:var(--text2);font-size:0.83rem;font-style:italic;margin-top:2px">Ion Creangă · 1892</div>
+    </div>
+    <div style="display:flex;gap:0.4rem;flex-wrap:wrap;align-items:center">
+      <span style="background:var(--bg3);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text)">25,162 tokens</span>
+      <span style="background:var(--bg3);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text)">3,016 leme</span>
+      <span style="background:var(--lex-accent-wash);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text);opacity:0.85">MTLD 122.2</span>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.2rem">
+
+    <div>
+      <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.5rem;border-bottom:1px solid var(--bg3);padding-bottom:3px">Diversitate & statistici</div>
+      <div style="font-size:0.8rem">
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">MSTTR-1000</span><strong>0.4914</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">MTLD</span><strong>122.2</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Yule K</span><strong>90.92</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Entropie Shannon</span><strong>9.628 b</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Hapax</span><strong>3,229 (62.0%)</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.72rem"><span style="color:var(--text2)">Zipf</span><span style="text-align:right">pantă -0.906 (R²=0.949)</span></div>
+        <div style='padding-top:4px;font-size:0.68rem;color:var(--text2)'>V(N) ≈ 1.72 × N<sup>0.797</sup> R²=0.994</div>
+        <div style='display:flex;justify-content:space-between;padding:3px 0'><span style="color:var(--text2)">Densitate lex.</span><strong>0.424</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Diacritice</span><strong>39.4%</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Silabe/cuvânt</span><strong>1.77</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Lung. medie</span><strong>4.22 car.</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Virgule/100w</span><strong>13.2</strong></div>
+      </div>
+    </div>
+
+    <div>
+      <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.5rem;border-bottom:1px solid var(--bg3);padding-bottom:3px">Cuvinte cheie (fără stopwords)</div>
+      <div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">avea</span>
+            <span style="color:var(--text2)">317</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:100%;height:100%;border-radius:4px"></div></div></div><div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">face</span>
+            <span style="color:var(--text2)">113</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:36%;height:100%;border-radius:4px"></div></div></div><div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">meu</span>
+            <span style="color:var(--text2)">99</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:31%;height:100%;border-radius:4px"></div></div></div><div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">acela</span>
+            <span style="color:var(--text2)">96</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:30%;height:100%;border-radius:4px"></div></div></div><div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">zice</span>
+            <span style="color:var(--text2)">96</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:30%;height:100%;border-radius:4px"></div></div></div><div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">mamă</span>
+            <span style="color:var(--text2)">87</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:27%;height:100%;border-radius:4px"></div></div></div>
+    </div>
+
+    <div>
+      <div style='font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.5rem;border-bottom:1px solid var(--border);padding-bottom:3px'>Distribuție POS</div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Substantiv</span><span style="font-weight:600;min-width:35px;text-align:right">22.1%</span></div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Prepoziție</span><span style="font-weight:600;min-width:35px;text-align:right">15.7%</span></div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Auxiliar</span><span style="font-weight:600;min-width:35px;text-align:right">11.9%</span></div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Adverb</span><span style="font-weight:600;min-width:35px;text-align:right">10.0%</span></div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Pronume</span><span style="font-weight:600;min-width:35px;text-align:right">9.8%</span></div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Verb</span><span style="font-weight:600;min-width:35px;text-align:right">7.1%</span></div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Conj.</span><span style="font-weight:600;min-width:35px;text-align:right">6.9%</span></div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Determinant</span><span style="font-weight:600;min-width:35px;text-align:right">4.6%</span></div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Particulă</span><span style="font-weight:600;min-width:35px;text-align:right">3.5%</span></div>
+      <div style='margin-top:0.8rem'><div style='font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.4rem'>Bigrame semnificative</div><span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">vorba + ceea <span style="color:var(--text2);font-size:0.65rem">26</span></span></div>
+    </div>
+
+  </div>
+</div>
+
+<div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:1.4rem 1.6rem;margin-bottom:1.8rem;box-shadow:0 2px 10px rgba(0,0,0,0.05)">
+
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.5rem;margin-bottom:1.1rem">
+    <div>
+      <h3 style="font-size:1.15rem;color:var(--text);margin:0;font-family:var(--font-sans)">La hanul lui Mânjoală</h3>
+      <div style="color:var(--text2);font-size:0.83rem;font-style:italic;margin-top:2px">I.L. Caragiale · 1898</div>
+    </div>
+    <div style="display:flex;gap:0.4rem;flex-wrap:wrap;align-items:center">
+      <span style="background:var(--bg3);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text)">22,245 tokens</span>
+      <span style="background:var(--bg3);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text)">3,147 leme</span>
+      <span style="background:var(--lex-accent-wash);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text);opacity:0.85">MTLD 158.9</span>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.2rem">
+
+    <div>
+      <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.5rem;border-bottom:1px solid var(--bg3);padding-bottom:3px">Diversitate & statistici</div>
+      <div style="font-size:0.8rem">
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">MSTTR-1000</span><strong>0.5432</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">MTLD</span><strong>158.9</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Yule K</span><strong>71.36</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Entropie Shannon</span><strong>10.033 b</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Hapax</span><strong>3,403 (61.7%)</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.72rem"><span style="color:var(--text2)">Zipf</span><span style="text-align:right">pantă -0.847 (R²=0.949)</span></div>
+        <div style='padding-top:4px;font-size:0.68rem;color:var(--text2)'>V(N) ≈ 1.54 × N<sup>0.825</sup> R²=0.995</div>
+        <div style='display:flex;justify-content:space-between;padding:3px 0'><span style="color:var(--text2)">Densitate lex.</span><strong>0.48</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Diacritice</span><strong>39.6%</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Silabe/cuvânt</span><strong>1.91</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Lung. medie</span><strong>4.59 car.</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Virgule/100w</span><strong>7.1</strong></div>
+      </div>
+    </div>
+
+    <div>
+      <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.5rem;border-bottom:1px solid var(--bg3);padding-bottom:3px">Cuvinte cheie (fără stopwords)</div>
+      <div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">avea</span>
+            <span style="color:var(--text2)">273</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:100%;height:100%;border-radius:4px"></div></div></div><div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">face</span>
+            <span style="color:var(--text2)">86</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:32%;height:100%;border-radius:4px"></div></div></div><div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">așa</span>
+            <span style="color:var(--text2)">65</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:24%;height:100%;border-radius:4px"></div></div></div>
+    </div>
+
+    <div>
+      <div style='font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.5rem;border-bottom:1px solid var(--border);padding-bottom:3px'>Distribuție POS</div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Substantiv</span><span style="font-weight:600;min-width:35px;text-align:right">24.3%</span></div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Prepoziție</span><span style="font-weight:600;min-width:35px;text-align:right">13.8%</span></div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Auxiliar</span><span style="font-weight:600;min-width:35px;text-align:right">12.9%</span></div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Adverb</span><span style="font-weight:600;min-width:35px;text-align:right">9.5%</span></div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Verb</span><span style="font-weight:600;min-width:35px;text-align:right">8.9%</span></div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Pronume</span><span style="font-weight:600;min-width:35px;text-align:right">7.8%</span></div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Adjectiv</span><span style="font-weight:600;min-width:35px;text-align:right">5.4%</span></div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Determinant</span><span style="font-weight:600;min-width:35px;text-align:right">5.3%</span></div><div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:2px 0;border-bottom:1px solid var(--bg3)"><span style="color:var(--text2)">Conj.</span><span style="font-weight:600;min-width:35px;text-align:right">4.7%</span></div>
+      <div style='margin-top:0.8rem'><div style='font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.4rem'>Bigrame semnificative</div><span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">așa + de <span style="color:var(--text2);font-size:0.65rem">35</span></span> <span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">fel + de <span style="color:var(--text2);font-size:0.65rem">19</span></span> <span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">pe + urmă <span style="color:var(--text2);font-size:0.65rem">18</span></span></div>
+    </div>
+
+  </div>
+</div>
+
+<div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:1.4rem 1.6rem;margin-bottom:1.8rem;box-shadow:0 2px 10px rgba(0,0,0,0.05)">
+
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.5rem;margin-bottom:1.1rem">
+    <div>
+      <h3 style="font-size:1.15rem;color:var(--text);margin:0;font-family:var(--font-sans)">Momente și schițe</h3>
+      <div style="color:var(--text2);font-size:0.83rem;font-style:italic;margin-top:2px">I.L. Caragiale · 1901</div>
+    </div>
+    <div style="display:flex;gap:0.4rem;flex-wrap:wrap;align-items:center">
+      <span style="background:var(--bg3);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text)">103,919 tokens</span>
+      <span style="background:var(--bg3);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text)">16,182* leme</span>
+      <span style="background:var(--lex-accent-wash);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text);opacity:0.85">MTLD 115.2</span>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.2rem">
+
+    <div>
+      <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.5rem;border-bottom:1px solid var(--bg3);padding-bottom:3px">Diversitate & statistici</div>
+      <div style="font-size:0.8rem">
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">MSTTR-1000</span><strong>0.5068</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">MTLD</span><strong>115.2</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Yule K</span><strong>58.65</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Entropie Shannon</span><strong>10.688 b</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Hapax</span><strong>8,878 (54.9%)</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.72rem"><span style="color:var(--text2)">Zipf</span><span style="text-align:right">pantă -0.976 (R²=0.967)</span></div>
+        <div style='padding-top:4px;font-size:0.68rem;color:var(--text2)'>V(N) ≈ 1.75 × N<sup>0.796</sup> R²=0.994</div>
+        
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Diacritice</span><strong>36.0%</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Silabe/cuvânt</span><strong>1.95</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Lung. medie</span><strong>4.7 car.</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Virgule/100w</span><strong>9.6</strong></div>
+      </div>
+    </div>
+
+    <div>
+      <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.5rem;border-bottom:1px solid var(--bg3);padding-bottom:3px">Cuvinte cheie (fără stopwords)</div>
+      <div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">zice</span>
+            <span style="color:var(--text2)">341</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:100%;height:100%;border-radius:4px"></div></div></div><div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">așa</span>
+            <span style="color:var(--text2)">334</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:98%;height:100%;border-radius:4px"></div></div></div>
+    </div>
+
+    <div>
+      
+      <div style='margin-top:0.8rem'><div style='font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.4rem'>Bigrame semnificative</div><span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">așa + de <span style="color:var(--text2);font-size:0.65rem">87</span></span></div>
+    </div>
+
+  </div>
+</div>
+
+<div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:1.4rem 1.6rem;margin-bottom:1.8rem;box-shadow:0 2px 10px rgba(0,0,0,0.05)">
+
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.5rem;margin-bottom:1.1rem">
+    <div>
+      <h3 style="font-size:1.15rem;color:var(--text);margin:0;font-family:var(--font-sans)">Țara mea</h3>
+      <div style="color:var(--text2);font-size:0.83rem;font-style:italic;margin-top:2px">Regina Maria · 1916</div>
+    </div>
+    <div style="display:flex;gap:0.4rem;flex-wrap:wrap;align-items:center">
+      <span style="background:var(--bg3);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text)">45,740 tokens</span>
+      <span style="background:var(--bg3);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text)">8,392* leme</span>
+      <span style="background:var(--lex-accent-wash);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text);opacity:0.85">MTLD 176.0</span>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.2rem">
+
+    <div>
+      <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.5rem;border-bottom:1px solid var(--bg3);padding-bottom:3px">Diversitate & statistici</div>
+      <div style="font-size:0.8rem">
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">MSTTR-1000</span><strong>0.5475</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">MTLD</span><strong>176.0</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Yule K</span><strong>70.84</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Entropie Shannon</span><strong>10.239 b</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Hapax</span><strong>4,690 (55.9%)</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.72rem"><span style="color:var(--text2)">Zipf</span><span style="text-align:right">pantă -0.949 (R²=0.964)</span></div>
+        <div style='padding-top:4px;font-size:0.68rem;color:var(--text2)'>V(N) ≈ 2.04 × N<sup>0.786</sup> R²=0.989</div>
+        
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Diacritice</span><strong>37.7%</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Silabe/cuvânt</span><strong>2.02</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Lung. medie</span><strong>4.79 car.</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Virgule/100w</span><strong>8.5</strong></div>
+      </div>
+    </div>
+
+    <div>
+      <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.5rem;border-bottom:1px solid var(--bg3);padding-bottom:3px">Cuvinte cheie (fără stopwords)</div>
+      <div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">fost</span>
+            <span style="color:var(--text2)">201</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:100%;height:100%;border-radius:4px"></div></div></div><div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">așa</span>
+            <span style="color:var(--text2)">191</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:95%;height:100%;border-radius:4px"></div></div></div>
+    </div>
+
+    <div>
+      
+      <div style='margin-top:0.8rem'><div style='font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.4rem'>Bigrame semnificative</div><span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">așa + de <span style="color:var(--text2);font-size:0.65rem">136</span></span> <span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">într + un <span style="color:var(--text2);font-size:0.65rem">45</span></span> <span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">au + fost <span style="color:var(--text2);font-size:0.65rem">40</span></span> <span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">pline + de <span style="color:var(--text2);font-size:0.65rem">39</span></span> <span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">am + văzut <span style="color:var(--text2);font-size:0.65rem">38</span></span> <span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">în + jurul <span style="color:var(--text2);font-size:0.65rem">38</span></span></div>
+    </div>
+
+  </div>
+</div>
+
+<div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:1.4rem 1.6rem;margin-bottom:1.8rem;box-shadow:0 2px 10px rgba(0,0,0,0.05)">
+
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.5rem;margin-bottom:1.1rem">
+    <div>
+      <h3 style="font-size:1.15rem;color:var(--text);margin:0;font-family:var(--font-sans)">Răscoala</h3>
+      <div style="color:var(--text2);font-size:0.83rem;font-style:italic;margin-top:2px">Liviu Rebreanu · 1932</div>
+    </div>
+    <div style="display:flex;gap:0.4rem;flex-wrap:wrap;align-items:center">
+      <span style="background:var(--bg3);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text)">146,395 tokens</span>
+      <span style="background:var(--bg3);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text)">16,670* leme</span>
+      <span style="background:var(--lex-accent-wash);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text);opacity:0.85">MTLD 167.1</span>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.2rem">
+
+    <div>
+      <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.5rem;border-bottom:1px solid var(--bg3);padding-bottom:3px">Diversitate & statistici</div>
+      <div style="font-size:0.8rem">
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">MSTTR-1000</span><strong>0.5305</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">MTLD</span><strong>167.1</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Yule K</span><strong>70.6</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Entropie Shannon</span><strong>10.368 b</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Hapax</span><strong>8,391 (50.3%)</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.72rem"><span style="color:var(--text2)">Zipf</span><span style="text-align:right">pantă -1.074 (R²=0.974)</span></div>
+        <div style='padding-top:4px;font-size:0.68rem;color:var(--text2)'>V(N) ≈ 2.52 × N<sup>0.751</sup> R²=0.981</div>
+        
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Diacritice</span><strong>40.5%</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Silabe/cuvânt</span><strong>1.96</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Lung. medie</span><strong>4.66 car.</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Virgule/100w</span><strong>9.7</strong></div>
+      </div>
+    </div>
+
+    <div>
+      <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.5rem;border-bottom:1px solid var(--bg3);padding-bottom:3px">Cuvinte cheie (fără stopwords)</div>
+      <div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">numai</span>
+            <span style="color:var(--text2)">505</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:100%;height:100%;border-radius:4px"></div></div></div>
+    </div>
+
+    <div>
+      
+      <div style='margin-top:0.8rem'><div style='font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.4rem'>Bigrame semnificative</div><span style="background:var(--bg3);border-radius:12px;padding:2px 9px;font-size:0.72rem;margin:2px;display:inline-block;font-family:var(--font-mono)">pe + urmă <span style="color:var(--text2);font-size:0.65rem">152</span></span></div>
+    </div>
+
+  </div>
+</div>
+
+<div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:1.4rem 1.6rem;margin-bottom:1.8rem;box-shadow:0 2px 10px rgba(0,0,0,0.05)">
+
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.5rem;margin-bottom:1.1rem">
+    <div>
+      <h3 style="font-size:1.15rem;color:var(--text);margin:0;font-family:var(--font-sans)">Moromeții</h3>
+      <div style="color:var(--text2);font-size:0.83rem;font-style:italic;margin-top:2px">Marin Preda · 1955</div>
+    </div>
+    <div style="display:flex;gap:0.4rem;flex-wrap:wrap;align-items:center">
+      <span style="background:var(--bg3);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text)">338,653 tokens</span>
+      <span style="background:var(--bg3);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text)">19,452* leme</span>
+      <span style="background:var(--lex-accent-wash);border-radius:12px;padding:0.2rem 0.7rem;font-size:0.75rem;color:var(--text);opacity:0.85">MTLD 107.7</span>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.2rem">
+
+    <div>
+      <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.5rem;border-bottom:1px solid var(--bg3);padding-bottom:3px">Diversitate & statistici</div>
+      <div style="font-size:0.8rem">
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">MSTTR-1000</span><strong>0.4549</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">MTLD</span><strong>107.7</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Yule K</span><strong>85.27</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Entropie Shannon</span><strong>9.863 b</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Hapax</span><strong>8,630 (44.4%)</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.72rem"><span style="color:var(--text2)">Zipf</span><span style="text-align:right">pantă -1.271 (R²=0.979)</span></div>
+        <div style='padding-top:4px;font-size:0.68rem;color:var(--text2)'>V(N) ≈ 2.39 × N<sup>0.718</sup> R²=0.982</div>
+        
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Diacritice</span><strong>39.3%</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Silabe/cuvânt</span><strong>1.79</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Lung. medie</span><strong>4.2 car.</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text2)">Virgule/100w</span><strong>8.1</strong></div>
+      </div>
+    </div>
+
+    <div>
+      <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);margin-bottom:0.5rem;border-bottom:1px solid var(--bg3);padding-bottom:3px">Cuvinte cheie (fără stopwords)</div>
+      <div style="margin-bottom:3px">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:2px">
+            <span style="font-family:var(--font-mono);color:var(--text);font-weight:500">moromete</span>
+            <span style="color:var(--text2)">1,722</span>
+          </div><div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden"><div style="background:var(--lex-bar);width:100%;height:100%;border-radius:4px"></div></div></div>
+    </div>
+
+    <div>
+      
+      
+    </div>
+
+  </div>
+</div>
+
+<div class="gloss">
+  <h2>📘 Glosar complet</h2>
+
+  <div class="gi"><div class="gt">Tokens</div>
+  <div class="gd">Numărul total de cuvinte din text, inclusiv repetiții. „Ana are mere" = 3 tokens.</div></div>
+
+  <div class="gi"><div class="gt">Leme unice</div>
+  <div class="gd">Forma canonică a cuvântului: <em>merge, mergi, mergem</em> → lemă unică <strong>merge</strong>. Acesta este numărul real de „cuvinte diferite" în vocabularul unui autor. Calculat de spaCy (ro_core_news_lg) unde disponibil; altfel se afișează forme flexionare distincte (*).</div></div>
+
+  <div class="gi"><div class="gt">Stopwords (cuvinte de umplutură)</div>
+  <div class="gd">Cuvinte gramaticale care nu poartă sens de conținut: prepoziții (<em>de, în, la</em>), conjuncții (<em>și, dar, că</em>), pronume (<em>el, ea, se</em>), verbe auxiliare (<em>fi, avea, vrea</em>), adverbe comune (<em>mai, nu, tot</em>). Excluse din topurile de frecvență și bigrame pentru a expune vocabularul caracteristic fiecărui autor.</div></div>
+
+  <div class="gi"><div class="gt">MSTTR-1000 (Mean Segmental Type-Token Ratio)</div>
+  <div class="gd">Textul se segmentează în ferestre de 1000 tokens și se calculează TTR (cuvinte unice/total) în fiecare fereastră. Se face media. Stabil față de lungimea textului. Valori orientative: &lt;0,40 = text repetitiv; 0,40–0,50 = mediu; 0,50–0,60 = variat; &gt;0,60 = foarte variat.</div></div>
+
+  <div class="gi"><div class="gt">MTLD (Measure of Textual Lexical Diversity)</div>
+  <div class="gd">Numărul mediu de tokens necesari pentru ca TTR să scadă sub pragul de 0,72. Interpretare: conversație simplă ≈ 40–60; proză realistă ≈ 70–120; proză cultă sau poezie ≈ 120–200+. Un MTLD ridicat înseamnă că autorul reîmprospătează constant vocabularul.</div></div>
+
+  <div class="gi"><div class="gt">Yule K</div>
+  <div class="gd">Concentrarea distribuției frecvențelor. K mic = vocabularul e distribuit echilibrat, fără cuvinte care domină excesiv. K mare = câteva cuvinte apar disproporționat de des. Util pentru a detecta stilul: proze descriptive bogate au K mic; texte formulaice sau orale au K mare.</div></div>
+
+  <div class="gi"><div class="gt">Entropie Shannon (biți)</div>
+  <div class="gd">H = −Σ p(x)·log₂p(x). Incertitudinea medie per cuvânt ales. Vocabular uniform și bogat = entropie mare. Un autor care repetă obsesiv aceleași cuvinte = entropie mică. Valorile tipice pentru proză: 9–12 biți.</div></div>
+
+  <div class="gi"><div class="gt">Hapax legomena (%)</div>
+  <div class="gd">Cuvinte care apar exact o singură dată în text. Procentul din vocabular total: proză realistă 45–60%; poezie lirică 60–75%. Un procent ridicat poate indica vocabular bogat, termeni tehnici/rari, sau — în cazul textelor vechi — variante ortografice multiple ale aceluiași cuvânt.</div></div>
+
+  <div class="gi"><div class="gt">Legea Zipf — panta</div>
+  <div class="gd">Frecvența cuvântului de rang r este proporțională cu 1/r. Pe grafic log-log, panta ideală = −1,0. Dacă panta e mai abruptă (ex. −1,3), dominanța cuvintelor frecvente e mai accentuată. Dacă e mai plată (ex. −0,7), distribuția e mai uniformă — tipic pentru texte specializate sau poezie.</div></div>
+
+  <div class="gi"><div class="gt">Legea Heaps: V(N) ≈ K × N^β</div>
+  <div class="gd">Cum crește vocabularul (V) cu numărul de tokens (N). β aproape de 1 = autorul introduce mereu cuvinte noi chiar și pe măsură ce textul crește. β mic (0,3–0,5) = vocabularul se saturează repede. Valori tipice pentru română: β = 0,65–0,85.</div></div>
+
+  <div class="gi"><div class="gt">Silabe medii per cuvânt</div>
+  <div class="gd">Complexitate fonetică medie. Proză simplă sau dialog oral: 1,7–2,2; proză descriptivă cultă: 2,3–3,0; texte cu neologisme și terminologie: 3,0+. Eminescu (poezie) și Rebreanu (roman) tind spre valori mai mari decât Creangă (limbaj popular oral).</div></div>
+
+  <div class="gi"><div class="gt">Densitate lexicală</div>
+  <div class="gd">Proporția cuvintelor de conținut (NOUN+VERB+ADJ+ADV) față de totalul cuvintelor. Text conversațional: 0,35–0,45; proză narativă: 0,45–0,55; text descriptiv/enciclopedic: 0,55–0,65. O densitate ridicată indică un stil dens, informativ; una scăzută = limbaj fluid, cu multe cuvinte gramaticale.</div></div>
+
+  <div class="gi"><div class="gt">Distribuție POS (Part of Speech)</div>
+  <div class="gd">Proporția fiecărei categorii gramaticale din text, detectată de modelul spaCy ro_core_news_lg. NOUN = substantiv, VERB = verb, ADJ = adjectiv, ADV = adverb, ADP = prepoziție, AUX = auxiliar verbal, DET = articol/determinant, PROPN = nume propriu, PRON = pronume, CCONJ/SCONJ = conjuncție.</div></div>
+
+  <div class="gi"><div class="gt">Bigrame semnificative</div>
+  <div class="gd">Perechi de cuvinte consecutive care apar des împreună, filtrate de stopwords. Relevă ticuri stilistice, formule narative, termeni compuși și expresii fixe caracteristice fiecărui autor. De exemplu, la Creangă vor apărea formule de basm; la Rebreanu, expresii ale lumii rurale.</div></div>
+
+  <div class="gi"><div class="gt">% Cuvinte cu diacritice</div>
+  <div class="gd">Procentul de tokens care conțin ă, â, î, ș, ț. Texte mai vechi sau slab digitizate pot fi fără diacritice (Eminescu din Gutenberg = 0% — textul e în alfabet fără semne). Un procent scăzut nu reflectă neapărat stilul autorului, ci calitatea transcrierii.</div></div>
+
+  <div class="gi"><div class="gt">Virgule per 100 cuvinte</div>
+  <div class="gd">Indiciu al ritmului frazei. Un număr mare de virgule = propoziții lungi cu multe subordonate sau enumerări (stil ciceronean, proză psihologică). Puține virgule = fraze scurte, ritm alert, dialog (Caragiale). Corelează cu complexitatea sintactică.</div></div>
+</div>
+
+<footer>LexRO · Literatura Română Clasică · 12 opere · 1,035,353 tokens · 28 June 2026, 08:14</footer>
+</main>
+</body>
+</html>

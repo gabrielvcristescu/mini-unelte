@@ -1,0 +1,769 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Meridian Chronograph</title>
+<script src="theme.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&family=Jost:wght@400;500&display=swap">
+<style>
+/* Concept: ceasul ocupă cât mai mult din ecran, panoul de comenzi stă în dreapta (landscape) sau dedesubt (portrait). */
+:root{
+  --bg:#E8E9EB; --fg:#1B1C20; --muted:#686B73; --line:#C4C6CC; --focus:#2F6BFF;
+  --font-ui:'Jost','Century Gothic','Avenir Next',system-ui,sans-serif;
+  --font-dial:'Barlow Condensed','Arial Narrow','Helvetica Neue',sans-serif;
+  --gap:18px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){--bg:#141518;--fg:#ECEDEF;--muted:#9A9DA6;--line:#363840;--focus:#7AA2FF;color-scheme:dark}
+}
+:root[data-theme="dark"]{--bg:#141518;--fg:#ECEDEF;--muted:#9A9DA6;--line:#363840;--focus:#7AA2FF;color-scheme:dark}
+
+html,body{height:100%}
+html{box-sizing:border-box;padding-block:env(safe-area-inset-top,0px) env(safe-area-inset-bottom,0px);scroll-padding-top:env(safe-area-inset-top,0px)}
+[hidden]{display:none!important}
+:root[data-theme="light"]{color-scheme:light}
+.meridian-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:36px;margin:0 auto 8px;max-width:1100px}
+.meridian-nav h1{font:500 clamp(.88rem,2vw,1.1rem) var(--font-ui);margin:0}
+.meridian-nav a,.meridian-nav button{font:500 .78rem var(--font-ui);color:var(--fg);white-space:nowrap}
+.meridian-nav a{text-underline-offset:.2em}
+.meridian-nav button{padding:5px 7px;background:transparent;border:1px solid var(--line);border-radius:4px;cursor:pointer}
+
+body{
+  box-sizing:border-box;margin:0;background:var(--bg);color:var(--fg);font-family:var(--font-ui);font-size:16px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:12px;
+}
+
+/* Portrait: ceasul sus, comenzile dedesubt */
+.layout{display:flex;flex-direction:column;align-items:center;gap:20px;max-width:680px;margin:0 auto}
+.stage{width:100%;min-width:0}
+.watch{
+  display:block;width:100%;height:auto;max-height:92vh;
+  filter:drop-shadow(0 22px 22px rgba(0,0,0,.26));
+  --dial:#1F4A3D;--ink:#E9E4D3;--sub:#173A2F;--subRing:rgba(255,255,255,.1);--subInk:#E4DFCF;--sh:#E9E4D3;
+  --mk1:#F3F1EA;--mk2:#A9AEB3;--hl:#F4F5F7;--hr:#8E939B;--secs:#E2623A;--strap:#5A3622;--stitch:#C9A27A;
+}
+.panel{width:100%;max-width:560px;display:flex;flex-direction:column;gap:var(--gap);min-width:0}
+
+/* Landscape (desktop și telefon): ceasul în stânga, panoul în dreapta */
+@media (orientation:landscape) and (min-width:640px){
+  .layout{flex-direction:row;align-items:stretch;justify-content:center;max-width:none;height:calc(100% - 44px);gap:clamp(12px,3vw,48px)}
+  .stage{flex:0 1 auto;width:auto;height:100%;aspect-ratio:var(--ar)}
+  .watch{height:100%;max-height:none}
+  .panel{flex:0 0 clamp(300px,31vw,390px);width:auto;max-width:none;max-height:100%;overflow-y:auto}
+  .panel>:first-child{margin-top:auto}
+  .panel>:last-child{margin-bottom:auto}
+}
+@media (max-height:560px){
+  :root{--gap:10px}
+  .val{font-size:24px!important} .val.big{font-size:28px!important}
+  button.txt,.seg button{padding-block:8px!important}
+  .chip{width:28px;height:28px}
+  .hint{display:none}
+}
+/* Telefon în landscape: panoul pe două coloane, ca să încapă pe înălțime */
+@media (orientation:landscape) and (min-width:640px) and (max-height:560px){
+  .panel{flex-basis:clamp(420px,62vw,620px);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"colors clock" "colors state" "voice modes";gap:12px 20px;align-content:center}
+  .panel>.blk,.panel>.blk+.blk{border-top:0;padding-top:0;margin:0}
+  .b-colors{grid-area:colors} .b-clock{grid-area:clock} .b-state{grid-area:state} .b-modes{grid-area:modes} .b-voice{grid-area:voice}
+}
+
+.f-dial{fill:var(--dial)} .f-ink{fill:var(--ink)} .s-ink{stroke:var(--ink)}
+.f-sub{fill:var(--sub)} .f-subink{fill:var(--subInk)} .s-subink{stroke:var(--subInk)}
+.f-sh{fill:var(--sh)} .f-secs{fill:var(--secs)} .s-secs{stroke:var(--secs)}
+.f-mk1{fill:var(--mk1)} .f-mk2{fill:var(--mk2)} .f-hl{fill:var(--hl)} .f-hr{fill:var(--hr)}
+.f-strap{fill:var(--strap)} .s-stitch{stroke:var(--stitch)}
+.f-bez{fill:#23262B} .s-bez{stroke:#23262B}
+.layout{--phase:#E2623A;--ar:462/640}
+.f-phase{fill:var(--phase)} .s-phase{stroke:var(--phase)}
+.k-work{fill:var(--cw)} .k-short{fill:var(--cs)} .k-long{fill:var(--cl)}
+.pomo #state::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--phase);margin-right:8px}
+.num{font-family:var(--font-dial);font-weight:500;text-anchor:middle}
+.brand{font-family:var(--font-ui);font-weight:500;text-anchor:middle}
+.pusher{cursor:pointer;outline:none;transition:transform .08s ease-out}
+.pusher.pressed{transform:translateX(-5px)}
+.pusher:focus-visible .cap{stroke:var(--focus);stroke-width:2}
+@media (prefers-reduced-motion:reduce){.pusher{transition:none}}
+
+/* Panou */
+.blk{display:flex;flex-direction:column;gap:12px}
+.blk+.blk{border-top:1px solid var(--line);padding-top:var(--gap)}
+.lbl{margin:0;font:500 13px var(--font-ui);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.line{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:4px 16px}
+.val{font:500 30px/1.1 var(--font-ui);font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.val.big{font-size:38px}
+.chips{display:flex;flex-wrap:wrap;gap:14px;padding:4px}
+.chip{width:34px;height:34px;padding:0;border-radius:50%;background:var(--c);border:1px solid rgba(0,0,0,.3);cursor:pointer}
+.chip[aria-pressed="true"]{outline:2px solid var(--fg);outline-offset:3px}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
+.row.eq>*{flex:1 1 0}
+button.txt{font:500 15px var(--font-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--fg);background:transparent;border:1px solid var(--line);padding:12px 18px;border-radius:4px;cursor:pointer}
+button.txt:hover:not(:disabled){border-color:var(--fg)}
+button.txt:disabled{opacity:.38;cursor:default}
+.seg{display:flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.seg button{flex:1;font:500 15px var(--font-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:transparent;border:0;padding:12px 14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--focus);outline-offset:3px}
+.pomo-set{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;gap:10px;align-items:end}
+.pomo-set label{display:flex;flex-direction:column;gap:5px;font-size:14px;color:var(--muted);min-width:0}
+.pomo-set input{width:100%;box-sizing:border-box;font:500 17px var(--font-ui);padding:8px;border:1px solid var(--line);border-radius:4px;background:transparent;color:var(--fg);font-variant-numeric:tabular-nums}
+.pomo-set input:disabled{opacity:.45}
+.pomo-set span{font-size:14px;color:var(--muted);padding-bottom:10px}
+.chk{display:flex;align-items:center;gap:10px;font-size:15px;color:var(--fg);cursor:pointer}
+.chk input{width:18px;height:18px;margin:0}
+.note{font-size:13px;color:var(--muted);margin:0}
+.note:empty{display:none}
+.hint{font-size:13px;line-height:1.5;color:var(--muted);margin:0}
+</style>
+</head>
+<body>
+<header class="meridian-nav">
+  <a href="index.html#edu">← Educaționale</a>
+  <h1>Meridian Chronograph</h1>
+  <button id="theme-btn" type="button" onclick="toggleTheme()" aria-label="Schimbă tema"></button>
+</header>
+
+<main class="layout">
+<div class="stage">
+<svg class="watch" id="watch" viewBox="30 60 462 640" role="group" aria-label="Ceas analogic cu cronograf, ora locală în timp real">
+<defs>
+  <linearGradient id="caseG" gradientUnits="userSpaceOnUse" x1="-200" y1="-220" x2="210" y2="230">
+    <stop offset="0" stop-color="#F7F8FA"/><stop offset=".22" stop-color="#A6ABB3"/><stop offset=".45" stop-color="#EDEFF1"/><stop offset=".7" stop-color="#7A7F88"/><stop offset="1" stop-color="#D9DCE0"/>
+  </linearGradient>
+  <linearGradient id="bezG" gradientUnits="userSpaceOnUse" x1="-180" y1="-180" x2="180" y2="180">
+    <stop offset="0" stop-color="#E9EBEE"/><stop offset=".35" stop-color="#BFC3C9"/><stop offset=".6" stop-color="#E4E6E9"/><stop offset="1" stop-color="#A3A8B0"/>
+  </linearGradient>
+  <linearGradient id="chamG" gradientUnits="userSpaceOnUse" x1="-170" y1="-170" x2="170" y2="170">
+    <stop offset="0" stop-color="#5E626A"/><stop offset="1" stop-color="#F2F3F5"/>
+  </linearGradient>
+  <linearGradient id="lugG" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#F2F3F5"/><stop offset=".5" stop-color="#9DA2AA"/><stop offset="1" stop-color="#E3E5E8"/>
+  </linearGradient>
+  <linearGradient id="capG" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#F5F6F8"/><stop offset=".45" stop-color="#9EA3AB"/><stop offset="1" stop-color="#CDD0D5"/>
+  </linearGradient>
+  <linearGradient id="strapShade" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#000" stop-opacity=".42"/><stop offset=".16" stop-color="#000" stop-opacity="0"/>
+    <stop offset=".5" stop-color="#fff" stop-opacity=".08"/><stop offset=".84" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".42"/>
+  </linearGradient>
+  <linearGradient id="fadeG" gradientUnits="userSpaceOnUse" x1="0" y1="-320" x2="0" y2="320">
+    <stop offset="0" stop-color="#000"/><stop offset=".1" stop-color="#fff"/><stop offset=".9" stop-color="#fff"/><stop offset="1" stop-color="#000"/>
+  </linearGradient>
+  <mask id="fade" maskUnits="userSpaceOnUse" x="-130" y="-380" width="260" height="760">
+    <rect x="-130" y="-380" width="260" height="760" fill="url(#fadeG)"/>
+  </mask>
+  <radialGradient id="dialLight" gradientUnits="userSpaceOnUse" cx="-60" cy="-80" r="260">
+    <stop offset="0" stop-color="#fff" stop-opacity=".16"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="dialShade" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="170">
+    <stop offset=".7" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".26"/>
+  </radialGradient>
+  <radialGradient id="domeG" cx=".35" cy=".3" r=".8">
+    <stop offset="0" stop-color="#fff"/><stop offset=".5" stop-color="#B7BBC2"/><stop offset="1" stop-color="#6D727A"/>
+  </radialGradient>
+  <filter id="hs" filterUnits="userSpaceOnUse" x="-200" y="-200" width="400" height="400">
+    <feDropShadow dx="1.4" dy="2.6" stdDeviation="1.8" flood-color="#000" flood-opacity=".32"/>
+  </filter>
+</defs>
+
+<g transform="translate(260,380)">
+  <g id="straps" mask="url(#fade)"></g>  <g id="lugs"></g>
+
+  <!-- Coroană -->
+  <rect x="200" y="-15" width="24" height="30" rx="4" fill="url(#capG)" stroke="rgba(0,0,0,.3)" stroke-width=".6"/>
+  <g stroke="rgba(0,0,0,.4)" stroke-width="1">
+    <line x1="205.5" y1="-13" x2="205.5" y2="13"/><line x1="209" y1="-13" x2="209" y2="13"/><line x1="212.5" y1="-13" x2="212.5" y2="13"/><line x1="216" y1="-13" x2="216" y2="13"/><line x1="219.5" y1="-13" x2="219.5" y2="13"/>
+  </g>
+  <!-- Butoane -->
+  <g transform="rotate(-32)">
+    <g class="pusher" id="pTop" role="button" tabindex="0" aria-label="Pornește sau oprește"><title>Pornește / oprește (Spațiu)</title>
+      <rect x="200" y="-7" width="14" height="14" fill="#7A7F88"/>
+      <rect class="cap" x="212" y="-12" width="22" height="24" rx="4" fill="url(#capG)" stroke="rgba(0,0,0,.3)" stroke-width=".6"/>
+      <rect x="190" y="-26" width="54" height="52" fill="transparent"/>
+    </g>
+  </g>
+  <g transform="rotate(32)">
+    <g class="pusher" id="pBot" role="button" tabindex="0" aria-label="Resetează"><title>Resetează la zero (R)</title>
+      <rect x="200" y="-7" width="14" height="14" fill="#7A7F88"/>
+      <rect class="cap" x="212" y="-12" width="22" height="24" rx="4" fill="url(#capG)" stroke="rgba(0,0,0,.3)" stroke-width=".6"/>
+      <rect x="190" y="-26" width="54" height="52" fill="transparent"/>
+    </g>
+  </g>
+
+  <!-- Carcasă și rama tahimetrică -->
+  <circle r="208" fill="url(#caseG)" stroke="rgba(0,0,0,.3)" stroke-width=".8"/>
+  <circle r="205" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1"/>
+  <circle r="200" fill="url(#bezG)" stroke="rgba(0,0,0,.25)" stroke-width=".8"/>
+  <circle r="176" fill="url(#chamG)" stroke="rgba(0,0,0,.3)" stroke-width=".8"/>
+  <g id="bezel"></g>
+  <g id="face"></g>
+</g>
+</svg>
+</div>
+
+<aside class="panel" aria-label="Comenzi">
+  <section class="blk b-colors">
+    <div class="line"><h2 class="lbl">Culori</h2><label class="chk" title="Arată sau ascunde cureaua. Fără curea, ceasul se poate mări"><input type="checkbox" id="strapChk" checked> Curea</label></div>
+    <div class="chips" id="swatches" role="group" aria-label="Culoare cadran"></div>
+  </section>
+
+  <section class="blk b-clock">
+    <div class="line"><h2 class="lbl">Ora curentă</h2><div class="val" id="clock">00:00:00</div></div>
+  </section>
+
+  <section class="blk b-state">
+    <div class="line"><h2 class="lbl" id="state">Oprit</h2><div class="val big" id="lap">00:00,00</div></div>
+    <div class="row eq">
+      <button class="txt" id="bStart" type="button" title="Pornește / oprește (Spațiu)">Start</button>
+      <button class="txt" id="bReset" type="button" title="Resetează la zero (R)" disabled>Resetare</button>
+    </div>
+  </section>
+
+  <section class="blk b-modes">
+    <div class="seg" role="group" aria-label="Mod">
+      <button type="button" id="bModeC" aria-pressed="true" title="Cronometru, cu sutimi de secundă">Cronograf</button>
+      <button type="button" id="bModeP" aria-pressed="false" title="Sesiuni de lucru și pauze">Pomodoro</button>
+    </div>
+    <div class="pomo-set">
+      <label for="iWork" title="Durata unei sesiuni de lucru, în minute">Lucru<input id="iWork" type="number" min="1" max="30" value="25" inputmode="numeric"></label>
+      <label for="iShort" title="Durata pauzei scurte, în minute">Pauză<input id="iShort" type="number" min="1" max="30" value="5" inputmode="numeric"></label>
+      <label for="iLong" title="Durata pauzei lungi, după patru sesiuni, în minute">Pauză lungă<input id="iLong" type="number" min="1" max="30" value="15" inputmode="numeric"></label>
+      <span>minute</span>
+    </div>
+  </section>
+
+  <section class="blk b-voice">
+    <div class="row">
+      <button class="txt" id="bSay" type="button" title="Spune ora curentă (T)">Spune ora</button>
+      <label class="chk" title="Anunță ora fixă și fazele Pomodoro"><input type="checkbox" id="auto"> Voce automată</label>
+      <label class="chk" title="Notificare de browser la schimbarea fazei Pomodoro, când pagina nu e în fața ta"><input type="checkbox" id="notif"> Notificări</label>
+    </div>
+    <p class="note" id="voiceNote" aria-live="polite"></p>
+    <p class="hint">Tastatură: Spațiu pornește și oprește, R resetează, T spune ora. Atinge cadranul ca să auzi ora.</p>
+  </section>
+</aside>
+</main>
+
+<script>
+(function(){
+  var NS='http://www.w3.org/2000/svg';
+  var $=function(id){return document.getElementById(id)};
+  function el(n,a,p){var e=document.createElementNS(NS,n);if(a)for(var k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e}
+  var rad=function(d){return d*Math.PI/180};
+  var pt=function(r,d){return [+(r*Math.sin(rad(d))).toFixed(2),+(-r*Math.cos(rad(d))).toFixed(2)]};
+  var p2=function(n){return String(n).padStart(2,'0')};
+  var reduced=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- Curea din piele și urechi ---------- */
+  var straps=$('straps'),lugs=$('lugs');
+  [-1,1].forEach(function(s){
+    var pts=[[-94,150*s],[94,150*s],[94,400*s],[-94,400*s]].map(function(p){return p.join(',')}).join(' ');
+    el('polygon',{points:pts,class:'f-strap'},straps);
+    el('polygon',{points:pts,fill:'url(#strapShade)'},straps);
+    [-1,1].forEach(function(x){
+      el('line',{x1:x*83,y1:150*s,x2:x*83,y2:400*s,'stroke-width':1.5,'stroke-dasharray':'7 5',class:'s-stitch'},straps);
+    });
+  });
+  [-1,1].forEach(function(sx){[-1,1].forEach(function(sy){
+    var g=el('g',{transform:'scale('+sx+','+sy+')'},lugs);
+    el('path',{d:'M-126,-140 L-126,-208 Q-126,-231.5 -104,-234 L-93,-234 L-93,-140 Z',fill:'url(#lugG)',stroke:'rgba(0,0,0,.35)','stroke-width':.8},g);
+    el('path',{d:'M-120,-150 L-120,-207 Q-120,-224.5 -104,-228.5',fill:'none',stroke:'#fff','stroke-opacity':.55,'stroke-width':1.1},g);  });});
+
+  /* ---------- Utilitare cadran ---------- */
+  function ticks(g,n,r0,rm,rM,every,cls,wm,wM){
+    for(var i=0;i<n;i++){
+      var d=i*360/n,M=i%every===0,a=pt(r0,d),b=pt(M?rM:rm,d);
+      el('line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1],'stroke-width':M?wM:wm,class:cls},g);
+    }
+  }
+  function label(g,txt,r,d,size,cls,rot,weight){
+    var p=pt(r,d),t=el('text',{x:p[0],y:p[1],dy:'.36em','font-size':size,class:'num '+cls},g);
+    if(rot)t.setAttribute('transform','rotate('+rot+' '+p[0]+' '+p[1]+')');
+    if(weight)t.style.fontWeight=weight;
+    t.textContent=txt;return t;
+  }
+  function baton(g,x,hw,y0,y1){
+    el('polygon',{points:(x-hw)+','+y0+' '+x+','+y0+' '+x+','+y1+' '+(x-hw*.85)+','+y1,class:'f-mk1',stroke:'rgba(0,0,0,.25)','stroke-width':.4},g);
+    el('polygon',{points:x+','+y0+' '+(x+hw)+','+y0+' '+(x+hw*.85)+','+y1+' '+x+','+y1,class:'f-mk2',stroke:'rgba(0,0,0,.25)','stroke-width':.4},g);
+  }
+  function dauphine(g,len,tail,w){
+    var sy=-Math.min(18,len*.16),h=el('g',null,g);
+    var tip='0,'+(-len),L=(-w)+','+sy,R=w+','+sy,TL=(-w*.45)+','+tail,TR=(w*.45)+','+tail,B='0,'+tail;
+    el('polygon',{points:[tip,L,TL,B].join(' '),class:'f-hl',stroke:'rgba(0,0,0,.35)','stroke-width':.5},h);
+    el('polygon',{points:[tip,B,TR,R].join(' '),class:'f-hr',stroke:'rgba(0,0,0,.35)','stroke-width':.5},h);
+    return h;
+  }
+  function arrow(g,len,tail,cls){
+    var h=el('g',null,g),b=len-12,sw=1.3,hw=3.8;
+    el('polygon',{points:(-sw)+','+tail+' '+(-sw)+','+(-b)+' '+(-hw)+','+(-b)+' 0,'+(-len)+' '+hw+','+(-b)+' '+sw+','+(-b)+' '+sw+','+tail,class:cls},h);
+    el('circle',{r:3.8,class:cls},h);
+    el('circle',{r:1.3,class:'f-sub'},h);
+    return h;
+  }
+
+  /* ---------- Rama tahimetrică ---------- */
+  var bz=$('bezel');
+  [60,65,70,75,80,90,100,110,120,130,140,150,160,180,200,220,250,300,350,400,500].forEach(function(v){
+    var ang=v===60?0:21600/v,a=pt(177,ang),b=pt(181,ang);
+    el('line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1],'stroke-width':.9,class:'s-bez'},bz);
+    label(bz,String(v),190,ang,v>=250?11:12,'f-bez',(ang>90&&ang<270)?ang-180:ang);
+  });
+  var kt=label(bz,'KM/H',190,22,8.5,'f-bez',22);kt.style.letterSpacing='1.4px';
+  /* ---------- Marcaje Pomodoro: lucru + pauză în continuare, cu urma timpului scurs ---------- */
+  // Arc între a0 și a1 (grade, în sensul acelor de ceasornic); cu r0=0 devine sector
+  function arcPath(a0,a1,r0,r1){
+    var th=a1-a0;
+    if(th<.4)return '';
+    var p=pt(r1,a0),q=pt(r1,a1),lg=th>180?1:0;
+    if(!r0)return 'M0,0 L'+p+' A'+r1+' '+r1+' 0 '+lg+' 1 '+q+' Z';
+    var s=pt(r0,a1),t=pt(r0,a0);
+    return 'M'+p+' A'+r1+' '+r1+' 0 '+lg+' 1 '+q+' L'+s+' A'+r0+' '+r0+' 0 '+lg+' 0 '+t+' Z';
+  }
+  function pool(parent,n){var a=[];for(var i=0;i<n;i++)a.push(el('path',{d:''},parent));return a}
+  function setP(p,d,k,o){
+    if(p._d!==d){p.setAttribute('d',d);p._d=d}
+    if(p._k!==k){p.setAttribute('class',k?'k-'+k:'');p._k=k}
+    if(p._o!==o){p.setAttribute('fill-opacity',o);p._o=o}
+  }
+  function setLine(l,x1,y1,x2,y2,vis){
+    var key=vis?x1+','+y1+','+x2+','+y2:'h';
+    if(l._k===key)return;
+    l._k=key;
+    if(!vis){l.setAttribute('visibility','hidden');return}
+    l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('visibility','visible');
+  }
+  var PN_LAYERS=12;
+  function makeDial(parent,deg,r0,r1,opRem,opTop,opLow){
+    return {deg:deg,r0:r0,r1:r1,opRem:opRem,opLow:opLow,
+      eps:1-Math.pow((1-opTop)/(1-opLow),1/(PN_LAYERS-1)),
+      rem:pool(parent,2),tw:pool(parent,PN_LAYERS),tb:pool(parent,PN_LAYERS)};
+  }
+  // segs: [{k,a,b}] în minute pe scara cadranului; t: minutele scurse de la începutul perechii lucru + pauză
+  function drawDial(P,segs,t){
+    var dg=P.deg,cap=function(x){return Math.min(x*dg,359.9)},i,sg,a;
+    // ce a rămas de parcurs, la intensitate plină
+    for(i=0;i<2;i++){
+      sg=segs[i];
+      if(!sg){setP(P.rem[i],'','',0);continue}
+      a=Math.max(sg.a,t);
+      setP(P.rem[i],sg.b-a>.01?arcPath(a*dg,cap(sg.b),P.r0,P.r1):'',sg.k,P.opRem);
+    }
+    // ce a trecut: straturi care pornesc tot mai târziu și se opresc toate la t, deci culoarea pălește spre început
+    var wb=segs[1]?segs[1].a:Infinity,s,we,ba,op;
+    for(i=0;i<PN_LAYERS;i++){
+      s=i===0?0:t*i/PN_LAYERS;
+      op=i===0?P.opLow:P.eps;
+      we=Math.min(t,wb);
+      setP(P.tw[i],we-s>.01?arcPath(s*dg,cap(we),P.r0,P.r1):'',segs[0].k,op);
+      ba=Math.max(s,wb);
+      setP(P.tb[i],(segs[1]&&t-ba>.01)?arcPath(ba*dg,cap(t),P.r0,P.r1):'',segs[1]?segs[1].k:'',op);
+    }
+  }
+  var bezP=makeDial(bz,6,177.5,199.5,.5,.36,.10);
+  var bezT=[0,1,2].map(function(){return el('line',{'stroke-width':1.8,'stroke-opacity':.8,class:'s-bez',visibility:'hidden'},bz)});
+  var bezNow=el('line',{'stroke-width':2.2,class:'s-phase',visibility:'hidden'},bz);
+  var marksOn=false;
+  function drawMarks(segsB,t,segsS,tS){
+    marksOn=true;
+    drawDial(bezP,segsB,t);
+    drawDial(subP,segsS,tS);
+    var vals=[0,segsB[0].b,segsB[1].b],i,an,p,q;
+    for(i=0;i<3;i++){
+      an=Math.min(vals[i]*6,359.9);p=pt(177.5,an);q=pt(184,an);
+      setLine(bezT[i],p[0],p[1],q[0],q[1],true);
+    }
+    an=Math.min(t*6,359.9);p=pt(177.5,an);q=pt(199.5,an);
+    setLine(bezNow,p[0],p[1],q[0],q[1],true);
+  }
+  function clearMarks(){
+    if(!marksOn)return;
+    marksOn=false;
+    [bezP,subP].forEach(function(P){
+      P.rem.concat(P.tw,P.tb).forEach(function(p){setP(p,'','',0)});
+    });
+    bezT.forEach(function(l){setLine(l,0,0,0,0,false)});
+    setLine(bezNow,0,0,0,0,false);
+  }
+
+  /* ---------- Cadran ---------- */
+  var face=$('face'),k;
+  el('title',null,face).textContent='Atinge ca să auzi ora (T)';
+  el('circle',{r:170,class:'f-dial'},face);
+  el('circle',{r:170,fill:'url(#dialLight)'},face);
+  el('circle',{r:170,fill:'url(#dialShade)'},face);
+
+  // Pista de minute (tip cale ferată)
+  [164,157].forEach(function(r){el('circle',{r:r,fill:'none','stroke-width':.8,class:'s-ink'},face)});
+  ticks(face,60,164,157,152,5,'s-ink',.7,1.8);
+
+  // Indici aplicați (3, 6 și 9 sunt ocupate de subcadrane)
+  for(k=0;k<12;k++){
+    if(k===3||k===6||k===9)continue;
+    var mg=el('g',{transform:'rotate('+(k*30)+')'},face);
+    if(k===0){baton(mg,-5,2.8,-150,-124);baton(mg,5,2.8,-150,-124)}
+    else baton(mg,0,3.6,-150,-130);
+  }
+
+  // Inscripții
+  var t1=el('text',{x:0,y:-98,'font-size':15,'letter-spacing':3.6,class:'brand f-ink'},face);t1.textContent='MERIDIAN';
+  var t2=el('text',{x:0,y:-83,'font-size':6.6,'letter-spacing':2.1,class:'brand f-ink',style:'opacity:.7'},face);t2.textContent='CHRONOGRAPH · TACHYMETER';
+
+  // Fereastra datei, ora 4:30, rotită cu 45° pe direcția razei
+  var gD=el('g',{transform:'translate(84.1,84.1) rotate(45)'},face);
+  el('rect',{x:-19,y:-13,width:38,height:26,rx:2.5,fill:'#C9CDD2',stroke:'#7C818A','stroke-width':.9},gD);
+  el('rect',{x:-17.2,y:-11.2,width:34.4,height:22.4,rx:1.5,fill:'#F4F1E8',stroke:'#000','stroke-opacity':.5,'stroke-width':.8},gD);
+  var dateTxt=label(gD,'1',0,0,18,'',0,600);
+  dateTxt.setAttribute('x',0);dateTxt.setAttribute('y',.5);dateTxt.style.fill='#15130F';
+
+  // Subcadrane mari, cu inele concentrice
+  function subdial(cx,cy,r){
+    var g=el('g',{transform:'translate('+cx+','+cy+')'},face);
+    el('circle',{r:r+2.2,fill:'none',stroke:'#000','stroke-opacity':.22,'stroke-width':1.6},g);
+    el('circle',{r:r,class:'f-sub'},g);
+    for(var q=4;q<r-1;q+=2.4)el('circle',{r:q,fill:'none','stroke-width':.6,style:'stroke:var(--subRing)'},g);
+    el('circle',{r:r,fill:'none',stroke:'#fff','stroke-opacity':.2,'stroke-width':1},g);
+    return g;
+  }
+  var SR=46;
+  // Stânga (9): secunde curente
+  var gL=subdial(-84,0,SR);
+  ticks(gL,60,43,41,37,5,'s-subink',.55,1.1);
+  label(gL,'60',27,0,11.5,'f-subink');label(gL,'20',27,120,11.5,'f-subink');label(gL,'40',27,240,11.5,'f-subink');
+  // Dreapta (3): minute cronometru
+  var gR=subdial(84,0,SR);
+  var subP=makeDial(gR,12,0,42,.65,.42,.12);
+  ticks(gR,30,43,41,36,5,'s-subink',.65,1.2);
+  [['30',0],['5',60],['10',120],['15',180],['20',240],['25',300]].forEach(function(l){label(gR,l[0],27,l[1],11.5,'f-subink')});
+  // Jos (6): ore cronometru
+  var gB=subdial(0,84,SR);
+  ticks(gB,12,43,41,36,3,'s-subink',.75,1.3);
+  [['12',0],['3',90],['6',180],['9',270]].forEach(function(l){label(gB,l[0],27,l[1],11.5,'f-subink')});
+
+  var hSubSec=arrow(gL,38,10,'f-sh');
+  var hSubMin=arrow(gR,38,10,'f-secs');
+  var hSubHr =arrow(gB,38,10,'f-secs');
+
+  // Ace principale
+  var gH=el('g',{filter:'url(#hs)'},face);
+  var hHour=dauphine(gH,92,14,6.2);
+  var hMin =dauphine(gH,138,16,4.8);
+  var hChr=el('g',null,gH);
+  el('line',{x1:0,y1:44,x2:0,y2:-158,'stroke-width':1.4,class:'s-secs'},hChr);
+  el('polygon',{points:'-2,12 2,12 4.4,40 -4.4,40',class:'f-secs'},hChr);
+  el('circle',{cx:0,cy:-132,r:4.2,'stroke-width':1.6,class:'s-secs f-dial'},hChr);
+  el('circle',{r:8.5,fill:'url(#domeG)',stroke:'rgba(0,0,0,.35)','stroke-width':.8},gH);
+  el('circle',{r:3,class:'f-secs'},gH);
+
+  // Reflexie pe sticlă
+  el('path',{d:'M-166,-38 A170 170 0 0 1 38,-166 Q-56,-122 -166,-38 Z',fill:'#fff','fill-opacity':.1},face);
+  el('circle',{r:170,fill:'none',stroke:'#fff','stroke-opacity':.14,'stroke-width':.8},face);
+
+  /* ---------- Culori cadran ---------- */
+  var DIALS=[
+    {name:'Solar',dial:'#F0B92E',ink:'#16140E',sub:'#D49A18',subRing:'rgba(0,0,0,.12)',subInk:'#1A1408',sh:'#1A1408',mk1:'#3B3935',mk2:'#121212',hl:'#4A4A4E',hr:'#141416',secs:'#C2321F',strap:'#2C2420',stitch:'#B79A6B'},
+    {name:'Pădure',dial:'#1F4A3D',ink:'#E9E4D3',sub:'#173A2F',subRing:'rgba(255,255,255,.10)',subInk:'#E4DFCF',sh:'#E9E4D3',mk1:'#F3F1EA',mk2:'#A9AEB3',hl:'#F4F5F7',hr:'#8E939B',secs:'#E2623A',strap:'#5A3622',stitch:'#C9A27A'},
+    {name:'Petrol',dial:'#1B4953',ink:'#EDE8DA',sub:'#103540',subRing:'rgba(255,255,255,.09)',subInk:'#E6E2D4',sh:'#EDE8DA',mk1:'#F3F1EA',mk2:'#A5B0B5',hl:'#F4F5F7',hr:'#8E939B',secs:'#EBA84B',strap:'#2E3438',stitch:'#9AA4A8'},
+    {name:'Albastru',dial:'#1E3556',ink:'#EDEBE4',sub:'#142843',subRing:'rgba(255,255,255,.10)',subInk:'#E5E3DA',sh:'#EDEBE4',mk1:'#F4F4F4',mk2:'#A7AEB8',hl:'#F4F5F7',hr:'#8E939B',secs:'#E8A33D',strap:'#6B4A33',stitch:'#D9B58E'},
+    {name:'Bordo',dial:'#5B1F2E',ink:'#F0E6DA',sub:'#431621',subRing:'rgba(255,255,255,.08)',subInk:'#EFE3D6',sh:'#F0E6DA',mk1:'#F6EFE4',mk2:'#B9A89A',hl:'#F4F5F7',hr:'#8E939B',secs:'#E9B44C',strap:'#2A1D1A',stitch:'#B88A6B'},
+    {name:'Fildeș',dial:'#E8E2D2',ink:'#1D1E22',sub:'#CFC7B3',subRing:'rgba(0,0,0,.09)',subInk:'#1D1E22',sh:'#1D1E22',mk1:'#2A2C31',mk2:'#53565D',hl:'#3A3D44',hr:'#15161A',secs:'#C23B22',strap:'#1E1D1D',stitch:'#8E8A80'},
+    {name:'Grafit',dial:'#2B2E34',ink:'#ECE9E0',sub:'#1B1D21',subRing:'rgba(255,255,255,.07)',subInk:'#E8E4DA',sh:'#ECE9E0',mk1:'#F4F4F4',mk2:'#A8ACB3',hl:'#F4F5F7',hr:'#8E939B',secs:'#E8663A',strap:'#26282B',stitch:'#6E7178'}
+  ];
+  var watch=$('watch'),swBox=$('swatches'),swBtns=[],curDial=1,layout=document.querySelector('.layout');
+  function setDial(i,save){
+    var c=DIALS[i];curDial=i;
+    Object.keys(c).forEach(function(key){if(key!=='name')watch.style.setProperty('--'+key,c[key])});
+    swBtns.forEach(function(b,j){b.setAttribute('aria-pressed',j===i?'true':'false')});
+    if(save){try{localStorage.setItem('meridian-dial3',c.name)}catch(e){}}
+    if(typeof pm!=='undefined'&&pm)applyPhase();
+  }
+  DIALS.forEach(function(c,i){
+    var b=document.createElement('button');
+    b.type='button';b.className='chip';b.style.setProperty('--c',c.dial);
+    b.title=c.name;b.setAttribute('aria-label','Cadran '+c.name);
+    b.setAttribute('aria-pressed','false');
+    b.addEventListener('click',function(){setDial(i,true)});
+    swBox.appendChild(b);swBtns.push(b);
+  });
+  var start=1;
+  try{var sn=localStorage.getItem('meridian-dial3');DIALS.forEach(function(c,i){if(c.name===sn)start=i})}catch(e){}
+  setDial(start,false);
+
+  /* ---------- Curea: arată sau ascunde (automat pe ecrane scunde) ---------- */
+  var strapChk=$('strapChk'),strapG=$('straps'),strapPref=null;
+  var mqShort=window.matchMedia('(orientation:landscape) and (max-height:560px)');
+  try{var sp0=localStorage.getItem('meridian-strap');if(sp0==='on'||sp0==='off')strapPref=sp0}catch(e){}
+  function applyStrap(){
+    var on=strapPref?strapPref==='on':!mqShort.matches;
+    strapChk.checked=on;
+    strapG.setAttribute('visibility',on?'visible':'hidden');
+    $('lugs').setAttribute('visibility',on?'visible':'hidden');
+    watch.setAttribute('viewBox',on?'30 60 462 640':'30 134 462 492');
+    layout.style.setProperty('--ar',on?'462/640':'462/492');
+  }
+  strapChk.addEventListener('change',function(){
+    strapPref=strapChk.checked?'on':'off';
+    try{localStorage.setItem('meridian-strap',strapPref)}catch(e){}
+    applyStrap();
+  });
+  if(mqShort.addEventListener)mqShort.addEventListener('change',applyStrap);
+  applyStrap();
+
+  /* ---------- Cronometru ---------- */
+  var ch={running:false,t0:0,acc:0,anim:null};
+  var elState=$('state'),elLap=$('lap'),elClock=$('clock'),bStart=$('bStart'),bReset=$('bReset');
+  function elapsed(now){return ch.acc+(ch.running?now-ch.t0:0)}
+  function angles(ms){return [(ms%60000)/60000*360,((ms/60000)%30)/30*360,((ms/3600000)%12)/12*360]}
+  function fmt(ms){
+    var cs=Math.floor(ms/10)%100,s=Math.floor(ms/1000)%60,m=Math.floor(ms/60000)%60,h=Math.floor(ms/3600000);
+    return (h?h+':':'')+p2(m)+':'+p2(s)+','+p2(cs);
+  }
+  function chronoToggle(){
+    var now=performance.now();
+    if(ch.running){ch.acc+=now-ch.t0;ch.running=false}
+    else{if(ch.anim){ch.anim=null;ch.acc=0}ch.t0=now;ch.running=true}
+  }
+  function chronoReset(){
+    if(ch.running||ch.acc===0)return;
+    var a=angles(ch.acc);ch.acc=0;
+    ch.anim=reduced?null:{t0:performance.now(),a:a};
+  }
+
+  /* ---------- Sunet și voce ---------- */
+  var actx=null,auto=$('auto'),voiceNote=$('voiceNote'),roVoice=null;
+  function audio(){
+    if(!actx){try{actx=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}
+    if(actx&&actx.state==='suspended')actx.resume();
+    return actx;
+  }
+  function chime(){
+    var c=audio();if(!c)return;
+    var t=c.currentTime;
+    [[523.25,0],[783.99,.24],[1046.5,.48]].forEach(function(n){
+      [[1,.16],[2.76,.05]].forEach(function(p){
+        var o=c.createOscillator(),g=c.createGain(),s=t+n[1];
+        o.type='sine';o.frequency.value=n[0]*p[0];
+        g.gain.setValueAtTime(0,s);g.gain.linearRampToValueAtTime(p[1],s+.01);g.gain.exponentialRampToValueAtTime(.0001,s+2);
+        o.connect(g);g.connect(c.destination);o.start(s);o.stop(s+2.1);
+      });
+    });
+  }
+  function pickVoice(){
+    if(!('speechSynthesis' in window))return;
+    var vs=speechSynthesis.getVoices();
+    roVoice=vs.filter(function(v){return /^ro/i.test(v.lang)})[0]||null;
+    voiceNote.textContent=(vs.length&&!roVoice)?'Nu am găsit o voce românească pe acest dispozitiv.':'';
+  }
+  if('speechSynthesis' in window){pickVoice();speechSynthesis.addEventListener('voiceschanged',pickVoice)}
+  function speak(text){
+    if(!('speechSynthesis' in window)){voiceNote.textContent='Acest browser nu are voce integrată.';return}
+    try{
+      speechSynthesis.cancel();
+      var u=new SpeechSynthesisUtterance(text);
+      u.lang='ro-RO';if(roVoice)u.voice=roVoice;u.rate=.95;
+      u.onerror=function(e){if(e.error&&e.error!=='canceled'&&e.error!=='interrupted')voiceNote.textContent='Vocea este blocată în acest context.'};
+      speechSynthesis.speak(u);
+    }catch(e){voiceNote.textContent='Vocea nu este disponibilă.'}
+  }
+  function minsWord(n){return n===1?'un minut':n+(n>19?' de minute':' minute')}
+  function timePhrase(d){
+    var h=d.getHours(),m=d.getMinutes();
+    if(h===0&&m===0)return 'Este miezul nopții.';
+    var s='Este ora '+h;
+    if(m===0)return s+' fix.';
+    return s+' și '+minsWord(m)+'.';
+  }
+
+  /* ---------- Pomodoro ---------- */
+  var mode='chrono';
+  var pm={phase:'work',done:0,running:false,t0:0,acc:0};
+  var iWork=$('iWork'),iShort=$('iShort'),iLong=$('iLong'),bModeC=$('bModeC'),bModeP=$('bModeP');
+  var PN={work:'Lucru',short:'Pauză',long:'Pauză lungă'};
+  function mins(inp,def){var v=parseInt(inp.value,10);if(!(v>=1))v=def;return Math.min(v,30)}
+  function pDur(){return (pm.phase==='work'?mins(iWork,25):pm.phase==='short'?mins(iShort,5):mins(iLong,15))*60000}
+  function pEl(now){return pm.acc+(pm.running?now-pm.t0:0)}
+  function pomoToggle(){var now=performance.now();if(pm.running){pm.acc+=now-pm.t0;pm.running=false}else{pm.t0=now;pm.running=true}}
+  function pomoReset(){if(pm.running)return;pm.phase='work';pm.done=0;pm.acc=0}
+  function pomoTick(){
+    if(mode!=='pomo'||!pm.running)return;
+    var now=performance.now();
+    if(pEl(now)<pDur())return;
+    if(pm.phase==='work'){pm.done++;pm.phase=pm.done>=4?'long':'short'}
+    else{if(pm.phase==='long')pm.done=0;pm.phase='work'}
+    pm.acc=0;pm.t0=now;
+    chime();
+    notifyPhase();
+    if(auto.checked){
+      var n=pDur()/60000,txt=pm.phase==='work'?'Înapoi la lucru, '+minsWord(n)+'.':(pm.phase==='long'?'Pauză lungă de ':'Pauză de ')+minsWord(n)+'.';
+      setTimeout(function(){speak(txt)},1400);
+    }
+    ui();
+  }
+  /* ---------- Notificări de browser ---------- */
+  var notif=$('notif');
+  function notifFail(msg){notif.checked=false;voiceNote.textContent=msg}
+  notif.addEventListener('change',function(){
+    if(!notif.checked){voiceNote.textContent='';return}
+    if(typeof Notification==='undefined'){notifFail('Acest browser nu are notificări.');return}
+    if(Notification.permission==='granted')return;
+    if(Notification.permission==='denied'){notifFail('Notificările sunt blocate pentru această pagină.');return}
+    var msg='Notificările nu au fost permise. În cadrul în care se afișează pagina pot fi blocate; încearcă pagina deschisă separat.';
+    try{
+      var r=Notification.requestPermission(function(p){if(p!=='granted')notifFail(msg)});
+      if(r&&r.then)r.then(function(p){if(p!=='granted')notifFail(msg)},function(){notifFail(msg)});
+    }catch(e){notifFail(msg)}
+    setTimeout(function(){if(notif.checked&&Notification.permission!=='granted')notifFail(msg)},15000);
+  });
+  function notifyPhase(){
+    if(!notif.checked||typeof Notification==='undefined'||Notification.permission!=='granted')return;
+    if(!document.hidden)return;   // în fila activă se aud gongul și vocea
+    var n=pDur()/60000,body;
+    if(pm.phase==='work')body='Sesiunea '+(pm.done+1)+' din 4, '+minsWord(n)+'.';
+    else if(pm.phase==='long')body='Ai terminat cele 4 sesiuni. Pauză lungă de '+minsWord(n)+'.';
+    else body='Pauză de '+minsWord(n)+', după sesiunea '+pm.done+' din 4.';
+    try{new Notification(PN[pm.phase],{body:body,tag:'meridian-pomodoro'})}catch(e){}
+  }
+  // Un singur temporizator exact pentru finalul fazei; cele periodice sunt încetinite de browser în filele ascunse
+  var phaseTimer=0;
+  function schedulePomo(){
+    clearTimeout(phaseTimer);phaseTimer=0;
+    if(mode!=='pomo'||!pm.running)return;
+    phaseTimer=setTimeout(pomoTick,Math.max(0,pDur()-pEl(performance.now()))+20);
+  }
+  // Culoarea fazei: lucru = culoarea cadranului, pauză = verde, pauză lungă = albastru
+  function phaseColor(){
+    if(mode==='pomo'&&pm.phase==='short')return '#3DC48A';
+    if(mode==='pomo'&&pm.phase==='long')return '#4C97F0';
+    return DIALS[curDial].secs;
+  }
+  function applyPhase(){
+    layout.style.setProperty('--phase',phaseColor());
+    layout.style.setProperty('--cw',DIALS[curDial].secs);
+    layout.style.setProperty('--cs','#3DC48A');
+    layout.style.setProperty('--cl','#4C97F0');
+    layout.classList.toggle('pomo',mode==='pomo');
+  }
+  function fmtRem(rem){
+    var s=Math.ceil(rem/1000);
+    return p2(Math.floor(s/60))+':'+p2(s%60);
+  }
+
+  /* ---------- Comenzi comune ---------- */
+  function ui(){
+    var run=mode==='chrono'?ch.running:pm.running;
+    bStart.textContent=run?'Stop':'Start';
+    if(mode==='chrono'){
+      bReset.disabled=ch.running||ch.acc===0;
+      elState.textContent=ch.running?'Pornit':'Oprit';
+    }else{
+      bReset.disabled=pm.running||(pm.acc===0&&pm.phase==='work'&&pm.done===0);
+      var lbl=pm.phase==='work'?'Lucru '+(pm.done+1)+'/4':(pm.phase==='long'?'Pauză lungă':'Pauză')+' după '+pm.done+'/4';
+      elState.textContent=lbl+' · '+(pm.running?'pornit':'oprit');
+    }
+    bModeC.setAttribute('aria-pressed',mode==='chrono'?'true':'false');
+    bModeP.setAttribute('aria-pressed',mode==='pomo'?'true':'false');
+    [iWork,iShort,iLong].forEach(function(i){i.disabled=pm.running});
+    applyPhase();
+    schedulePomo();
+  }
+  function toggle(){audio();if(mode==='chrono')chronoToggle();else pomoToggle();ui()}
+  function reset(){if(mode==='chrono')chronoReset();else pomoReset();ui()}
+  // Modurile se exclud: la schimbare, cronometrul sau Pomodoro care rula se oprește și își păstrează starea.
+  function setMode(m){
+    if(m===mode)return;
+    var now=performance.now();
+    if(ch.running){ch.acc+=now-ch.t0;ch.running=false}
+    if(pm.running){pm.acc+=now-pm.t0;pm.running=false}
+    mode=m;lastLap='';ui();
+  }
+  bStart.addEventListener('click',toggle);
+  bReset.addEventListener('click',reset);
+  bModeC.addEventListener('click',function(){setMode('chrono')});
+  bModeP.addEventListener('click',function(){setMode('pomo')});
+  $('bSay').addEventListener('click',function(){speak(timePhrase(new Date()))});
+  face.style.cursor='pointer';
+  face.addEventListener('click',function(){speak(timePhrase(new Date()))});
+
+  var pTop=$('pTop'),pBot=$('pBot');
+  function flash(g){g.classList.add('pressed');setTimeout(function(){g.classList.remove('pressed')},130)}
+  function bindPusher(g,action){
+    g.addEventListener('pointerdown',function(){g.classList.add('pressed')});
+    ['pointerup','pointerleave','pointercancel'].forEach(function(t){g.addEventListener(t,function(){g.classList.remove('pressed')})});
+    g.addEventListener('click',action);
+    g.addEventListener('keydown',function(e){if(e.code==='Enter'){e.preventDefault();flash(g);action()}});
+  }
+  bindPusher(pTop,toggle);bindPusher(pBot,reset);
+
+  // Lasă controalele native să își păstreze acțiunile de la tastatură.
+  function usesNativeKeys(e){return e.target.closest?.('a,button,input,select,textarea,[contenteditable]')}
+
+  document.addEventListener('keydown',function(e){
+    if(e.ctrlKey||e.metaKey||e.altKey||usesNativeKeys(e))return;
+    if(e.code==='Space'){e.preventDefault();e.stopPropagation();if(!e.repeat){flash(pTop);toggle()}}
+    else if(e.code==='KeyR'){if(!e.repeat){flash(pBot);reset()}}
+    else if(e.code==='KeyT'){if(!e.repeat)speak(timePhrase(new Date()))}
+  },true);
+  document.addEventListener('keyup',function(e){
+    if(e.code==='Space'&&!usesNativeKeys(e)){e.preventDefault();e.stopPropagation()}
+  },true);
+
+  // Avertizare la închiderea paginii cât timp rulează cronometrul sau Pomodoro.
+  window.addEventListener('beforeunload',function(e){
+    if(ch.running||pm.running){e.preventDefault();e.returnValue='';return ''}
+  });
+
+  /* ---------- Mișcare ---------- */
+  var rot=function(g,a){g.setAttribute('transform','rotate('+a.toFixed(2)+')')};
+  var eb=function(t){var c1=1.4,c3=c1+1;return 1+c3*Math.pow(t-1,3)+c1*Math.pow(t-1,2)};
+  var lastLap='',lastDay=-1,lastHr=-1,lastClock='';
+  function frame(){
+    var d=new Date(),ms=d.getMilliseconds(),s=d.getSeconds(),m=d.getMinutes(),h=d.getHours()%12;
+    var secF=s+ms/1000,minF=m+secF/60,hrF=h+minF/60;
+    rot(hHour,hrF*30);rot(hMin,minF*6);
+
+    var f=ms/1000,kk=Math.min(f/.16,1);
+    rot(hSubSec,(s+(reduced?f:(kk<1?eb(kk):1)))*6);
+
+    var now=performance.now(),a,lap;
+    if(mode==='pomo'){
+      var D=pDur(),e=Math.min(pEl(now),D),rem=D-e,eMin=e/60000;
+      // Perechea lucru + pauză se desenează o singură dată, cu pauza în continuarea lucrului
+      var W=mins(iWork,25),kB=pm.phase==='work'?((pm.done+1>=4)?'long':'short'):pm.phase;
+      var B=kB==='long'?mins(iLong,15):mins(iShort,5);
+      var tB=pm.phase==='work'?eMin:W+eMin;
+      var segsB=[{k:'work',a:0,b:W},{k:kB,a:W,b:W+B}];
+      // Subcadranul are scara de 30 de minute; dacă perechea nu încape, arată doar faza curentă
+      var fits=W+B<=30;
+      var segsS=fits?segsB:[{k:pm.phase,a:0,b:D/60000}],tS=fits?tB:eMin;
+      a=[(e%60000)/60000*360,tS*12,pm.done*90];
+      lap=fmtRem(rem);
+      drawMarks(segsB,tB,segsS,tS);
+    }else{
+      if(ch.anim){
+        var t=Math.min((now-ch.anim.t0)/420,1),r=1-Math.pow(1-t,3);
+        a=[ch.anim.a[0]*(1-r),ch.anim.a[1]*(1-r),ch.anim.a[2]*(1-r)];
+        if(t>=1)ch.anim=null;
+      }else a=angles(elapsed(now));
+      lap=fmt(ch.anim?0:elapsed(now));
+      clearMarks();
+    }
+    rot(hChr,a[0]);rot(hSubMin,a[1]);rot(hSubHr,a[2]);
+    if(lap!==lastLap){elLap.textContent=lap;lastLap=lap}
+    var ck=p2(d.getHours())+':'+p2(m)+':'+p2(s);
+    if(ck!==lastClock){elClock.textContent=ck;lastClock=ck}
+    if(d.getDate()!==lastDay){lastDay=d.getDate();dateTxt.textContent=String(lastDay)}
+    requestAnimationFrame(frame);
+  }
+  ui();
+  requestAnimationFrame(frame);
+  // Verificări care trebuie să meargă și când fila e în fundal
+  setInterval(function(){
+    pomoTick();
+    var d=new Date(),key=d.getDate()*24+d.getHours();
+    if(auto.checked&&d.getMinutes()===0&&d.getSeconds()<3&&lastHr!==key){lastHr=key;speak(timePhrase(d))}
+  },250);
+})();
+</script>
+
+</body></html>

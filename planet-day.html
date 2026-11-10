@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ziua pe planete — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="astronomy.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+
+<style>
+:root {
+  --accent: #70b8f0;
+  --accent-dim: rgba(112,184,240,0.10);
+  --accent-border: rgba(112,184,240,0.28);
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: minmax(230px, 1fr) auto auto;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 12px;
+  padding: 13px 15px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg2);
+}
+
+.control-main {
+  min-width: 0;
+}
+
+.control-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 7px;
+  font-family: var(--font-mono);
+  font-size: .66rem;
+  color: var(--text3);
+}
+
+.control-head strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+
+input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.sim-note {
+  margin-top: 5px;
+  font-family: var(--font-mono);
+  font-size: .58rem;
+  color: var(--text3);
+}
+
+.planet-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.planet-card {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+}
+
+.planet-card.earth {
+  border-color: var(--accent-border);
+  background: var(--accent-dim);
+}
+
+.planet-stage {
+  position: relative;
+  aspect-ratio: 1.12 / 1;
+  min-height: 170px;
+  background: #000;
+}
+
+.planet-stage canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.planet-meta {
+  padding: 9px 11px 11px;
+  border-top: 1px solid var(--border);
+}
+
+.planet-name-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.planet-name {
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.planet-hours {
+  font-family: var(--font-mono);
+  font-size: .61rem;
+  color: var(--text2);
+  white-space: nowrap;
+}
+
+.planet-facts {
+  margin-top: 4px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: .56rem;
+  color: var(--text3);
+}
+
+.planet-card.earth .planet-name {
+  color: var(--accent);
+}
+
+.texture-warning {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  display: none;
+  padding: 5px 7px;
+  border-radius: 5px;
+  background: rgba(0,0,0,.62);
+  color: #f0c070;
+  font-family: var(--font-mono);
+  font-size: .52rem;
+  text-align: center;
+  pointer-events: none;
+}
+
+.texture-warning.show { display: block; }
+
+.legend {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg2);
+  font-family: var(--font-mono);
+  font-size: .61rem;
+  line-height: 1.55;
+  color: var(--text3);
+}
+
+.legend strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+
+.tool-about-note {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg2);
+  color: var(--text3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  width: 100%;
+}
+
+.tool-about-note strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .planet-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 620px) {
+  .controls {
+    grid-template-columns: 1fr 1fr;
+  }
+  .control-main {
+    grid-column: 1 / -1;
+  }
+  .planet-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+  .planet-stage {
+    min-height: 135px;
+  }
+  .planet-meta {
+    padding: 8px 9px 9px;
+  }
+  .planet-name-row {
+    display: block;
+  }
+  .planet-hours {
+    display: block;
+    margin-top: 1px;
+  }
+}
+
+@media (max-width: 390px) {
+  .planet-grid { grid-template-columns: 1fr; }
+}
+
+.planet-grid.focus { display: block; }
+
+.planet-card[hidden] { display: none; }
+
+.planet-grid.focus .planet-stage {
+  aspect-ratio: auto;
+  height: clamp(330px, 60vh, 620px);
+  background-color: #000;
+}
+
+.planet-grid.focus .planet-meta {
+  background: #101827;
+  color: #e1eaf7;
+}
+
+.planet-grid.focus .planet-name { font-size: 1.12rem; color: #f0f5ff; }
+.planet-grid.focus .planet-hours, .planet-grid.focus .planet-facts { color: #b9c6d9; }
+
+.planet-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.planet-picker :is(.btn, .unit-select) { flex: 1 0 auto; min-height: 36px; }
+.planet-picker .btn { justify-content: center; }
+.planet-picker :is([aria-pressed="true"], .unit-select.is-selected) {
+  border-color: var(--accent-border);
+  background: var(--accent-dim);
+}
+
+.planet-picker .unit-select option { color: var(--text); background: var(--bg2); }
+
+
+.planet-open {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+.planet-open[hidden] { display: none; }
+.planet-open:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; }
+</style>
+</head>
+
+<body data-show-source="true">
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+  <div class="tool-header">
+    <a class="back" href="index.html#astro">← Astronomie</a>
+    <h1>Ziua pe planete</h1>
+    <p>Rotația planetelor — aceeași scară temporală, axe înclinate după valorile reale</p>
+  </div>
+
+  <div class="controls">
+    <div class="control-main">
+      <div class="control-head">
+        <span>Viteza simulării</span>
+        <strong id="speed-label">×1</strong>
+      </div>
+      <input id="speed" type="range" min="0" max="6" step="1" value="0"
+             aria-label="Viteza simulării">
+      <div class="sim-note">La ×1, Pământul face o rotație în 6 secunde.</div>
+    </div>
+
+    <button class="btn btn-secondary" id="pause-btn" type="button">Pauză</button>
+    <button class="btn btn-ghost" id="reset-btn" type="button">Reset</button>
+  </div>
+
+  <div class="planet-picker" id="planet-picker" role="group" aria-label="Alege o planetă">
+    <button class="btn btn-ghost" id="view-btn" type="button" aria-pressed="false">Toate</button>
+  </div>
+  <div class="planet-grid focus" id="planet-grid"></div>
+
+  <div class="legend">
+    <strong>Ce comparăm:</strong> rotația siderală, nu durata zilei solare.
+    În comparație, diametrele folosesc o scară comprimată.
+    În vizualizarea individuală, fiecare planetă este mărită pentru a-i vedea detaliile. Linia subțire arată axa de rotație;
+    înclinarea este păstrată, inclusiv pentru Venus și Uranus.
+  </div>
+
+  <div class="tool-about-note">
+    <strong>Ziua pe planete</strong> face parte din colecția <strong>Mini Unelte</strong>,
+    selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>.
+    Implementarea a fost realizată cu asistență AI.<br>
+    Texturi: Solar System Scope / INOVE, CC BY 4.0. Hărțile TIFF au fost convertite în PNG.
+    Randare: Three.js r160, MIT. Detalii în <a href="credits.html">credite</a>.
+  </div>
+</div>
+
+<script src="three.min.js"></script>
+<script src="planet-models.js"></script>
+<script src="planet-textures.js"></script>
+<script src="planet-textures-detail.js"></script>
+<script>
+
+const SPEEDS = [1, 2, 4, 8, 16, 32, 64];
+const EARTH_HOURS = 23.9345;
+const EARTH_SECONDS_AT_1X = 6;
+
+const grid = document.getElementById('planet-grid');
+const speedInput = document.getElementById('speed');
+const speedLabel = document.getElementById('speed-label');
+const pauseBtn = document.getElementById('pause-btn');
+const resetBtn = document.getElementById('reset-btn');
+
+let speedMultiplier = 1;
+let paused = false;
+const worlds = [];
+const picker = document.getElementById('planet-picker');
+const viewBtn = document.getElementById('view-btn');
+const planetButtons = [];
+let selected = PLANETS.findIndex(planet => planet.earth);
+let comparing = false;
+let venusLayer = 'atmosphere';
+
+const textureLoader = new THREE.TextureLoader();
+const sunlight = new THREE.Vector3(-3.5, 2.4, 4.5);
+
+function useTexture(textureKey, material, slot, renderer, warning, colorTexture = false) {
+  const source = window.PLANET_TEXTURES?.[textureKey];
+  const showWarning = () => {
+    warning.textContent = `Textură indisponibilă (${textureKey}).`;
+    warning.classList.add('show');
+  };
+  if (!source) {
+    showWarning();
+    return;
+  }
+  textureLoader.load(source, texture => {
+    if (colorTexture) texture.colorSpace = THREE.SRGBColorSpace;
+    texture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+    material[slot] = texture;
+    material.needsUpdate = true;
+  }, undefined, showWarning);
+}
+
+function earthAtmosphere(geometry) {
+  const material = new THREE.ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    uniforms: { lightDirection: { value: sunlight.clone().normalize() } },
+    vertexShader: `
+      varying vec3 vNormal, vView, vLight;
+      uniform vec3 lightDirection;
+      void main() {
+        vec4 positionInView = modelViewMatrix * vec4(position, 1.0);
+        vNormal = normalize(normalMatrix * normal);
+        vView = -positionInView.xyz;
+        vLight = mat3(viewMatrix) * lightDirection;
+        gl_Position = projectionMatrix * positionInView;
+      }
+    `,
+    fragmentShader: `
+      varying vec3 vNormal, vView, vLight;
+      void main() {
+        vec3 normal = normalize(vNormal);
+        float edge = pow(1.0 - max(dot(normal, normalize(vView)), 0.0), 4.5);
+        float day = smoothstep(-0.23, 0.58, dot(normal, normalize(vLight)));
+        gl_FragColor = vec4(0.15, 0.47, 0.94, edge * day * 0.72);
+      }
+    `
+  });
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.scale.setScalar(1.013);
+  mesh.renderOrder = 2;
+  return mesh;
+}
+
+function formatHours(h) {
+  if (h >= 1000) {
+    const days = h / 24;
+    return `${days.toLocaleString('ro-RO', { maximumFractionDigits: 1 })} zile`;
+  }
+  if (h >= 24) {
+    const days = Math.floor(h / 24);
+    const hours = Math.round(h - days * 24);
+    return `${days} z ${hours} h`;
+  }
+  const whole = Math.floor(h);
+  const min = Math.round((h - whole) * 60);
+  return `${whole} h ${String(min).padStart(2, '0')} min`;
+}
+
+function createCard(p, index) {
+  const card = document.createElement('div');
+  card.className = `planet-card${p.earth ? ' earth' : ''}`;
+
+  const stage = document.createElement('div');
+  stage.className = 'planet-stage';
+
+  const warning = document.createElement('div');
+  warning.className = 'texture-warning';
+  warning.textContent = `Lipsește textura ${p.textureKey}`;
+
+  const meta = document.createElement('div');
+  meta.className = 'planet-meta';
+  meta.innerHTML = `
+    <div class="planet-name-row">
+      <span class="planet-name">${p.name}</span>
+      <span class="planet-hours">${formatHours(p.hours)}</span>
+    </div>
+    <div class="planet-facts">
+      <span>axă ${p.tilt.toLocaleString('ro-RO', { maximumFractionDigits: 2 })}°</span>
+      <span>${(p.hours / EARTH_HOURS).toLocaleString('ro-RO', { maximumFractionDigits: 1 })}× ziua Pământului</span>
+    </div>
+  `;
+
+  const open = document.createElement('button');
+  open.className = 'planet-open';
+  open.type = 'button';
+  open.setAttribute('aria-label', `Mărește planeta ${p.name}`);
+  open.addEventListener('click', () => {
+    selectPlanet(index);
+    planetButtons[index].focus({ preventScroll: true });
+  });
+  stage.append(warning, open);
+  card.append(stage, meta);
+  grid.appendChild(card);
+
+  const scene = new THREE.Scene();
+
+  const camera = new THREE.PerspectiveCamera(31, 1, 0.1, 20);
+  // Privim puțin de deasupra planului ecuatorial.
+  // Astfel, inelele lui Saturn rămân perpendiculare pe axa planetei,
+  // dar nu mai sunt văzute perfect muchie.
+  camera.position.set(0, 1.05, 5.2);
+  camera.lookAt(0, 0, 0);
+
+  const renderer = new THREE.WebGLRenderer({
+    antialias: true,
+    alpha: true,
+    powerPreference: 'high-performance'
+  });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.setClearColor(0x000000, 0);
+  stage.prepend(renderer.domElement);
+
+  const ambient = new THREE.AmbientLight(0x9bb0d0, 0.20);
+  scene.add(ambient);
+
+  const key = new THREE.DirectionalLight(0xffffff, 2.45);
+  key.position.copy(sunlight);
+  scene.add(key);
+
+  const rim = new THREE.DirectionalLight(0x8ebdff, 0.12);
+  rim.position.set(4, -1, -3);
+  scene.add(rim);
+
+  const axisGroup = new THREE.Group();
+  axisGroup.rotation.z = THREE.MathUtils.degToRad(p.tilt);
+  scene.add(axisGroup);
+
+  const radius = 1.15 * p.size;
+  const sphereGeometry = new THREE.SphereGeometry(radius, 96, 64);
+  const material = p.earth
+    ? new THREE.MeshPhongMaterial({
+        color: 0xffffff,
+        specular: 0x3c4955,
+        shininess: 48,
+        normalScale: new THREE.Vector2(0.40, 0.40)
+      })
+    : new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.92 });
+  const sphere = new THREE.Mesh(sphereGeometry, material);
+  axisGroup.add(sphere);
+  const maps = {};
+  if (p.textureKey === 'venus') {
+    useTexture('venus', maps, 'atmosphere', renderer, warning, true);
+    useTexture('venusSurface', maps, 'surface', renderer, warning, true);
+  } else {
+    useTexture(p.textureKey, material, 'map', renderer, warning, true);
+  }
+
+  if (p.earth) {
+    useTexture('earthNormal', material, 'normalMap', renderer, warning);
+    useTexture('earthSpecular', material, 'specularMap', renderer, warning);
+    const cloudMaterial = new THREE.MeshLambertMaterial({
+      color: 0xf0f6ff,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false
+    });
+    const clouds = new THREE.Mesh(sphereGeometry, cloudMaterial);
+    clouds.scale.setScalar(1.006);
+    clouds.renderOrder = 1;
+    sphere.add(clouds);
+    useTexture('earthClouds', cloudMaterial, 'alphaMap', renderer, warning);
+    // The brightness in the cloud texture controls its coverage.
+    clouds.onBeforeRender = () => { cloudMaterial.opacity = cloudMaterial.alphaMap ? 0.77 : 0; };
+    axisGroup.add(earthAtmosphere(sphereGeometry));
+  }
+
+  if (p.rings) {
+    const geometry = saturnRingGeometry(radius);
+    const ringMaterial = new THREE.MeshBasicMaterial({
+      color: 0xe4d4ae,
+      transparent: true,
+      opacity: 0.92,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      alphaTest: 0.02
+    });
+    useTexture('saturnRings', ringMaterial, 'map', renderer, warning, true);
+    const ring = new THREE.Mesh(geometry, ringMaterial);
+    ring.rotation.x = Math.PI / 2;
+    axisGroup.add(ring);
+  }
+
+  const axisLength = radius * 2.58;
+  const axisRadius = radius * 0.009;
+  const tipLength = radius * 0.115;
+  const axisMaterial = new THREE.MeshBasicMaterial({ color: 0xb8c7d8 });
+  const axis = new THREE.Mesh(
+    new THREE.CylinderGeometry(axisRadius, axisRadius, axisLength, 12), axisMaterial
+  );
+  const tip = new THREE.Mesh(
+    new THREE.ConeGeometry(radius * 0.032, tipLength, 12), axisMaterial
+  );
+  tip.position.y = (axisLength + tipLength) / 2;
+  axisGroup.add(axis, tip);
+
+  const isVenus = p.textureKey === 'venus';
+  const control = document.createElement(isVenus ? 'select' : 'button');
+  if (isVenus) {
+    control.id = 'venus-layer';
+    control.className = 'unit-select';
+    control.setAttribute('aria-label', 'Venus: alege atmosfera sau terenul');
+    control.innerHTML = `<option value="" disabled hidden>Venus</option>
+      <option value="atmosphere">Venus — Atmosferă</option>
+      <option value="surface">Venus — Teren</option>`;
+    control.addEventListener('change', () => {
+      venusLayer = control.value;
+      selectPlanet(index);
+    });
+  } else {
+    control.className = 'btn btn-ghost';
+    control.type = 'button';
+    control.textContent = p.name;
+    control.addEventListener('click', () => selectPlanet(index));
+  }
+  picker.append(control);
+  planetButtons.push(control);
+
+  worlds.push({
+    p, card, stage, scene, camera, renderer, sphere, maps, radius, open,
+    initialRotation: p.earth ? -0.82 : 0
+  });
+  sphere.rotation.y = worlds[index].initialRotation;
+}
+
+function selectPlanet(index) {
+  selected = index;
+  comparing = false;
+  updateView();
+}
+
+function updateView() {
+  grid.classList.toggle('focus', !comparing);
+  viewBtn.setAttribute('aria-pressed', String(comparing));
+  worlds.forEach((world, index) => {
+    world.card.hidden = !comparing && selected !== index;
+    world.open.hidden = !comparing;
+    const control = planetButtons[index];
+    const active = !comparing && selected === index;
+    if (world.p.textureKey === 'venus') {
+      control.value = active ? venusLayer : '';
+      control.classList.toggle('is-selected', active);
+    } else {
+      control.setAttribute('aria-pressed', String(active));
+    }
+  });
+}
+
+try {
+  PLANETS.forEach(createCard);
+  updateView();
+} catch (error) {
+  grid.textContent = 'Nu s-a putut porni randarea 3D. Verifică dacă browserul are WebGL activ.';
+  throw error;
+}
+
+viewBtn.addEventListener('click', () => {
+  comparing = true;
+  updateView();
+});
+
+function resizeWorld(world) {
+  const rect = world.stage.getBoundingClientRect();
+  const width = Math.max(1, Math.round(rect.width));
+  const height = Math.max(1, Math.round(rect.height));
+
+  const canvas = world.renderer.domElement;
+  const pixelRatio = world.renderer.getPixelRatio();
+  const targetW = Math.round(width * pixelRatio);
+  const targetH = Math.round(height * pixelRatio);
+
+  if (canvas.width !== targetW || canvas.height !== targetH || world.comparing !== comparing) {
+    world.renderer.setSize(width, height, false);
+    world.comparing = comparing;
+    world.camera.aspect = width / height;
+    const heightAtTarget = 2 * world.camera.position.length() * Math.tan(THREE.MathUtils.degToRad(world.camera.fov / 2));
+    const horizontalDiameter = 2 * world.radius * (world.p.rings ? 2.27 : 1.4);
+    const zoomToHeight = heightAtTarget * 0.72 / (2 * world.radius);
+    const zoomToWidth = heightAtTarget * world.camera.aspect * 0.85 / horizontalDiameter;
+    world.camera.zoom = comparing ? Math.min(1, zoomToWidth) : Math.min(zoomToHeight, zoomToWidth);
+    world.camera.updateProjectionMatrix();
+  }
+}
+
+speedInput.addEventListener('input', () => {
+  speedMultiplier = SPEEDS[Number(speedInput.value)];
+  speedLabel.textContent = `×${speedMultiplier}`;
+});
+
+pauseBtn.addEventListener('click', () => {
+  paused = !paused;
+  pauseBtn.textContent = paused ? 'Continuă' : 'Pauză';
+});
+
+resetBtn.addEventListener('click', () => {
+  worlds.forEach(w => {
+    w.sphere.rotation.y = w.initialRotation;
+  });
+});
+
+let last = performance.now();
+
+function animate(now) {
+  const dt = Math.min((now - last) / 1000, 0.05);
+  last = now;
+
+  if (!paused) {
+    for (const world of worlds) {
+      /*
+        La ×1:
+        Pământul = 6 secunde / rotație.
+        Celelalte planete păstrează raportul real al perioadelor siderale.
+        Sensul retrograd este reprezentat prin orientarea reală a axei
+        (Venus 177,36°, Uranus 97,77°).
+      */
+      const secondsPerRotation =
+        EARTH_SECONDS_AT_1X * (world.p.hours / EARTH_HOURS) / speedMultiplier;
+
+      const angularSpeed = (Math.PI * 2) / secondsPerRotation;
+      world.sphere.rotation.y += angularSpeed * dt;
+    }
+  }
+
+  for (const world of worlds) {
+    if (world.card.hidden) continue;
+    if (world.p.textureKey === 'venus') {
+      const map = world.maps[venusLayer];
+      const material = world.sphere.material;
+      if (map && material.map !== map) {
+        material.map = map;
+        material.needsUpdate = true;
+      }
+    }
+    resizeWorld(world);
+    world.renderer.render(world.scene, world.camera);
+  }
+
+  requestAnimationFrame(animate);
+}
+
+requestAnimationFrame(animate);
+</script>
+
+<script src="prism.js"></script>
+<script src="site.js"></script>
+</body>
+</html>

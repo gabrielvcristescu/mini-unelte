@@ -6,7 +6,7 @@ Colecție de mici unelte interactive și experimente web pentru calcul, text, au
 
 ## Despre proiect
 
-**Mini Unelte** este o colecție de **145 de unelte interactive** care rulează direct în browser.
+**Mini Unelte** este o colecție de **152 de unelte interactive** care rulează direct în browser.
 
 Colecția este selectată, testată și integrată de **Gabriel Valentin Cristescu**. Implementarea a fost realizată cu asistență AI.
 
@@ -26,6 +26,7 @@ Colecția include unelte din mai multe domenii:
 - audio și muzică;
 - instrumente și sinteză;
 - educație;
+- astronomie;
 - jocuri și quiz-uri;
 - date publice.
 
