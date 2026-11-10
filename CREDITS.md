@@ -2,7 +2,7 @@
 
 ## Proiect
 
-**Mini Unelte** este o colecție publică de 145 de unelte interactive și experimente web.
+**Mini Unelte** este o colecție publică de 152 de unelte interactive și experimente web.
 
 Selecție, direcție, testare și integrare: **Gabriel Valentin Cristescu**.  
 Implementarea a fost realizată cu **asistență AI**.
@@ -64,6 +64,21 @@ Licență: **MIT**
 Sursă:
 
 https://github.com/Tonejs/Tone.js
+
+## Astronomie
+
+Three.js r160 (MIT) este inclus local în `three.min.js` pentru randarea 3D. SunCalc 2.x (BSD 2-Clause), de Volodymyr Agafonkin, este inclus local în `suncalc.js` pentru pozițiile Lunii și Soarelui.
+
+Texturile sunt de la Solar System Scope / INOVE și sunt distribuite sub CC BY 4.0. Cele două hărți TIFF ale Pământului au fost convertite în PNG. Texturile au fost încorporate în fișierele `planet-textures.js` și `planet-textures-detail.js`.
+
+- https://threejs.org/
+- https://github.com/mourner/suncalc
+- https://www.solarsystemscope.com/textures/
+- https://creativecommons.org/licenses/by/4.0/
+
+Texturile pentru globurile din calculatoare au fost redimensionate la 512 px lățime. Harta color a lui Pluto este realizată din imagini New Horizons (NASA / Johns Hopkins University Applied Physics Laboratory / Southwest Research Institute).
+
+- https://science.nasa.gov/photojournal/pluto-in-extended-color/
 
 ## Piese de șah Cburnett
 

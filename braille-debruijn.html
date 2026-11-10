@@ -1,0 +1,1748 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<title>Braille de Bruijn – simulator interactiv</title>
+  <style>
+    :root{
+      --bg:#f6f7fb; --panel:#ffffff; --text:#1b1f2a; --muted:#6b7280; --line:#d7dce5;
+      --accent:#315efb; --accent2:#e9efff; --dot:#111827; --off:#eef1f6;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text)}
+    main{max-width:1100px;margin:0 auto;padding:20px}
+    h1{font-size:1.5rem;margin:0 0 8px}
+    h2{font-size:1.05rem;margin:0 0 10px}
+    p{margin:6px 0 12px;color:var(--muted)}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px}
+    .controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0}
+    label{font-size:.9rem;color:var(--muted)}
+    select,input,button{font:inherit}
+    select,input[type="number"]{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:white}
+    button{border:1px solid var(--line);background:white;border-radius:10px;padding:9px 12px;cursor:pointer}
+    button.primary{background:var(--accent);color:white;border-color:var(--accent)}
+    .seq{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap;word-break:break-all;background:#fafbfe;border:1px solid var(--line);border-radius:12px;padding:12px;min-height:72px}
+    .workspace{position:relative;height:420px;border:1px dashed #b8c0cf;border-radius:14px;background:linear-gradient(#fff,#fbfcff);overflow-y:auto;overflow-x:hidden}
+    .window{position:absolute;left:24px;top:20px;touch-action:none;user-select:none;cursor:grab;border:3px solid var(--accent);border-radius:8px;background:rgba(49,94,251,.10);box-sizing:border-box}
+    .window:active{cursor:grabbing}
+    .cell{display:grid;grid-template-columns:32px 32px;grid-template-rows:32px 32px 32px;gap:8px;padding:10px;border:2px solid var(--accent);border-radius:14px;background:rgba(255,255,255,.92);box-shadow:0 3px 10px rgba(0,0,0,.08)}
+    .dot{width:32px;height:32px;border-radius:50%;border:1px solid #c8ced8;background:var(--off);display:flex;align-items:center;justify-content:center;font-size:.75rem;color:#8a93a3}
+    .dot.on{background:var(--dot);color:white;border-color:var(--dot)}
+    .rowstrip{display:grid;grid-template-columns:repeat(2,32px);gap:8px;padding:8px 10px;border:2px solid var(--accent);border-radius:12px;background:rgba(255,255,255,.95)}
+    .rail{position:absolute;left:170px;top:20px;width:min(380px, calc(100% - 190px))}
+    .rail-row{display:grid;grid-template-columns:18px 18px 1fr 34px;gap:6px;align-items:center;margin:1px 0;padding:1px 4px 1px 6px;border-radius:6px;cursor:pointer;border-left:4px solid transparent}
+    .rail-row:hover{background:var(--accent2)}
+    .rail-row.selected{background:var(--accent2)}
+    .rail-row.selected-center{background:#c8d6ff;font-weight:600}
+    .rail-row.cat-letter{border-left-color:#2f9e44}
+    .rail-row.cat-punct{border-left-color:#f08c00}
+    .rail-row.cat-space{border-left-color:#adb5bd}
+    .rail-row.cat-unknown{border-left-color:#dfe3ea}
+    .rail-row.cat-context{border-left-color:#dfe3ea;border-left-style:dashed;opacity:.6;cursor:default}
+    .rail-row.cat-context:hover{background:transparent}
+    .catLegend{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-size:.82rem;color:var(--muted)}
+    .catSw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:5px}
+    .rail-bit{width:18px;height:18px;border-radius:50%;border:1px solid #c8ced8;background:var(--off)}
+    .rail-bit.on{background:var(--dot);border-color:var(--dot)}
+    .rail-label{font-family:ui-monospace,monospace;color:var(--muted);font-size:.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .rail-digit{font-family:ui-monospace,monospace;font-size:.72rem;color:#6b46c1;text-align:center;border-radius:4px;padding:1px 0;min-height:18px;line-height:18px}
+    .rail-digit.has-digit{background:#f1eeff}
+    .wordOutput{display:flex;flex-wrap:wrap;gap:10px;padding:10px 0}
+    .wordCell{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:48px}
+    .wordCell .dots{display:grid;grid-template-columns:14px 14px;grid-template-rows:14px 14px 14px;gap:3px;padding:6px;border:1px solid var(--line);border-radius:8px;background:#fafbfe}
+    .wordCell .d{width:14px;height:14px;border-radius:50%;background:var(--off);border:1px solid #c8ced8}
+    .wordCell .d.on{background:var(--dot);border-color:var(--dot)}
+    .wordCell.special .dots{border-color:#6b46c1;background:#f8f6ff}
+    .wordCell .lbl{font-size:.68rem;color:var(--muted);text-align:center;max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .wordCell.cat-letter .lbl{color:#2f9e44}
+    .wordCell.cat-punct .lbl{color:#f08c00}
+    .wordCell.cat-space .lbl{color:#adb5bd}
+    .wordCell.special .lbl{color:#6b46c1}
+    .positionGuide{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+    .positionGuide h3{font-size:.95rem;margin:0 0 5px}
+    .positionGuide p{font-size:.82rem;margin:0 0 8px}
+    .positionGuideGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+    .positionCard{border:1px solid var(--line);border-radius:10px;background:#fafbfe;padding:9px}
+    .positionCard strong{display:block;margin-bottom:4px}
+    .positionCard .posLine{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.78rem;color:var(--muted);line-height:1.45}
+    .refTable{width:100%;border-collapse:collapse;font-size:.85rem}
+    .refTable th{text-align:left;padding:6px 8px;border-bottom:2px solid var(--line);color:var(--muted);font-weight:600}
+    .refTable td{padding:5px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+    .refTable .miniCell{display:inline-grid;grid-template-columns:10px 10px;grid-template-rows:10px 10px 10px;gap:2px;padding:4px;border:1px solid var(--line);border-radius:6px;background:#fafbfe;vertical-align:middle}
+    .refTable .miniCell .d{width:10px;height:10px;border-radius:50%;background:var(--off);border:1px solid #c8ced8}
+    .refTable .miniCell .d.on{background:var(--dot);border-color:var(--dot)}
+    .refGroups{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+    @media (max-width:800px){ .refGroups{grid-template-columns:1fr} }
+    .rodsDemo{display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap;padding:8px 0}
+    .rodUnit{display:flex;flex-direction:column;align-items:center;gap:8px}
+    .rodLabel{font-size:.78rem;color:var(--muted);text-align:center;max-width:120px}
+    .rodColumnsRow{position:relative;display:flex;gap:2px}
+    .rodColumn{position:relative;width:26px;height:374px;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-user-drag:none}
+    .rodColumn *{user-select:none;-webkit-user-select:none;-webkit-user-drag:none;pointer-events:none}
+    .rodColumn:active{cursor:grabbing}
+    .rodColumn:focus-visible{outline:3px solid #f08c00;outline-offset:2px}
+    .rodStrip{position:absolute;left:0;width:100%}
+    .rodRow{height:22px;display:flex;align-items:center;justify-content:center}
+    .rodDot{width:16px;height:16px;border-radius:50%;background:var(--off);border:1px solid #c8ced8}
+    .rodDot.on{background:var(--dot);border-color:var(--dot)}
+    .rodSharedWindow{position:absolute;left:-4px;right:-4px;top:154px;height:66px;border:3px solid var(--accent);border-radius:10px;background:rgba(49,94,251,.08);pointer-events:none}
+    .rodBtns{display:flex;flex-direction:column;gap:3px}
+    .rodBtns button{padding:2px 10px;font-size:.85rem}
+    .rodResult{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px;border:1px solid var(--line);border-radius:12px;width:230px;background:#fafbfe;align-self:center}
+    .rodResult .big{font-size:1.3rem;font-weight:700;min-height:2.2em;line-height:1.2;display:flex;align-items:center}
+    .rodResult .small{text-align:center;min-height:4.3em;line-height:1.35}
+    .fiveBandControls{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end;margin:12px 0 14px}
+    .fiveBandControls input{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:white;text-transform:uppercase;letter-spacing:.08em}
+    .fiveBandStage{display:flex;justify-content:center;overflow-x:auto;padding:10px 0 4px}
+    .fiveBandFrame{position:relative;display:flex;gap:8px;padding:0 8px;height:374px;overflow:hidden;border-radius:12px;background:#fafbfe;border:1px solid var(--line)}
+    .messageBand{position:relative;width:58px;height:374px;overflow:hidden;touch-action:none;user-select:none}
+    .messageBandStrip{position:absolute;left:0;width:100%;box-sizing:border-box;padding:4px 0;border:2px solid #7b8494;border-radius:12px;background:linear-gradient(90deg,#eef2f8 0%,#ffffff 12%,#ffffff 88%,#eef2f8 100%);box-shadow:inset 0 0 0 1px rgba(255,255,255,.9), inset 3px 0 0 rgba(255,255,255,.65), inset -3px 0 0 rgba(123,132,148,.22);will-change:top;transition:top 900ms cubic-bezier(.22,.75,.25,1);z-index:2}
+    .messageBandStrip::before{content:"";position:absolute;top:3px;bottom:3px;left:7px;width:1px;background:rgba(123,132,148,.3);pointer-events:none;z-index:1}
+    .messageBandStrip::after{content:"";position:absolute;top:3px;bottom:3px;right:7px;width:1px;background:rgba(123,132,148,.42);pointer-events:none;z-index:1}
+    .messageBandRow{position:relative;z-index:2;height:22px;display:flex;gap:8px;align-items:center;justify-content:center;border-top:1px solid rgba(123,132,148,.12)}
+    .messageBandRow:first-child{border-top:none}
+    .messageBandDot{width:16px;height:16px;border-radius:50%;background:var(--off);border:1px solid #c8ced8}
+    .messageBandDot.on{background:var(--dot);border-color:var(--dot)}
+    .fiveBandReadWindow{position:absolute;left:4px;right:4px;top:154px;height:66px;border:3px solid #d92d20;border-radius:10px;background:transparent;pointer-events:none;z-index:5;box-shadow:0 0 0 999px rgba(246,247,251,.58), inset 0 0 0 1px rgba(255,255,255,.75)}
+    .fiveBandLabels{display:flex;gap:8px;justify-content:center;padding:4px 8px 0}
+    .fiveBandLabel{width:58px;text-align:center;font-weight:700;min-height:1.4em;font-size:.9rem}
+    .fiveBandStatus{text-align:center;min-height:1.5em;margin-top:8px;color:var(--muted);font-size:.85rem}
+    @media(max-width:560px){.fiveBandControls{grid-template-columns:1fr}.messageBand{width:50px}.fiveBandLabel{width:50px}.fiveBandFrame{gap:4px}.fiveBandLabels{gap:4px}}
+    .fiveTwinStage{display:flex;justify-content:center;overflow-x:auto;padding:10px 0 4px}
+    .fiveTwinFrame{position:relative;display:flex;gap:12px;padding:0 10px;height:374px;overflow:hidden;border-radius:12px;background:#fafbfe;border:1px solid var(--line)}
+    .twinCell{position:relative;display:flex;gap:3px;width:48px;height:374px;justify-content:center}
+    .twinRod{position:relative;width:22px;height:374px;overflow:hidden}
+    .twinRodStrip{position:absolute;left:0;width:100%;box-sizing:border-box;padding:4px 0;border:2px solid #7b8494;border-radius:11px;background:linear-gradient(90deg,#eef2f8 0%,#ffffff 16%,#ffffff 84%,#eef2f8 100%);box-shadow:inset 0 0 0 1px rgba(255,255,255,.9), inset 2px 0 0 rgba(255,255,255,.65), inset -2px 0 0 rgba(123,132,148,.22);will-change:top;transition:top 900ms cubic-bezier(.22,.75,.25,1);z-index:2}
+    .twinRodStrip::before{content:"";position:absolute;top:3px;bottom:3px;left:4px;width:1px;background:rgba(123,132,148,.26);pointer-events:none;z-index:1}
+    .twinRodStrip::after{content:"";position:absolute;top:3px;bottom:3px;right:4px;width:1px;background:rgba(123,132,148,.4);pointer-events:none;z-index:1}
+    .twinRodRow{position:relative;z-index:2;height:22px;display:flex;align-items:center;justify-content:center;border-top:1px solid rgba(123,132,148,.12)}
+    .twinRodRow:first-child{border-top:none}
+    .twinRodDot{width:16px;height:16px;border-radius:50%;background:var(--off);border:1px solid #c8ced8}
+    .twinRodDot.on{background:var(--dot);border-color:var(--dot)}
+    .fiveTwinReadWindow{position:absolute;left:5px;right:5px;top:154px;height:66px;border:3px solid #d92d20;border-radius:10px;background:transparent;pointer-events:none;z-index:6;box-shadow:0 0 0 999px rgba(246,247,251,.58), inset 0 0 0 1px rgba(255,255,255,.75)}
+    .fiveTwinLabels{display:flex;gap:12px;justify-content:center;padding:4px 10px 0}
+    .fiveTwinLabel{width:48px;text-align:center;font-weight:700;min-height:1.4em;font-size:.9rem}
+    .twinCell::after{content:"";position:absolute;top:0;bottom:0;right:-7px;width:1px;background:var(--line)}
+    .twinCell:last-of-type::after{display:none}
+    @media(max-width:560px){.fiveTwinFrame{gap:7px;padding-left:6px;padding-right:6px}.fiveTwinLabels{gap:7px;padding-left:6px;padding-right:6px}.twinCell,.fiveTwinLabel{width:44px}.twinRod{width:20px}}
+    .theoryOverlap{margin:14px 0 10px;padding:14px;border:1px solid var(--line);border-radius:14px;background:#fcfdff}
+    .theoryOverlap h3{margin:0 0 8px;font-size:1rem;color:var(--text)}
+    .theoryOverlap p{margin:6px 0 10px}
+    .theoryOverlapBox{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre;overflow-x:auto;background:white;border:1px solid var(--line);border-radius:12px;padding:12px;line-height:1.55;color:#1f2937}
+    .theoryOverlapBox .muted{color:#667085}
+    .theoryOverlapBox .current{background:#eef4ff;border-radius:6px}
+    .theoryOverlapBox .idx{color:#6b46c1}
+    .theoryOverlapBox .bits{color:#111827}
+    .theoryOverlapBox .eq{color:#98a2b3}
+    .theoryOverlapBox .cellbits{color:#0f5132;font-weight:600}
+    .theoryOverlapLegend{margin-top:8px;font-size:.82rem;color:var(--muted)}
+    .twinTheoryGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px}
+    .twinTheoryCol{border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff}
+    .twinTheoryTitle{font-weight:700;margin-bottom:6px;color:var(--text)}
+    .twinTheorySeq{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre;line-height:1.55}
+    .twinTheoryCombine{margin-top:10px;padding:10px;border:1px dashed #aab3c2;border-radius:10px;background:#fafbfe;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap}
+    @media(max-width:680px){.twinTheoryGrid{grid-template-columns:1fr}}
+    .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+    .metric{border:1px solid var(--line);border-radius:12px;padding:10px}
+    .metric b{display:block;font-size:1.15rem}
+    .small{font-size:.82rem;color:var(--muted)}
+    .identity{margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:12px;background:#fafbfe}
+    #identityDetail{min-height:2.8em;line-height:1.35}
+    .identity .big{font-size:1.45rem;font-weight:700;margin-top:3px;min-height:2.4em;line-height:1.2}
+    .snapnote{font-size:.82rem;color:var(--muted);margin-top:6px}
+    .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:.86rem;color:var(--muted)}
+    .sw{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:-2px;margin-right:5px;border:1px solid #c8ced8}
+    .sw.on{background:var(--dot);border-color:var(--dot)}
+    .sw.off{background:var(--off)}
+    @media (prefers-reduced-motion: reduce){
+      .messageBandStrip,.twinRodStrip{transition:none !important}
+    }
+
+    /* v1.3 — analiza familiei de descompuneri și cazul g=2 */
+    .familyTable{width:100%;border-collapse:collapse;font-size:.88rem;margin-top:12px}
+    .familyTable th,.familyTable td{padding:8px 9px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+    .familyTable th{color:var(--muted);font-weight:650;border-bottom:2px solid var(--line)}
+    .familyTable tr.highlight{background:var(--accent2)}
+    .familyFormula{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;background:#fafbfe;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:10px 0;overflow-x:auto}
+    .partitionGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-top:12px}
+    .partitionCard{border:1px solid var(--line);border-radius:12px;padding:11px;background:#fafbfe}
+    .partitionCard b{display:block;margin-bottom:4px}
+    .partitionCard code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.82rem}
+    .g2Demo{display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:26px;align-items:center;margin-top:12px}
+    .g2Rows{display:flex;flex-direction:column;gap:14px;min-width:0}
+    .g2Unit{display:grid;grid-template-columns:90px minmax(240px,1fr) 76px;gap:10px;align-items:center}
+    .g2Label{font-size:.8rem;color:var(--muted);line-height:1.35}
+    .g2Track{position:relative;height:58px;border:1px solid var(--line);border-radius:12px;background:#fafbfe;overflow:hidden}
+    .g2Strip{position:absolute;top:10px;left:10px;display:flex;gap:8px;transition:transform 550ms cubic-bezier(.22,.75,.25,1);will-change:transform}
+    .g2Bit{width:32px;height:32px;border-radius:50%;border:1px solid #c8ced8;background:var(--off);display:flex;align-items:center;justify-content:center;font-size:.7rem;color:#8a93a3;flex:0 0 32px}
+    .g2Bit.on{background:var(--dot);color:#fff;border-color:var(--dot)}
+    .g2Window{position:absolute;top:5px;left:5px;width:84px;height:46px;border:3px solid #d92d20;border-radius:9px;pointer-events:none;z-index:3}
+    .g2Btns{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+    .g2Btns button{padding:6px 7px}
+    .g2Result{display:flex;flex-direction:column;align-items:center;gap:7px;border:1px solid var(--line);border-radius:12px;background:#fafbfe;padding:14px;min-height:210px;justify-content:center}
+    .g2Result .big{font-size:1.3rem;font-weight:700;min-height:1.6em}
+    .g2State{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.78rem;color:var(--muted);text-align:center;line-height:1.55}
+    @media(max-width:760px){.g2Demo{grid-template-columns:1fr}.g2Result{min-height:0}.g2Unit{grid-template-columns:72px minmax(190px,1fr) 68px}}
+    @media(max-width:520px){.g2Unit{grid-template-columns:1fr}.g2Btns{grid-template-columns:repeat(2,1fr)}.g2Track{min-width:260px;overflow:hidden}.familyTable{font-size:.78rem}}
+    .projectIntro{margin:16px 0 18px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}
+    .projectIntro h2{font-size:1.2rem;margin:0 0 10px}
+    .projectIntro h3{font-size:1rem;margin:20px 0 7px}
+    .projectIntro p{max-width:940px;line-height:1.58}
+    .projectIntro ul{margin:7px 0 12px;padding-left:24px;color:var(--muted);line-height:1.55}
+    .introKey{margin:14px 0;padding:12px 14px;border-left:4px solid var(--accent);background:var(--accent2);border-radius:8px;line-height:1.5}
+    .introFormula{display:inline-block;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;background:#fafbfe;border:1px solid var(--line);border-radius:7px;padding:2px 6px;color:var(--text)}
+    .introSummary{margin-top:18px;padding:13px 15px;border:1px solid var(--line);border-radius:12px;background:#fafbfe}
+    .full{grid-column:1/-1}
+    @media (max-width:800px){
+      .grid{grid-template-columns:1fr}
+      .controls{grid-template-columns:1fr}
+      .metrics{grid-template-columns:1fr 1fr}
+      .workspace{height:520px}
+    }
+  </style>
+
+<style id="lab-integration-style">
+.lab-back-link{
+  position:fixed;
+  top:max(10px,env(safe-area-inset-top));
+  right:max(10px,env(safe-area-inset-right));
+  z-index:10000;
+  display:inline-flex;
+  align-items:center;
+  min-height:36px;
+  padding:7px 10px;
+  border:1px solid rgba(127,127,127,.35);
+  border-radius:999px;
+  background:rgba(20,20,20,.72);
+  color:#fff;
+  font:600 12px/1.1 system-ui,-apple-system,Segoe UI,sans-serif;
+  text-decoration:none;
+  box-shadow:0 4px 18px rgba(0,0,0,.18);
+  backdrop-filter:blur(10px);
+}
+.lab-back-link:hover{background:rgba(20,20,20,.88)}
+@media(max-width:560px){
+  .lab-back-link{min-height:34px;padding:6px 9px;font-size:11px}
+}
+</style>
+
+</head>
+<body data-show-source="true">
+<a class="lab-back-link" href="index.html#personal-projects">← Proiecte personale</a>
+<main>
+  <h1>Braille de Bruijn – simulator interactiv</h1>
+
+  <section class="projectIntro" aria-labelledby="projectIntroTitle">
+    <h2 id="projectIntroTitle">Ce este acest proiect?</h2>
+
+    <p>Acest proiect explorează o metodă mecanică de realizare a unor celule Braille reconfigurabile pentru <strong>mesaje scurte</strong>.</p>
+
+    <p>O celulă Braille standard are 6 puncte, dispuse pe 2 coloane și 3 rânduri. Fiecare punct poate fi ridicat sau coborât, ceea ce înseamnă că există în total <strong>64 de configurații fizice posibile</strong>.</p>
+
+    <p>Ideea de la care am pornit a fost simplă: se poate construi un mecanism care să reproducă toate aceste configurații folosind <strong>piese mobile mai scurte și un mecanism cât mai simplu</strong>, fără a modifica în niciun fel codul Braille?</p>
+
+    <div class="introKey"><strong>Nu încercăm să inventăm un alfabet nou și nici să comprimăm textul.</strong> Încercăm să reducem lungimea și complexitatea mecanismului necesar pentru a obține toate configurațiile Braille.</div>
+
+    <h3>Prima variantă: o singură bandă pentru toate cele 64 de configurații</h3>
+
+    <p>Pentru prima soluție am tratat fiecare rând al unei celule Braille — adică o pereche de două puncte — ca pe un simbol cu patru stări posibile: <span class="introFormula">00</span>, <span class="introFormula">01</span>, <span class="introFormula">10</span>, <span class="introFormula">11</span>, unde <strong>0</strong> înseamnă punct coborât, iar <strong>1</strong> punct ridicat.</p>
+
+    <p>O celulă completă este formată din trei astfel de rânduri consecutive. Folosind o secvență matematică de tip <strong>de Bruijn B(4,3)</strong> — o construcție prin care toate combinațiile posibile apar într-o singură secvență, cu suprapunere între pozițiile succesive — putem aranja rândurile pe o bandă astfel încât toate cele 64 de configurații Braille să apară, pe rând, într-o fereastră de citire de trei rânduri.</p>
+
+    <p>Avantajul este că pozițiile succesive reutilizează o parte din configurația precedentă. Când banda se deplasează cu un singur rând, două dintre cele trei rânduri ale celulei anterioare rămân aceleași și sunt refolosite în celula următoare. Simulatorul arată vizual această suprapunere.</p>
+
+    <p>Această soluție demonstrează bine principiul, dar banda mecanică necesară pentru toate cele 64 de configurații rămâne relativ lungă.</p>
+
+    <h3>A doua variantă: două tije mai scurte pentru fiecare celulă</h3>
+
+    <p>Pentru a reduce lungimea pieselor mobile, am împărțit celula Braille în cele două coloane ale sale:</p>
+    <ul>
+      <li><strong>coloana din stânga:</strong> punctele 1, 2 și 3;</li>
+      <li><strong>coloana din dreapta:</strong> punctele 4, 5 și 6.</li>
+    </ul>
+
+    <p>Fiecare coloană conține numai trei puncte. Prin urmare, o singură coloană poate avea doar <strong>2³ = 8 configurații posibile</strong>.</p>
+
+    <p>Aici aplicăm din nou <strong>aceeași metodă de suprapunere</strong>, dar separat pentru fiecare coloană. Pentru fiecare tijă folosim o secvență de Bruijn <strong>B(2,3)</strong>. Tija este o piesă mobilă care poartă succesiunea de puncte ridicate și coborâte necesare. O fereastră de trei poziții consecutive parcurge toate cele opt configurații posibile ale unei coloane, iar configurațiile succesive reutilizează două dintre cele trei poziții precedente.</p>
+
+    <p>Valorile <strong>0</strong> și <strong>1</strong> folosite în explicație nu reprezintă numere pe care mecanismul le afișează. Ele indică doar starea fizică a fiecărui punct: <strong>0 = punct coborât</strong>, <strong>1 = punct ridicat</strong>.</p>
+
+    <p>Deci nu transformăm o literă Braille într-un număr binar. <strong>Împărțim problema mecanică în două probleme mai mici și aplicăm aceeași metodă de suprapunere fiecărei coloane.</strong></p>
+
+    <p>Tija din stânga poate produce toate cele 8 configurații ale punctelor 1–2–3, iar tija din dreapta, independent, toate cele 8 configurații ale punctelor 4–5–6. Prin combinarea lor putem obține din nou toate cele <strong>8 × 8 = 64 de configurații</strong> ale unei celule Braille complete.</p>
+
+    <p>Această variantă reduce mult lungimea fiecărei piese mobile, cu prețul folosirii a două tije pentru fiecare celulă. Mai jos, simulatorul extinde ideea la întreaga familie de descompuneri binare a celor șase puncte și include explicit cazul intermediar cu trei elemente B(2,2).</p>
+
+    <p>Pentru o reprezentare <strong>liniară</strong> bazată pe ferestre suprapuse de câte trei poziții, aceste lungimi sunt minimale: banda B(4,3) are nevoie de 64 + 2 = <strong>66 de rânduri</strong>, iar fiecare tijă B(2,3) de 8 + 2 = <strong>10 poziții</strong>. Cele două poziții suplimentare permit ca și ultima fereastră a secvenței ciclice să fie reprezentată complet pe o piesă liniară.</p>
+
+    <h3>Cum ar arăta mecanismul fizic?</h3>
+
+    <p>În varianta mecanică, tijele sau benzile se deplasează sub un capac fix. În capac există o <strong>fantă/fereastră de acces tactil</strong> prin care sunt expuse numai punctele care formează caracterul curent. Restul pieselor mobile rămâne acoperit și nu poate fi atins.</p>
+
+    <p>În simulator, capacul este reprezentat translucid doar pentru ca deplasarea tijelor de dedesubt să poată fi urmărită vizual. Pagina include atât demonstrația cu o singură celulă, cât și exemple cu cinci celule configurate simultan.</p>
+
+    <h3>Ce ar putea deveni în practică?</h3>
+
+    <p>În forma actuală, proiectul trebuie privit în primul rând ca un <strong>exercițiu de explorare matematică și mecanică</strong>. El arată cum secvențele de Bruijn pot reduce lungimea pieselor necesare pentru a genera toate configurațiile unei celule Braille. Un prototip manual simplu ar putea fi realizat pentru demonstrarea principiului, dar mecanismul nu este prezentat ca o alternativă practică la afișajele Braille existente.</p>
+
+    <p>Pagina include totuși un <strong>convertor text în Braille</strong> și un ghid de poziționare a tijelor, astfel încât principiul să poată fi testat concret și de o persoană care nu cunoaște alfabetul Braille.</p>
+
+    <p>Ca extensie experimentală, mecanismul ar putea fi configurat manual pentru mesaje tactile scurte sau ar putea inspira o matriță reconfigurabilă pentru embosare. Aceste utilizări sunt însă secundare; <strong>scopul principal al proiectului rămâne demonstrarea principiului</strong>.</p>
+
+    <h3>Ce nu este acest proiect?</h3>
+
+    <p>Acest proiect <strong>nu propune un nou sistem Braille</strong> și nu modifică semnificația literelor, cifrelor sau semnelor. Mecanismul generează doar cele 64 de configurații fizice posibile ale unei celule Braille. Semnificația fiecărei configurații este stabilită de codul Braille și de contextul lingvistic în care este folosită.</p>
+
+    <div class="introSummary"><strong>Pe scurt.</strong> Proiectul arată cum toate configurațiile unei celule Braille pot fi obținute cu piese mobile mai scurte, prin reutilizarea și suprapunerea pozițiilor succesive. Varianta cu două tije reduce problema la două secvențe B(2,3) independente și constituie rezultatul mecanic cel mai compact al exercițiului. Posibilele utilizări manuale sau pentru embosare rămân extensii experimentale.</div>
+  </section>
+
+  <div class="grid">
+    <section class="panel">
+      <h2>Generator de secvență</h2>
+      <div class="controls">
+        <label>Mod
+          <select id="mode">
+            <option value="b43">B(4,3) — pas 2 biți</option>
+            <option value="b26">B(2,6) — pas 1 bit</option>
+          </select>
+        </label>
+        <label>Poziția ferestrei
+          <input id="index" type="number" min="0" value="0">
+        </label>
+        <label>Număr de rânduri afișate
+          <input id="rows" type="number" min="6" max="66" value="66">
+        </label>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <button id="prev">◀ precedent</button>
+        <button id="next" class="primary">următor ▶</button>
+        <button id="reset">reset</button>
+        <button id="exportCsv">⬇ descarcă CSV (toate cele 64)</button>
+      </div>
+      <div id="seq" class="seq"></div>
+      <div class="metrics">
+        <div class="metric"><span class="small">Configurații</span><b>64</b></div>
+        <div class="metric"><span class="small">Biți/celulă</span><b>6</b></div>
+        <div class="metric"><span class="small">Pas</span><b id="stepMetric">2</b></div>
+        <div class="metric"><span class="small">Lungime secvență</span><b id="periodMetric">64 simboluri / 128 biți</b></div>
+      </div>
+      <div class="legend">
+        <span><i class="sw on"></i>punct ridicat</span>
+        <span><i class="sw off"></i>punct coborât</span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Celula Braille vizibilă</h2>
+      <p>Fereastra de citire se deplasează între poziții discrete. În modul B(4,3), fiecare pas corespunde unui rând Braille, adică unei perechi de 2 biți.</p>
+      <div id="cellBox" style="display:flex;justify-content:center;padding:12px 0"></div>
+      <div id="cellCode" class="seq"></div>
+      <div class="identity" aria-live="polite">
+        <span class="small">Semn recunoscut</span>
+        <div id="identity" class="big">—</div>
+        <div id="identityDetail" class="small"></div>
+      </div>
+      <label style="display:flex;gap:8px;align-items:center;margin-top:10px;color:var(--text)">
+        <input id="speak" type="checkbox"> Rostește semnul (literă, semn de punctuație sau spațiu) la schimbarea poziției
+      </label>
+    </section>
+
+    <section class="panel full">
+      <h2>Bandă cu secvență de Bruijn</h2>
+      <p>În modul B(4,3), fiecare rând al șinei reprezintă o pereche de puncte Braille, iar fereastra cuprinde trei rânduri. În modul comparativ B(2,6), șina trece la granularitatea reală de <strong>un singur bit</strong>, iar fereastra cuprinde șase poziții consecutive. Fereastra se poate deplasa cu mausul sau cu săgețile ↑ / ↓ de pe tastatură.</p>
+      <div id="snapNote" class="snapnote">Poziționare pe grilă: 1 rând Braille = 2 biți = o poziție mecanică discretă.</div>
+      <div class="catLegend">
+        <span><i class="catSw" style="background:#2f9e44"></i>literă A–Z</span>
+        <span><i class="catSw" style="background:#f08c00"></i>punctuație cunoscută</span>
+        <span><i class="catSw" style="background:#adb5bd"></i>spațiu</span>
+        <span><i class="catSw" style="background:#dfe3ea"></i>nealocat / depinde de context</span>
+        <span><i class="catSw" style="background:#dfe3ea;border:1px dashed #adb5bd"></i>capăt de secvență (fără centru propriu)</span>
+        <span><i class="catSw" style="background:#f1eeff;border:1px solid #6b46c1"></i>coloana din dreapta = cifra (A–J → 1–0, cu indicator numeric)</span>
+      </div>
+      <div id="workspace" class="workspace" tabindex="0" aria-label="Bandă cu secvență de Bruijn; folosiți săgețile sus și jos pentru deplasare">
+        <div id="rail" class="rail"></div>
+        <div id="dragWindow" class="window"></div>
+      </div>
+    </section>
+
+
+    <section class="panel full">
+      <h2>Familia de descompuneri a celor 6 puncte</h2>
+      <p>Același spațiu de 64 de configurații poate fi împărțit între mai multe elemente independente. Dacă un element controlează <strong>g</strong> puncte binare, el are 2<sup>g</sup> stări utile. O secvență liniară B(2,g) care păstrează toate ferestrele ciclice are <strong>2<sup>g</sup> + g − 1</strong> poziții fizice.</p>
+      <div class="familyFormula">număr elemente = 6 / g &nbsp;&nbsp;·&nbsp;&nbsp; stări / element = 2^g &nbsp;&nbsp;·&nbsp;&nbsp; lungime liniară = 2^g + g − 1</div>
+      <table class="familyTable" aria-label="Comparația descompunerilor binare ale unei celule Braille">
+        <thead><tr><th>g</th><th>Descompunere</th><th>Elemente independente</th><th>Stări / element</th><th>Poziții liniare / element</th><th>Observație</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>1+1+1+1+1+1</td><td>6</td><td>2</td><td>2</td><td>Limita apropiată de 6 puncte acționate separat.</td></tr>
+          <tr class="highlight"><td>2</td><td>2+2+2</td><td>3</td><td>4</td><td>5</td><td>Trei rânduri Braille; demonstrat mai jos cu trei glisoare orizontale.</td></tr>
+          <tr class="highlight"><td>3</td><td>3+3</td><td>2</td><td>8</td><td>10</td><td>Două coloane; cazul B(2,3) folosit și de Brindle.</td></tr>
+          <tr><td>6</td><td>6</td><td>1</td><td>64</td><td>69</td><td>O singură secvență binară; geometrie mecanică mai puțin naturală.</td></tr>
+        </tbody>
+      </table>
+      <div class="partitionGrid" id="partitionGrid" aria-label="Partiții inegale ale celor șase puncte"></div>
+    </section>
+
+    <section class="panel full">
+      <h2>Mecanism conceptual g=2: 3 glisoare pentru cele 3 rânduri</h2>
+      <p>Fiecare rând Braille este controlat independent de un glisor orizontal. Glisorul conține forma liniară a unei secvențe B(2,2): patru poziții utile și încă o poziție de context, în total cinci puncte de profil. Fereastra roșie citește două poziții consecutive, corespunzătoare punctelor stânga–dreapta ale rândului. Cele trei glisoare pot fi poziționate independent, rezultând 4³ = 64 configurații ale celulei.</p>
+      <div class="g2Demo">
+        <div class="g2Rows">
+          <div class="g2Unit"><div class="g2Label">Rând 1<br>puncte 1–4</div><div id="g2Track0" class="g2Track"></div><div class="g2Btns"><button id="g2Prev0">◀</button><button id="g2Next0">▶</button></div></div>
+          <div class="g2Unit"><div class="g2Label">Rând 2<br>puncte 2–5</div><div id="g2Track1" class="g2Track"></div><div class="g2Btns"><button id="g2Prev1">◀</button><button id="g2Next1">▶</button></div></div>
+          <div class="g2Unit"><div class="g2Label">Rând 3<br>puncte 3–6</div><div id="g2Track2" class="g2Track"></div><div class="g2Btns"><button id="g2Prev2">◀</button><button id="g2Next2">▶</button></div></div>
+        </div>
+        <div class="g2Result" aria-live="polite" aria-atomic="true">
+          <div id="g2CellBox" aria-hidden="true"></div>
+          <div id="g2Identity" class="big">—</div>
+          <div id="g2State" class="g2State"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel full">
+      <h2>Mecanism cu 2 tije pentru o celulă (8 stări per tijă)</h2>
+      <p>Aici poate fi testată direct varianta cu două tije. Fereastra de citire rămâne fixă, iar fiecare tijă se deplasează independent prin ea. Sunt vizibile și pozițiile de context de la capete; cele trei poziții aflate în dreptunghiul albastru formează coloana Braille activă. Tijele pot fi trase în sus sau în jos ori ajustate cu butoanele ▲/▼, iar celula rezultată apare în panoul din dreapta.</p>
+      <div class="rodsDemo">
+        <div class="rodUnit">
+          <div style="display:flex;gap:4px">
+            <div class="rodLabel">Tija stângă<br>(puncte 1,2,3)</div>
+            <div class="rodLabel">Tija dreaptă<br>(puncte 4,5,6)</div>
+          </div>
+          <div class="rodColumnsRow">
+            <div id="rodColL" class="rodColumn" tabindex="0" role="slider" aria-label="Tija stângă, puncte 1 2 3" aria-valuemin="0" aria-valuemax="7"></div>
+            <div id="rodColR" class="rodColumn" tabindex="0" role="slider" aria-label="Tija dreaptă, puncte 4 5 6" aria-valuemin="0" aria-valuemax="7"></div>
+            <div class="rodSharedWindow"></div>
+          </div>
+          <div style="display:flex;gap:20px">
+            <div class="rodBtns">
+              <button id="rodLUp">▲</button>
+              <button id="rodLDown">▼</button>
+            </div>
+            <div class="rodBtns">
+              <button id="rodRUp">▲</button>
+              <button id="rodRDown">▼</button>
+            </div>
+          </div>
+        </div>
+        <div class="rodResult" aria-live="polite" aria-atomic="true">
+          <div id="rodCellBox" aria-hidden="true"></div>
+          <div id="rodIdentity" class="big"></div>
+          <div id="rodDetail" class="small"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel full">
+      <h2>Montaj cu 5 benzi mobile</h2>
+      <p>Cinci benzi mobile, dispuse paralel, permit prezentarea simultană a până la cinci caractere Braille. Fiecare bandă glisează pe un ghidaj aflat sub un capac fix. Zona delimitată cu roșu reprezintă fanta/fereastra de acces tactil: numai aici punctele rămân descoperite și pot fi atinse. În rest, capacul maschează punctele; în simulare este desenat translucid pentru ca deplasarea benzilor de dedesubt să poată fi urmărită. La apăsarea butonului, fiecare bandă se poziționează automat astfel încât configurația Braille dorită să ajungă în fereastra de acces tactil.</p>
+      <div class="fiveBandControls">
+        <label>Text scurt (maximum 5 litere)
+          <input id="fiveBandInput" type="text" maxlength="5" value="SALUT" placeholder="ex: SALUT" autocomplete="off" spellcheck="false">
+        </label>
+        <button id="fiveBandGo" class="primary">Așază benzile</button>
+      </div>
+      <div class="fiveBandStage">
+        <div>
+          <div id="fiveBandFrame" class="fiveBandFrame" aria-label="Cinci benzi Braille animate">
+            <div class="fiveBandReadWindow" aria-hidden="true"></div>
+          </div>
+          <div id="fiveBandLabels" class="fiveBandLabels"></div>
+        </div>
+      </div>
+      <div id="fiveBandStatus" class="fiveBandStatus" aria-live="polite"></div>
+    </section>
+
+    <section class="panel full">
+      <h2>Montaj cu 5 celule și câte 2 tije mobile</h2>
+      <p>Demonstrația extinde mecanismul la cinci celule, fiecare cu două tije independente. Tijele glisează sub un capac fix, iar zona delimitată cu roșu reprezintă fanta/fereastra de acces tactil. Numai punctele aflate în această zonă sunt accesibile la atingere; restul tijelor este mascat de capac, reprezentat translucid în simulare. Cele 10 tije se poziționează independent pentru a prezenta simultan cele cinci caractere ale textului introdus.</p>
+      <div class="fiveBandControls">
+        <label>Text scurt (maximum 5 litere)
+          <input id="fiveTwinInput" type="text" maxlength="5" value="SALUT" placeholder="ex: SALUT" autocomplete="off" spellcheck="false">
+        </label>
+        <button id="fiveTwinGo" class="primary">Așază cele 10 tije</button>
+      </div>
+      <div class="fiveTwinStage">
+        <div>
+          <div id="fiveTwinFrame" class="fiveTwinFrame" aria-label="Cinci celule Braille, fiecare cu două tije animate">
+            <div class="fiveTwinReadWindow" aria-hidden="true"></div>
+          </div>
+          <div id="fiveTwinLabels" class="fiveTwinLabels"></div>
+        </div>
+      </div>
+      <div id="fiveTwinStatus" class="fiveBandStatus" aria-live="polite"></div>
+    </section>
+
+    <section class="panel full">
+      <h2>Conversie text în Braille</h2>
+      <p>Introduceți un text pentru a vedea configurațiile Braille corespunzătoare. În convenția folosită în această pagină, cifrele refolosesc formele literelor A–J după un indicator numeric, iar literele mari sunt precedate de indicatorul de majusculă format din <strong>punctul 6</strong>. Convertorul adaugă automat acești indicatori acolo unde este cazul și poate fi folosit ca ghid pentru configurarea manuală a mecanismului.</p>
+      <input id="wordInput" type="text" placeholder="ex: Casa Mihai are 3 uși" style="width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:10px;margin-bottom:10px">
+      <div id="wordWarning" class="small" style="color:#c0392b;margin-bottom:8px" aria-live="polite"></div>
+      <div id="wordOutput" class="wordOutput"></div>
+      <div class="positionGuide">
+        <h3>Ghid de poziționare pentru varianta cu două tije</h3>
+        <p>Pentru fiecare celulă, pozițiile sunt calculate direct din aceeași secvență B(2,3) folosită de simulator. Poziția 0…7 este poziția utilă a tijei în mecanismul demonstrat mai sus.</p>
+        <div id="positionGuideGrid" class="positionGuideGrid"></div>
+      </div>
+    </section>
+
+    <section class="panel full">
+      <h2>Tabel de referință alfabetic</h2>
+      <p>Literele, cifrele și semnele de punctuație, în ordine alfabetică (nu în ordinea secvenței de Bruijn), pentru consultare rapidă.</p>
+      <div id="refTables"></div>
+    </section>
+
+    <section class="panel full">
+      <h2>Notă pentru un prototip mecanic</h2>
+      <p id="mechanics"></p>
+      <div class="small">
+        Un eventual prototip manual ar avea doar rol demonstrativ: benzile sau tijele ar putea culisa pe ghidaje cu poziții discrete, fără motoare, pentru a verifica geometria și principiul de poziționare. Fezabilitatea tactilă și mecanică a unei implementări practice nu este presupusă de simulator.
+      </div>
+    </section>
+
+    <section class="panel full">
+      <h2>Cum se obține suprapunerea</h2>
+      <div class="small" style="line-height:1.6">
+        <p>Introducerea de la început explică scopul mecanismului. Schemele de mai jos arată mai tehnic <strong>cum sunt reutilizate pozițiile succesive</strong>. Panoul pentru familia de descompuneri adaugă cazul B(2,2), iar schemele de aici detaliază B(4,3) și B(2,3).</p>
+
+        <p>Simulatorul include și modul <strong>B(2,6)</strong>, în care cei 6 biți sunt tratați ca un șir binar continuu. Acesta acoperă matematic aceleași 64 de configurații, dar pasul de un singur bit nu corespunde direct geometriei fizice 2×3 a celulei Braille; este păstrat în principal pentru comparație.</p>
+
+        <div class="theoryOverlap">
+          <h3>De la șiruri de 0 și 1 la banda cu o singură piesă mobilă</h3>
+          <p>Fiecare linie reprezintă o celulă Braille completă scrisă cu 0 și 1. Linia următoare este decalată cu <strong>un rând Braille = 2 biți</strong>: ultimele patru valori ale unei celule sunt reutilizate ca primele patru ale celei următoare. Schema este generată din aceeași secvență <strong>B(4,3)</strong> care controlează benzile din simulare.</p>
+          <div id="theoryOverlapBox" class="theoryOverlapBox"></div>
+          <div class="theoryOverlapLegend">Schema descrie construcția B(4,3). Fiecare linie arată indexul ferestrei, cele trei perechi de biți citite pe bandă și forma compactă a celulei de 6 biți.</div>
+        </div>
+
+        <div class="theoryOverlap twinTheory">
+          <h3>De la șiruri de 0 și 1 la mecanismul cu două tije</h3>
+          <p>În varianta cu două tije, aceeași idee de suprapunere este aplicată separat celor două coloane fizice ale celulei. Fiecare tijă folosește o secvență circulară <strong>B(2,3)</strong>, iar o fereastră de trei poziții consecutive produce toate cele opt configurații posibile ale unei coloane.</p>
+          <div id="theoryTwinBox" class="theoryOverlapBox"></div>
+          <div class="theoryOverlapLegend">Cele două tije au aceeași geometrie și aceeași secvență de bază, dar se deplasează independent. Configurațiile lor se reunesc în fanta/fereastra de acces tactil pentru a forma celula Braille completă.</div>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+function deBruijn(k, n) {
+  const a = new Array(k*n).fill(0);
+  const sequence = [];
+  function db(t, p) {
+    if (t > n) {
+      if (n % p === 0) {
+        for (let i = 1; i <= p; i++) sequence.push(a[i]);
+      }
+    } else {
+      a[t] = a[t-p];
+      db(t+1, p);
+      for (let j = a[t-p]+1; j < k; j++) {
+        a[t] = j;
+        db(t+1, t);
+      }
+    }
+  }
+  db(1,1);
+  return sequence;
+}
+
+const seq43 = deBruijn(4,3); // 64 symbols, each symbol = 2 bits
+const seq26 = deBruijn(2,6); // 64 bits
+const seq2 = deBruijn(2,2);  // 4 bits; windows of 2 bits => 4 row states
+
+const modeEl = document.getElementById('mode');
+const indexEl = document.getElementById('index');
+const rowsEl = document.getElementById('rows');
+const seqEl = document.getElementById('seq');
+const cellBox = document.getElementById('cellBox');
+const cellCode = document.getElementById('cellCode');
+const rail = document.getElementById('rail');
+const dragWindow = document.getElementById('dragWindow');
+const stepMetric = document.getElementById('stepMetric');
+const periodMetric = document.getElementById('periodMetric');
+const mechanics = document.getElementById('mechanics');
+const snapNote = document.getElementById('snapNote');
+const identityEl = document.getElementById('identity');
+const identityDetailEl = document.getElementById('identityDetail');
+const speakEl = document.getElementById('speak');
+
+// iOS Safari blochează speechSynthesis.speak() dacă nu e declanșat direct de un gest
+// explicit al utilizatorului. Bifarea checkbox-ului E un asemenea gest, așa că îl folosim
+// ca să "deblocăm" vocea o singură dată, cu un rostire aproape silențioasă.
+let speechUnlocked = false;
+speakEl.addEventListener('change', ()=>{
+  if(speakEl.checked && !speechUnlocked && 'speechSynthesis' in window){
+    const primer = new SpeechSynthesisUtterance(' ');
+    primer.volume = 0;
+    speechSynthesis.speak(primer);
+    speechUnlocked = true;
+  }
+});
+
+function pairBits(v){ return [(v>>1)&1, v&1]; }
+
+function getCellBits(mode, idx){
+  if(mode === 'b43'){
+    const s = seq43;
+    const vals = [s[idx%s.length], s[(idx+1)%s.length], s[(idx+2)%s.length]];
+    return vals.flatMap(pairBits);
+  } else {
+    const s = seq26;
+    return Array.from({length:6},(_,j)=>s[(idx+j)%s.length]);
+  }
+}
+
+function makeBrailleCell(bits){
+  const wrap = document.createElement('div');
+  wrap.className = 'cell';
+  bits.forEach((b,i)=>{
+    const d = document.createElement('div');
+    d.className = 'dot' + (b ? ' on' : '');
+    d.textContent = bitPositions[i]; // numărul REAL al punctului Braille, nu poziția din array
+    wrap.appendChild(d);
+  });
+  return wrap;
+}
+
+
+// Ordinea biților folosită aici este 1,4 / 2,5 / 3,6.
+const letterDots = {
+  A:[1], B:[1,2], C:[1,4], D:[1,4,5], E:[1,5],
+  F:[1,2,4], G:[1,2,4,5], H:[1,2,5], I:[2,4], J:[2,4,5],
+  K:[1,3], L:[1,2,3], M:[1,3,4], N:[1,3,4,5], O:[1,3,5],
+  P:[1,2,3,4], Q:[1,2,3,4,5], R:[1,2,3,5], S:[2,3,4], T:[2,3,4,5],
+  U:[1,3,6], V:[1,2,3,6], W:[2,4,5,6], X:[1,3,4,6], Y:[1,3,4,5,6], Z:[1,3,5,6],
+  // Caractere specifice limbii române (sursă: ldv.ro / Alfabetul Braille în limba română)
+  'Ă':[1,6], 'Â':[1,2,6], 'Î':[1,4,6], 'Ș':[1,5,6], 'Ț':[2,4,6]
+};
+const bitPositions = [1,4,2,5,3,6];
+const brailleToLetter = {};
+for (const [letter,dots] of Object.entries(letterDots)) {
+  brailleToLetter[bitPositions.map(p=>dots.includes(p)?1:0).join('')] = letter;
+}
+// Cifrele 1-0 folosesc aceleași forme ca A-J după indicatorul numeric.
+const digitByLetter = {A:'1',B:'2',C:'3',D:'4',E:'5',F:'6',G:'7',H:'8',I:'9',J:'0'};
+
+// Numele fonetice scrise cu litere mici împiedică browserul să le interpreteze drept cifre romane
+const letterSpeechMap = {
+  A: 'litera a, ca în Ana',
+  B: 'litera be, ca în Barbu',
+  C: 'litera ce, ca în Constantin',
+  D: 'litera de, ca în Dumitru',
+  E: 'litera e, ca în Elena',
+  F: 'litera ef, ca în Florea',
+  G: 'litera ge, ca în Gheorghe',
+  H: 'litera ha, ca în Haralambie',
+  I: 'litera i, ca în Ion',
+  J: 'litera ji, ca în Jiu',
+  K: 'litera ca, ca în Kilogram',
+  L: 'litera el, ca în Lazăr',
+  M: 'litera em, ca în Maria',
+  N: 'litera en, ca în Nicolae',
+  O: 'litera o, ca în Olga',
+  P: 'litera pe, ca în Petre',
+  Q: 'litera chiu, ca în Chiubec',
+  R: 'litera er, ca în Radu',
+  S: 'litera es, ca în Sandu',
+  T: 'litera te, ca în Tudor',
+  U: 'litera u, ca în Udrea',
+  V: 'litera ve, ca în Vasile',
+  W: 'litera dublu ve, ca în Whiskey',
+  X: 'litera ics, ca în Xenia',
+  Y: 'litera igrec, ca în yoga',
+  Z: 'litera zet, ca în Zamfir',
+  'Ă': 'litera ă, ca în ăsta',
+  'Â': 'litera î din a, ca în cuvântul român',
+  'Î': 'litera î, ca în înot',
+  'Ș': 'litera șe, ca în Ștefan',
+  'Ț': 'litera țe, ca în Țară'
+};
+
+// Semne de punctuație cu poziții de puncte stabile (identice EBAE/UEB) - listă parțială,
+// deliberat conservatoare (nu includem semne unde sursele diferă între tabele Braille).
+const punctuationDots = {
+  ',': [2],
+  "'": [3],
+  ':': [2,5],
+  ';': [2,3],
+  '-': [3,6],
+  '.': [2,5,6]
+};
+// Nume în clar, ca să nu se bazeze afișarea/vocea pe simbolul însuși (greu de citit cu voce sau de disting vizual).
+const punctuationNames = {
+  ',': 'virgulă',
+  "'": 'apostrof',
+  ':': 'două puncte',
+  ';': 'punct și virgulă',
+  '-': 'cratimă',
+  '.': 'punct'
+};
+const brailleToPunct = {};
+for (const [sym,dots] of Object.entries(punctuationDots)) {
+  brailleToPunct[bitPositions.map(p=>dots.includes(p)?1:0).join('')] = sym;
+}
+
+function identify(bits){
+  const code = bits.join('');
+  const letter = brailleToLetter[code];
+  if(letter) {
+    const digit = digitByLetter[letter];
+    const isRomanianOnly = 'ĂÂÎȘȚ'.includes(letter);
+    const speechText = letterSpeechMap[letter] || `litera ${letter.toLowerCase()}`;
+    return {
+      title: letter,
+      category: 'letter',
+      digit: digit || null,
+      speech: speechText,
+      shortLabel: letter,
+      detail: digit ? `Literă Braille ${letter}; aceeași formă reprezintă cifra ${digit} după indicatorul numeric.`
+        : isRomanianOnly ? `Literă specifică limbii române: ${letter}.`
+        : `Literă Braille ${letter}.`
+    };
+  }
+  if(code === '000000') return {title:'spațiu', category:'space', digit:null, speech:'spațiu', shortLabel:'spațiu', detail:'Celulă fără puncte ridicate.'};
+  const punct = brailleToPunct[code];
+  if(punct){
+    const name = punctuationNames[punct];
+    return {title:name, category:'punct', digit:null, speech:name, shortLabel:name, detail:`Semn de punctuație Braille: ${name} ( ${punct} ).`};
+  }
+  return {title:'—', category:'unknown', digit:null, speech:'fără corespondent cunoscut', shortLabel:'—', detail:'Nu e literă/semn cunoscut. Poate fi cifră, altă punctuație sau indicator, după tabelul folosit.'};
+}
+
+let lastSpokenIndex = null;
+let speechDebounceTimer = null;
+function updateIdentity(bits, idx){
+  const info = identify(bits);
+  identityEl.textContent = info.title;
+  identityEl.style.color = {letter:'#2f9e44', punct:'#f08c00', space:'#adb5bd', unknown:'#9aa3b2'}[info.category] || '';
+  identityDetailEl.textContent = info.detail;
+  if(speakEl.checked && lastSpokenIndex !== idx && 'speechSynthesis' in window){
+    // Debounce: la tragere rapidă (mai multe rânduri pe secundă), rostim doar poziția
+    // pe care utilizatorul chiar s-a oprit, nu fiecare rând tranzitoriu.
+    clearTimeout(speechDebounceTimer);
+    speechDebounceTimer = setTimeout(()=>{
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(info.speech);
+      u.lang = 'ro-RO';
+      speechSynthesis.speak(u);
+    }, 130);
+  }
+  lastSpokenIndex = idx;
+}
+
+function render(){
+  const mode = modeEl.value;
+  const max = 63;
+  let idx = Math.max(0, Math.min(max, parseInt(indexEl.value||'0',10)));
+  indexEl.value = idx;
+  indexEl.max = max;
+  const count = Math.max(6, Math.min(66, parseInt(rowsEl.value||'66',10)));
+  rowsEl.value = count;
+
+  const bits = getCellBits(mode, idx);
+  cellBox.innerHTML = '';
+  cellBox.appendChild(makeBrailleCell(bits));
+  cellCode.textContent = '6 biți: ' + bits.join('') + '\n' +
+    'rânduri: ' + bits.slice(0,2).join('') + ' / ' + bits.slice(2,4).join('') + ' / ' + bits.slice(4,6).join('');
+  updateIdentity(bits, idx);
+
+  rail.innerHTML = '';
+  dragWindow.innerHTML = '';
+  const railFragment = document.createDocumentFragment();
+
+  if(mode === 'b43'){
+    stepMetric.textContent = '2 biți / 1 rând';
+    periodMetric.textContent = '64 simboluri / 128 biți';
+    seqEl.textContent = seq43.map(v=>pairBits(v).join('')).join('  ');
+    snapNote.textContent = 'Poziționare pe grilă: 1 rând Braille = 2 biți = o poziție mecanică discretă.';
+    mechanics.textContent = 'B(4,3): fiecare rând Braille este tratat ca un simbol din {00,01,10,11}. O celulă este o fereastră de 3 rânduri, iar trecerea la următoarea configurație mută fereastra cu exact un rând = 2 biți. Construcția se potrivește bine geometriei pe rânduri a celulei Braille și este utilă pentru demonstrarea principiului de suprapunere.';
+    railRows.length = 0;
+    railBaseIdx = idx;
+    for(let r=0;r<count;r++){
+      const v = seq43[(idx+r)%seq43.length];
+      const bits2 = pairBits(v);
+      const rr = document.createElement('div');
+      rr.className='rail-row';
+      rr.dataset.rowIndex = String(r);
+      bits2.forEach(b=>{
+        const x=document.createElement('div');
+        x.className='rail-bit'+(b?' on':'');
+        rr.appendChild(x);
+      });
+      const lab=document.createElement('div');
+      lab.className='rail-label';
+      const digitCol=document.createElement('div');
+      digitCol.className='rail-digit';
+      const isEdge = (r===0 || r===count-1);
+      const labelNum = String((idx+r)%64).padStart(2,'0');
+      if(isEdge){
+        const neighborR = r===0 ? 1 : count-2;
+        lab.textContent = labelNum+' : '+bits2.join('')+'  (context, vezi '+String((idx+neighborR)%64).padStart(2,'0')+')';
+        rr.classList.add('cat-context');
+      } else {
+        const centerR = clampedTopRowFor(r, count) + 1;
+        const signInfo = identify(getCellBits('b43', windowIdxForRow('b43', idx, centerR)));
+        lab.textContent = labelNum+' : '+bits2.join('')+'  →  '+signInfo.shortLabel;
+        rr.classList.add('cat-'+signInfo.category);
+        if(signInfo.digit){ digitCol.textContent = signInfo.digit; digitCol.classList.add('has-digit'); }
+      }
+      rr.appendChild(lab);
+      rr.appendChild(digitCol);
+      railFragment.appendChild(rr);
+      railRows.push(rr);
+      if(!isEdge) rr.addEventListener('click', ()=>selectByRow('b43', idx, r, count));
+    }
+    rail.appendChild(railFragment);
+    alignWindowToRows(0);
+    highlightWindowRows(0);
+  } else {
+    stepMetric.textContent = '1 bit';
+    periodMetric.textContent = '64 biți';
+    seqEl.textContent = seq26.join('');
+    snapNote.textContent = 'Mod comparativ B(2,6): 1 bit = o poziție în șir; fereastra conține 6 biți consecutivi.';
+    mechanics.textContent = 'B(2,6): cele 6 puncte sunt tratate ca un șir binar liniar. Fereastra matematică avansează cu 1 bit și acoperă toate cele 64 de combinații, dar această ordine nu corespunde direct geometriei fizice 2×3 a celulei Braille. Modul este păstrat ca termen de comparație matematică.';
+    railRows.length = 0;
+    railBaseIdx = idx;
+    for(let r=0;r<count;r++){
+      const b = seq26[(idx+r)%64];
+      const rr=document.createElement('div');
+      rr.className='rail-row';
+      rr.dataset.rowIndex = String(r);
+
+      const x=document.createElement('div');
+      x.className='rail-bit'+(b?' on':'');
+      rr.appendChild(x);
+      const spacer=document.createElement('div');
+      spacer.setAttribute('aria-hidden','true');
+      rr.appendChild(spacer);
+
+      const lab=document.createElement('div');
+      lab.className='rail-label';
+      const digitCol=document.createElement('div');
+      digitCol.className='rail-digit';
+      const hasFullWindow = r <= count-6;
+      const labelNum = String((idx+r)%64).padStart(2,'0');
+
+      if(!hasFullWindow){
+        lab.textContent = labelNum+' : '+b+'  (context pentru ultima fereastră)';
+        rr.classList.add('cat-context');
+      } else {
+        const signInfo = identify(getCellBits('b26', (idx+r)%64));
+        lab.textContent = labelNum+' : '+b+'  → fereastră 6 biți: '+signInfo.shortLabel;
+        rr.classList.add('cat-'+signInfo.category);
+        if(signInfo.digit){ digitCol.textContent = signInfo.digit; digitCol.classList.add('has-digit'); }
+        rr.addEventListener('click', ()=>selectByRow('b26', idx, r, count));
+      }
+      rr.appendChild(lab);
+      rr.appendChild(digitCol);
+      railFragment.appendChild(rr);
+      railRows.push(rr);
+    }
+    rail.appendChild(railFragment);
+    alignWindowToRows(0);
+    highlightWindowRows(0);
+  }
+  currentRowIndex = mode === 'b26' ? 0 : 1;
+  renderTheoryOverlap();
+}
+
+// r = poziția rândului apăsat în lista curent afișată (0-indexat).
+// baseIdx = idx-ul folosit când s-a construit șina (nu se schimbă la click).
+// Calculăm indexul ferestrei de 3 rânduri astfel încât rândul apăsat
+// să devină rândul din MIJLOC al caracterului Braille selectat.
+// Calculează idx-ul ferestrei de 3 rânduri pentru care rândul r (din lista curentă,
+// construită pornind de la baseIdx) este rândul din MIJLOC.
+function windowIdxForRow(mode, baseIdx, r){
+  if(mode === 'b43'){
+    return ((baseIdx + r - 1) % 64 + 64) % 64;
+  }
+  return ((baseIdx + 2*r - 2) % 64 + 64) % 64;
+}
+
+// Rândul de SUS al ferestrei de 3 rânduri asociate rândului r, limitat astfel încât
+// fereastra să rămână mereu complet vizibilă (nu "sare" niciodată la capătul opus
+// al secvenței circulare, care ar fi în afara listei afișate).
+function clampedTopRowFor(r, count){
+  return Math.max(0, Math.min(count-3, r-1));
+}
+
+let currentRowIndex = 1;
+function selectByRow(mode, baseIdx, r, count){
+  let topR, targetIdx;
+  if(mode === 'b26'){
+    topR = Math.max(0, Math.min(count-6, r));
+    currentRowIndex = topR;
+    targetIdx = ((baseIdx + topR) % 64 + 64) % 64;
+  } else {
+    currentRowIndex = r;
+    topR = clampedTopRowFor(r, count);
+    const centerR = topR + 1;
+    targetIdx = windowIdxForRow(mode, baseIdx, centerR);
+  }
+  const bits = getCellBits(mode, targetIdx);
+  cellBox.innerHTML = '';
+  cellBox.appendChild(makeBrailleCell(bits));
+  cellCode.textContent = '6 biți: ' + bits.join('') + '\n' +
+    'rânduri: ' + bits.slice(0,2).join('') + ' / ' + bits.slice(2,4).join('') + ' / ' + bits.slice(4,6).join('');
+  updateIdentity(bits, targetIdx);
+  indexEl.value = targetIdx; // sincronizăm câmpul, dar fără să reconstruim șina
+
+  alignWindowToRows(topR);
+  highlightWindowRows(topR);
+  renderTheoryOverlap();
+}
+
+function highlightWindowRows(topR){
+  const span = modeEl.value === 'b26' ? 6 : 3;
+  railRows.forEach((el,i)=>{
+    const inWindow = i>=topR && i<topR+span;
+    el.classList.toggle('selected', inWindow);
+    el.classList.toggle('selected-center', inWindow && (modeEl.value === 'b26' ? i===topR : i===topR+1));
+  });
+}
+
+document.getElementById('prev').addEventListener('click',()=>{indexEl.value=(parseInt(indexEl.value||0)-1+64)%64;render();});
+document.getElementById('next').addEventListener('click',()=>{indexEl.value=(parseInt(indexEl.value||0)+1)%64;render();});
+document.getElementById('reset').addEventListener('click',()=>{indexEl.value=0;render();});
+modeEl.addEventListener('change',render);
+indexEl.addEventListener('input',render);
+rowsEl.addEventListener('input',render);
+
+let dragging=false;
+const railRows = []; // referințe către rândurile curente ale șinei, indexate de la 0
+let railBaseIdx = 0; // idx-ul folosit când s-a construit ultima dată șina
+
+// Măsoară offsetul unui element față de un strămoș, urmărind lanțul offsetParent
+// (stabil chiar dacă #workspace e derulat pe verticală).
+function chainOffset(el, ancestor){
+  let top=0, left=0, node=el;
+  while(node && node!==ancestor){
+    top += node.offsetTop;
+    left += node.offsetLeft;
+    node = node.offsetParent;
+  }
+  return {top, left};
+}
+
+// Poziționează / dimensionează fereastra (dragWindow) exact peste cele 3 rânduri
+// de puncte, folosind geometria reală a DOM-ului.
+function alignWindowToRows(topR){
+  if(!railRows.length) return;
+  const workspaceEl = document.getElementById('workspace');
+  const span = modeEl.value === 'b26' ? 6 : 3;
+  const clampedTop = Math.max(0, Math.min(railRows.length-span, topR));
+  const firstRow = railRows[clampedTop];
+  const lastRow = railRows[Math.min(railRows.length-1, clampedTop+span-1)];
+  if(!firstRow || !lastRow) return;
+  const firstBit = firstRow.children[0];
+  const secondBit = modeEl.value === 'b26' ? firstBit : firstRow.children[1];
+  const PAD = 3;
+  const firstBitPos = chainOffset(firstBit, workspaceEl);
+  const secondBitPos = chainOffset(secondBit, workspaceEl);
+  const firstRowPos = chainOffset(firstRow, workspaceEl);
+  const lastRowPos = chainOffset(lastRow, workspaceEl);
+  const left = firstBitPos.left - PAD;
+  const width = (secondBitPos.left + secondBit.offsetWidth) - firstBitPos.left + PAD*2;
+  const top = firstRowPos.top - PAD;
+  const height = (lastRowPos.top + lastRow.offsetHeight) - firstRowPos.top + PAD*2;
+  dragWindow.style.left = left+'px';
+  dragWindow.style.top = top+'px';
+  dragWindow.style.width = width+'px';
+  dragWindow.style.height = height+'px';
+  return clampedTop;
+}
+
+// Găsește indexul rândului (0-indexat, ca în railRows) aflat sub o coordonată Y de ecran,
+// eșantionând puțin în dreapta coloanei de puncte (ca să nu "vedem" chiar dreptunghiul
+// care se mișcă, ci rândul de dedesubt). Robust la orice derulare, pentru că
+// elementFromPoint ține deja cont de poziția curentă de scroll.
+function rowIndexFromPoint(clientY){
+  const railRect = rail.getBoundingClientRect();
+  const sampleX = railRect.left + Math.min(railRect.width - 8, railRect.width * 0.55);
+
+  // Dacă mouse-ul e tras peste rândul de context de sus/jos (sau chiar mai departe, în afara
+  // containerului), fixăm selecția pe primul/ultimul rând valid, în loc să ignorăm mișcarea.
+  const firstValidIndex = modeEl.value === 'b26' ? 0 : 1;
+  const lastValidIndex = modeEl.value === 'b26' ? Math.max(0, railRows.length - 6) : railRows.length - 2;
+  const firstValidRow = railRows[firstValidIndex];
+  const lastValidRow = railRows[lastValidIndex];
+  if (firstValidRow) {
+    const firstRect = firstValidRow.getBoundingClientRect();
+    if (clientY < firstRect.bottom) return firstValidIndex;
+  }
+  if (lastValidRow) {
+    const lastRect = lastValidRow.getBoundingClientRect();
+    if (clientY > lastRect.top) return lastValidIndex;
+  }
+
+  const el = document.elementFromPoint(sampleX, clientY);
+  if(!el) return null;
+  const rowEl = el.closest ? el.closest('.rail-row') : null;
+  if(!rowEl || rowEl.classList.contains('cat-context')) return null;
+  const idxAttr = rowEl.dataset.rowIndex;
+  return idxAttr !== undefined ? parseInt(idxAttr, 10) : null;
+}
+
+let lastDragRowIndex = null;
+
+dragWindow.addEventListener('pointerdown',e=>{
+  dragging=true;
+  lastDragRowIndex = null;
+  dragWindow.setPointerCapture(e.pointerId);
+});
+dragWindow.addEventListener('pointermove',e=>{
+  if(!dragging) return;
+  e.preventDefault();
+  const workspaceEl = document.getElementById('workspace');
+  const wr=workspaceEl.getBoundingClientRect();
+
+  // Auto-derulare: dacă tragi aproape de marginea de sus/jos a zonei vizibile,
+  // derulăm lista automat, ca dreptunghiul să poată ajunge chiar la primul/ultimul rând.
+  const EDGE = 36;
+  const distTop = e.clientY - wr.top;
+  const distBottom = wr.bottom - e.clientY;
+  if(distTop < EDGE){
+    workspaceEl.scrollTop -= (EDGE - distTop) * 0.6;
+  } else if(distBottom < EDGE){
+    workspaceEl.scrollTop += (EDGE - distBottom) * 0.6;
+  }
+
+  const mode = modeEl.value;
+  const rIdx = rowIndexFromPoint(e.clientY);
+  if(rIdx !== null && rIdx !== lastDragRowIndex){
+    lastDragRowIndex = rIdx;
+    selectByRow(mode, railBaseIdx, rIdx, railRows.length);
+  }
+});
+dragWindow.addEventListener('pointerup',e=>{
+  dragging=false;
+  if(dragWindow.hasPointerCapture(e.pointerId)){
+    dragWindow.releasePointerCapture(e.pointerId);
+  }
+  const mode = modeEl.value;
+  const rIdx = rowIndexFromPoint(e.clientY);
+  if(rIdx !== null){
+    selectByRow(mode, railBaseIdx, rIdx, railRows.length);
+  }
+});
+dragWindow.addEventListener('pointercancel',e=>{
+  dragging=false;
+  if(dragWindow.hasPointerCapture(e.pointerId)){
+    dragWindow.releasePointerCapture(e.pointerId);
+  }
+});
+
+// ---------- Navigare cu tastatura (săgeți sus/jos) ----------
+document.getElementById('workspace').addEventListener('keydown', (e)=>{
+  if(e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+  const tag = document.activeElement && document.activeElement.tagName;
+  if(tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+  if(!railRows.length) return;
+  e.preventDefault();
+  const delta = e.key === 'ArrowUp' ? -1 : 1;
+  const minRow = modeEl.value === 'b26' ? 0 : 1;
+  const maxRow = modeEl.value === 'b26' ? Math.max(0, railRows.length-6) : railRows.length-2;
+  const next = Math.max(minRow, Math.min(maxRow, currentRowIndex + delta));
+  if(next === currentRowIndex) return;
+  selectByRow(modeEl.value, railBaseIdx, next, railRows.length);
+  const rowEl = railRows[next];
+  if(rowEl && rowEl.scrollIntoView) rowEl.scrollIntoView({block:'nearest'});
+});
+
+// ---------- Export CSV cu toate cele 64 de combinații ----------
+document.getElementById('exportCsv').addEventListener('click', ()=>{
+  const mode = modeEl.value;
+  let csv = '\uFEFFindex,biți,semn,categorie,cifră\n';
+  for(let i=0;i<64;i++){
+    const bits = getCellBits(mode, i);
+    const info = identify(bits);
+    const safeTitle = String(info.title).replace(/"/g,'""');
+    csv += `${i},${bits.join('')},"${safeTitle}",${info.category},${info.digit||''}\n`;
+  }
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'braille_64_' + mode + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+// ---------- Scrie un cuvânt / o propoziție ----------
+const CAPITAL_SIGN_DOTS = [6];
+const NUMBER_SIGN_DOTS = [3,4,5,6];
+function dotsToBits(dots){
+  return bitPositions.map(p => dots.includes(p) ? 1 : 0);
+}
+const letterByDigit = {};
+for (const [letter,digit] of Object.entries(digitByLetter)) letterByDigit[digit] = letter;
+
+function buildWordCells(rawText){
+  // Normalizăm diacriticele vechi cu sedilă (ş, ţ) la formele corecte cu virgulă (ș, ț),
+  // ca să nu apară ca "neacoperite" doar din cauza unei variante mai vechi de tastatură/font.
+  const text = rawText
+    .replace(/ş/g, 'ș').replace(/Ş/g, 'Ș')
+    .replace(/ţ/g, 'ț').replace(/Ţ/g, 'Ț');
+  const cells = [];
+  const unsupported = new Set();
+  let digitMode = false;
+  let needsLetterIndicator = false;
+  for (const rawCh of Array.from(text)){
+    if(rawCh === ' '){
+      cells.push({bits: dotsToBits([]), label:'spațiu', cat:'space'});
+      digitMode = false;
+      continue;
+    }
+    if(/[0-9]/.test(rawCh)){
+      if(!digitMode){
+        cells.push({bits: dotsToBits(NUMBER_SIGN_DOTS), label:'semn numeric', cat:'special'});
+        digitMode = true;
+      }
+      const letterForDigit = letterByDigit[rawCh];
+      if(letterForDigit){
+        cells.push({bits: dotsToBits(letterDots[letterForDigit]), label: rawCh, cat:'letter'});
+      } else {
+        unsupported.add(rawCh);
+      }
+      continue;
+    }
+    const upper = rawCh.toUpperCase();
+    if(letterDots[upper]){
+      if(digitMode) needsLetterIndicator = true;
+      digitMode = false;
+      if(rawCh === upper && rawCh !== rawCh.toLowerCase()){
+        cells.push({bits: dotsToBits(CAPITAL_SIGN_DOTS), label:'semn majusculă', cat:'special'});
+      }
+      cells.push({bits: dotsToBits(letterDots[upper]), label: upper, cat:'letter'});
+      continue;
+    }
+    digitMode = false;
+    if(punctuationDots[rawCh]){
+      cells.push({bits: dotsToBits(punctuationDots[rawCh]), label: punctuationNames[rawCh], cat:'punct'});
+      continue;
+    }
+    unsupported.add(rawCh);
+  }
+  return {cells, unsupported, needsLetterIndicator};
+}
+
+function makeMiniDotsGrid(bits){
+  const wrap = document.createElement('div');
+  wrap.className = 'dots';
+  bits.forEach(b=>{
+    const d = document.createElement('div');
+    d.className = 'd' + (b ? ' on' : '');
+    wrap.appendChild(d);
+  });
+  return wrap;
+}
+
+const wordInputEl = document.getElementById('wordInput');
+const wordOutputEl = document.getElementById('wordOutput');
+const wordWarningEl = document.getElementById('wordWarning');
+const positionGuideGridEl = document.getElementById('positionGuideGrid');
+
+function rodPositionsForBits(bits){
+  const left = [bits[0], bits[2], bits[4]];
+  const right = [bits[1], bits[3], bits[5]];
+  return {
+    leftBits: left.join(''),
+    rightBits: right.join(''),
+    leftIndex: findSeq3IndexForBits(left),
+    rightIndex: findSeq3IndexForBits(right)
+  };
+}
+
+function renderPositionGuide(cells){
+  positionGuideGridEl.innerHTML = '';
+  cells.forEach((c, i)=>{
+    const p = rodPositionsForBits(c.bits);
+    const card = document.createElement('div');
+    card.className = 'positionCard';
+    const title = document.createElement('strong');
+    title.textContent = `${i+1}. ${c.label}`;
+    const left = document.createElement('div');
+    left.className = 'posLine';
+    left.textContent = `stânga ${p.leftBits} → poziția ${p.leftIndex}`;
+    const right = document.createElement('div');
+    right.className = 'posLine';
+    right.textContent = `dreapta ${p.rightBits} → poziția ${p.rightIndex}`;
+    card.append(title, left, right);
+    positionGuideGridEl.appendChild(card);
+  });
+}
+
+function renderWordOutput(){
+  const text = wordInputEl.value;
+  wordOutputEl.innerHTML = '';
+  if(!text){
+    wordWarningEl.textContent = '';
+    positionGuideGridEl.innerHTML = '';
+    return;
+  }
+  const {cells, unsupported, needsLetterIndicator} = buildWordCells(text);
+  cells.forEach(c=>{
+    const wc = document.createElement('div');
+    wc.className = 'wordCell cat-' + c.cat + (c.cat === 'special' ? ' special' : '');
+    wc.appendChild(makeMiniDotsGrid(c.bits));
+    const lbl = document.createElement('div');
+    lbl.className = 'lbl';
+    lbl.textContent = c.label;
+    wc.appendChild(lbl);
+    wordOutputEl.appendChild(wc);
+  });
+  const warnings = [];
+  if(unsupported.size) warnings.push('Caractere neacoperite (omise): ' + Array.from(unsupported).join(' '));
+  if(needsLetterIndicator) warnings.push('Atenție: există o literă imediat după un șir de cifre. Convertorul nu inserează automat un indicator de literă pentru această situație; verificați convenția Braille folosită înainte de configurarea mecanismului.');
+  wordWarningEl.textContent = warnings.join(' ');
+  renderPositionGuide(cells);
+}
+wordInputEl.addEventListener('input', renderWordOutput);
+
+// ---------- Tabel de referință alfabetic ----------
+function buildReferenceTables(){
+  const container = document.getElementById('refTables');
+  const roOrder = ['A','Ă','Â','B','C','D','E','F','G','H','I','Î','J','K','L','M','N','O','P','Q','R','S','Ș','T','Ț','U','V','W','X','Y','Z'];
+
+  function tableFor(title, rows){
+    const wrap = document.createElement('div');
+    const h = document.createElement('h3');
+    h.style.fontSize = '.95rem';
+    h.style.margin = '4px 0 8px';
+    h.textContent = title;
+    wrap.appendChild(h);
+    const table = document.createElement('table');
+    table.className = 'refTable';
+    const thead = document.createElement('tr');
+    ['Model','Semn','Puncte'].forEach(t=>{
+      const th = document.createElement('th');
+      th.textContent = t;
+      thead.appendChild(th);
+    });
+    table.appendChild(thead);
+    rows.forEach(({bits, label, dots})=>{
+      const tr = document.createElement('tr');
+      const tdCell = document.createElement('td');
+      tdCell.appendChild(makeMiniDotsGrid(bits));
+      const tdLabel = document.createElement('td');
+      tdLabel.textContent = label;
+      const tdDots = document.createElement('td');
+      tdDots.className = 'small';
+      tdDots.textContent = dots.length ? dots.join(', ') : '(niciun punct)';
+      tr.appendChild(tdCell); tr.appendChild(tdLabel); tr.appendChild(tdDots);
+      table.appendChild(tr);
+    });
+    wrap.appendChild(table);
+    return wrap;
+  }
+
+  const letterRows = roOrder.map(letter=>{
+    const dots = letterDots[letter];
+    const digit = digitByLetter[letter];
+    return {bits: dotsToBits(dots), label: letter + (digit ? ` (cifra ${digit})` : ''), dots};
+  });
+
+  const punctRows = Object.entries(punctuationDots).map(([sym,dots])=>({
+    bits: dotsToBits(dots), label: punctuationNames[sym] + ` ( ${sym} )`, dots
+  }));
+  punctRows.push({bits: dotsToBits(CAPITAL_SIGN_DOTS), label:'semn majusculă', dots: CAPITAL_SIGN_DOTS});
+  punctRows.push({bits: dotsToBits(NUMBER_SIGN_DOTS), label:'semn numeric', dots: NUMBER_SIGN_DOTS});
+  punctRows.push({bits: dotsToBits([]), label:'spațiu', dots: []});
+
+  const groups = document.createElement('div');
+  groups.className = 'refGroups';
+  groups.appendChild(tableFor('Litere (A–Z, Ă, Â, Î, Ș, Ț)', letterRows));
+  groups.appendChild(tableFor('Punctuație și semne speciale', punctRows));
+  container.innerHTML = '';
+  container.appendChild(groups);
+}
+// ---------- Varianta cu 2 tije pe celulă (fereastră fixă, tija se mișcă) ----------
+const ROD_ROW_H = 22;
+const ROD_WINDOW_TOP_ROWS = 7; // fereastra fixă e la rândurile 7,8,9 din containerul de 17 rânduri
+const seq3 = deBruijn(2,3); // 8 stări posibile per jumătate de celulă (3 puncte)
+const rodPadded = [seq3[seq3.length-1], ...seq3, seq3[0]]; // 10 rânduri (2 de context)
+
+function buildRod(columnId){
+  const column = document.getElementById(columnId);
+  const strip = document.createElement('div');
+  strip.className = 'rodStrip';
+  rodPadded.forEach(b=>{
+    const row = document.createElement('div');
+    row.className = 'rodRow';
+    const dot = document.createElement('div');
+    dot.className = 'rodDot' + (b ? ' on' : '');
+    row.appendChild(dot);
+    strip.appendChild(row);
+  });
+  column.appendChild(strip);
+
+  let index = 0; // 0..7 — rândul din tijă aliniat cu fereastra fixă
+  let dragging = false;
+  let startY = 0, startTop = 0;
+
+  // Poziția strip-ului pentru un index dat, ca rândul "index" să cadă exact
+  // în fereastra fixă (aflată la ROD_WINDOW_TOP_ROWS * ROD_ROW_H).
+  function topForIndex(i){
+    return (ROD_WINDOW_TOP_ROWS - i) * ROD_ROW_H;
+  }
+  function applyTop(){
+    strip.style.top = topForIndex(index) + 'px';
+    column.setAttribute('aria-valuenow', String(index));
+    const bits = [rodPadded[index], rodPadded[index+1], rodPadded[index+2]].join('');
+    column.setAttribute('aria-valuetext', `poziția ${index}, configurația ${bits}`);
+  }
+  function currentBits(){
+    return [rodPadded[index], rodPadded[index+1], rodPadded[index+2]];
+  }
+  function setIndex(i){
+    index = Math.max(0, Math.min(7, i));
+    applyTop();
+    onRodsChanged();
+  }
+
+  column.addEventListener('pointerdown', e=>{
+    dragging = true;
+    startY = e.clientY;
+    startTop = topForIndex(index);
+    column.setPointerCapture(e.pointerId);
+  });
+  column.addEventListener('pointermove', e=>{
+    if(!dragging) return;
+    e.preventDefault();
+    let top = startTop + (e.clientY - startY);
+    top = Math.max(topForIndex(7), Math.min(topForIndex(0), top));
+    strip.style.top = top + 'px';
+    const liveIndex = Math.max(0, Math.min(7, Math.round(ROD_WINDOW_TOP_ROWS - top/ROD_ROW_H)));
+    if(liveIndex !== index){ index = liveIndex; onRodsChanged(); }
+  });
+  function endDrag(e){
+    if(!dragging) return;
+    dragging = false;
+    if(column.hasPointerCapture(e.pointerId)) column.releasePointerCapture(e.pointerId);
+    applyTop(); // realiniere exactă pe grilă
+  }
+  column.addEventListener('pointerup', endDrag);
+  column.addEventListener('pointercancel', endDrag);
+  column.addEventListener('keydown', e=>{
+    if(e.key === 'ArrowUp'){ e.preventDefault(); setIndex(index-1); }
+    else if(e.key === 'ArrowDown'){ e.preventDefault(); setIndex(index+1); }
+  });
+
+  applyTop();
+  return {currentBits, setIndex, getIndex: ()=>index};
+}
+
+const rodL = buildRod('rodColL');
+const rodR = buildRod('rodColR');
+document.getElementById('rodLUp').addEventListener('click', ()=>rodL.setIndex(rodL.getIndex()-1));
+document.getElementById('rodLDown').addEventListener('click', ()=>rodL.setIndex(rodL.getIndex()+1));
+document.getElementById('rodRUp').addEventListener('click', ()=>rodR.setIndex(rodR.getIndex()-1));
+document.getElementById('rodRDown').addEventListener('click', ()=>rodR.setIndex(rodR.getIndex()+1));
+
+const rodCellBoxEl = document.getElementById('rodCellBox');
+const rodIdentityEl = document.getElementById('rodIdentity');
+const rodDetailEl = document.getElementById('rodDetail');
+
+function onRodsChanged(){
+  const [l0,l1,l2] = rodL.currentBits();
+  const [r0,r1,r2] = rodR.currentBits();
+  // ordinea folosită peste tot în aplicație: dot1,dot4,dot2,dot5,dot3,dot6
+  const bitsFull = [l0, r0, l1, r1, l2, r2];
+  const info = identify(bitsFull);
+  rodCellBoxEl.innerHTML = '';
+  rodCellBoxEl.appendChild(makeBrailleCell(bitsFull));
+  rodIdentityEl.textContent = info.title;
+  rodIdentityEl.style.color = {letter:'#2f9e44', punct:'#f08c00', space:'#adb5bd', unknown:'#9aa3b2'}[info.category] || '';
+  rodDetailEl.textContent = info.detail;
+}
+onRodsChanged();
+
+
+
+// ---------- Familia de descompuneri și cazul g=2 ----------
+function linearDeBruijnBinary(g){
+  const cyc = deBruijn(2,g);
+  return cyc.concat(cyc.slice(0, Math.max(0,g-1)));
+}
+
+function renderUnequalPartitions(){
+  const grid = document.getElementById('partitionGrid');
+  if(!grid) return;
+  const partitions = [
+    [5,1],[4,2],[4,1,1],[3,2,1],[3,1,1,1],
+    [2,2,1,1],[2,1,1,1,1]
+  ];
+  const lengthFor = g => (2**g) + g - 1;
+  grid.innerHTML = partitions.map(parts=>{
+    const lengths = parts.map(g=>lengthFor(g));
+    const useful = parts.map(g=>2**g);
+    return `<div class="partitionCard"><b>${parts.join(' + ')}</b>`+
+      `<code>${parts.length} elemente · stări utile ${useful.join(' × ')} = 64<br>`+
+      `lungimi liniare: ${lengths.join(', ')}</code></div>`;
+  }).join('');
+}
+
+const g2Padded = linearDeBruijnBinary(2); // 5 poziții fizice
+const G2_STEP = 40; // 32 px punct + 8 px spațiu
+const g2Rows = [];
+
+function g2WindowBits(index){
+  return [g2Padded[index], g2Padded[index+1]];
+}
+
+function buildG2Row(rowIndex){
+  const track = document.getElementById(`g2Track${rowIndex}`);
+  if(!track) return null;
+  const strip = document.createElement('div');
+  strip.className = 'g2Strip';
+  g2Padded.forEach((b,i)=>{
+    const dot = document.createElement('div');
+    dot.className = 'g2Bit' + (b ? ' on' : '');
+    dot.textContent = String(i);
+    strip.appendChild(dot);
+  });
+  const win = document.createElement('div');
+  win.className='g2Window';
+  track.appendChild(strip);
+  track.appendChild(win);
+  let index = rowIndex % 4;
+  function apply(){
+    strip.style.transform = `translateX(${-index * G2_STEP}px)`;
+    updateG2Cell();
+  }
+  function setIndex(i){ index=(i+4)%4; apply(); }
+  document.getElementById(`g2Prev${rowIndex}`).addEventListener('click',()=>setIndex(index-1));
+  document.getElementById(`g2Next${rowIndex}`).addEventListener('click',()=>setIndex(index+1));
+  requestAnimationFrame(apply);
+  return {getBits:()=>g2WindowBits(index), getIndex:()=>index, setIndex};
+}
+
+function updateG2Cell(){
+  if(g2Rows.length < 3 || g2Rows.some(x=>!x)) return;
+  const r0=g2Rows[0].getBits(), r1=g2Rows[1].getBits(), r2=g2Rows[2].getBits();
+  // Ordinea generală a aplicației: 1,4 / 2,5 / 3,6.
+  const bits=[r0[0],r0[1],r1[0],r1[1],r2[0],r2[1]];
+  const info=identify(bits);
+  const box=document.getElementById('g2CellBox');
+  const identity=document.getElementById('g2Identity');
+  const state=document.getElementById('g2State');
+  if(!box || !identity || !state) return;
+  box.innerHTML='';
+  box.appendChild(makeBrailleCell(bits));
+  identity.textContent=info.title;
+  identity.style.color={letter:'#2f9e44',punct:'#f08c00',space:'#adb5bd',unknown:'#9aa3b2'}[info.category]||'';
+  state.textContent=`indici: ${g2Rows.map(x=>x.getIndex()).join(' · ')}\nrânduri: ${r0.join('')} / ${r1.join('')} / ${r2.join('')}\n6 biți: ${bits.join('')}`;
+}
+
+renderUnequalPartitions();
+for(let i=0;i<3;i++) g2Rows.push(buildG2Row(i));
+updateG2Cell();
+
+
+// ---------- Montaj cu 5 benzi mobile (o bandă = o celulă Braille completă) ----------
+const FIVE_BAND_ROW_H = 22;
+const FIVE_BAND_WINDOW_TOP_ROWS = 7;
+const fiveBandFrameEl = document.getElementById('fiveBandFrame');
+const fiveBandLabelsEl = document.getElementById('fiveBandLabels');
+const fiveBandInputEl = document.getElementById('fiveBandInput');
+const fiveBandStatusEl = document.getElementById('fiveBandStatus');
+
+// 64 de poziții utile + două rânduri de context pentru ca ultima fereastră să rămână completă.
+const fiveBandRows = [...seq43, seq43[0], seq43[1]];
+
+function fiveBandTopForIndex(i){
+  return (FIVE_BAND_WINDOW_TOP_ROWS - i) * FIVE_BAND_ROW_H - 6;
+}
+
+function findSeq43IndexForBits(bits){
+  const wanted = bits.join('');
+  for(let i=0;i<64;i++){
+    if(getCellBits('b43', i).join('') === wanted) return i;
+  }
+  return 0;
+}
+
+function buildMessageBand(slot){
+  const band = document.createElement('div');
+  band.className = 'messageBand';
+  band.setAttribute('aria-label', `Banda ${slot+1}`);
+  const strip = document.createElement('div');
+  strip.className = 'messageBandStrip';
+  fiveBandRows.forEach(v=>{
+    const row = document.createElement('div');
+    row.className = 'messageBandRow';
+    pairBits(v).forEach(b=>{
+      const dot = document.createElement('div');
+      dot.className = 'messageBandDot' + (b ? ' on' : '');
+      row.appendChild(dot);
+    });
+    strip.appendChild(row);
+  });
+  band.appendChild(strip);
+  fiveBandFrameEl.appendChild(band);
+
+  const label = document.createElement('div');
+  label.className = 'fiveBandLabel';
+  label.textContent = '—';
+  fiveBandLabelsEl.appendChild(label);
+
+  let index = (slot * 11) % 64; // poziții inițiale diferite, ca animația să fie evidentă
+  strip.style.transition = 'none';
+  strip.style.top = fiveBandTopForIndex(index) + 'px';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{ strip.style.transition = ''; }));
+
+  return {
+    setTarget(bits, shownChar, delayMs){
+      const target = findSeq43IndexForBits(bits);
+      window.setTimeout(()=>{
+        index = target;
+        strip.style.top = fiveBandTopForIndex(index) + 'px';
+        label.textContent = shownChar || 'spațiu';
+      }, delayMs);
+    }
+  };
+}
+
+const messageBands = Array.from({length:5}, (_,i)=>buildMessageBand(i));
+
+function normalizeFiveBandText(raw){
+  return raw
+    .replace(/ş/g,'ș').replace(/Ş/g,'Ș')
+    .replace(/ţ/g,'ț').replace(/Ţ/g,'Ț')
+    .toUpperCase()
+    .slice(0,5);
+}
+
+function runFiveBandMessage(){
+  const text = normalizeFiveBandText(fiveBandInputEl.value);
+  fiveBandInputEl.value = text;
+  const unsupported = [];
+  const chars = Array.from(text.padEnd(5, ' '));
+  chars.forEach((ch,i)=>{
+    let bits;
+    if(ch === ' '){
+      bits = dotsToBits([]);
+    } else if(letterDots[ch]){
+      bits = dotsToBits(letterDots[ch]);
+    } else {
+      unsupported.push(ch);
+      bits = dotsToBits([]);
+    }
+    // Mic decalaj între benzi: mecanismul pare să se așeze succesiv, fără a deveni lent.
+    messageBands[i].setTarget(bits, ch === ' ' ? '·' : ch, i * 90);
+  });
+  if(!text){
+    fiveBandStatusEl.textContent = 'Introduceți până la 5 litere.';
+  } else if(unsupported.length){
+    fiveBandStatusEl.textContent = 'Caractere neacoperite, afișate ca spațiu: ' + [...new Set(unsupported)].join(' ');
+  } else {
+    fiveBandStatusEl.textContent = `Mesaj: ${text}`;
+  }
+}
+
+document.getElementById('fiveBandGo').addEventListener('click', runFiveBandMessage);
+fiveBandInputEl.addEventListener('keydown', e=>{
+  if(e.key === 'Enter'){ e.preventDefault(); runFiveBandMessage(); }
+});
+runFiveBandMessage();
+
+// ---------- Montaj cu 5 celule și câte 2 tije mobile ----------
+const FIVE_TWIN_ROW_H = 22;
+const FIVE_TWIN_WINDOW_TOP_ROWS = 7;
+const fiveTwinFrameEl = document.getElementById('fiveTwinFrame');
+const fiveTwinLabelsEl = document.getElementById('fiveTwinLabels');
+const fiveTwinInputEl = document.getElementById('fiveTwinInput');
+const fiveTwinStatusEl = document.getElementById('fiveTwinStatus');
+
+function twinTopForIndex(i){
+  return (FIVE_TWIN_WINDOW_TOP_ROWS - i) * FIVE_TWIN_ROW_H - 6;
+}
+
+function findSeq3IndexForBits(bits3){
+  const wanted = bits3.join('');
+  for(let i=0;i<8;i++){
+    if([rodPadded[i], rodPadded[i+1], rodPadded[i+2]].join('') === wanted) return i;
+  }
+  return 0;
+}
+
+function buildTwinRod(cellSlot, side, initialIndex){
+  const rod = document.createElement('div');
+  rod.className = 'twinRod';
+  rod.setAttribute('aria-label', `Celula ${cellSlot+1}, tija ${side === 'L' ? 'stângă' : 'dreaptă'}`);
+  const strip = document.createElement('div');
+  strip.className = 'twinRodStrip';
+  rodPadded.forEach(b=>{
+    const row = document.createElement('div');
+    row.className = 'twinRodRow';
+    const dot = document.createElement('div');
+    dot.className = 'twinRodDot' + (b ? ' on' : '');
+    row.appendChild(dot);
+    strip.appendChild(row);
+  });
+  rod.appendChild(strip);
+
+  let index = Math.max(0, Math.min(7, initialIndex));
+  strip.style.transition = 'none';
+  strip.style.top = twinTopForIndex(index) + 'px';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{ strip.style.transition = ''; }));
+
+  return {
+    element: rod,
+    setTarget(bits3, delayMs){
+      const target = findSeq3IndexForBits(bits3);
+      window.setTimeout(()=>{
+        index = target;
+        strip.style.top = twinTopForIndex(index) + 'px';
+      }, delayMs);
+    }
+  };
+}
+
+function buildTwinCell(slot){
+  const cell = document.createElement('div');
+  cell.className = 'twinCell';
+  const leftRod = buildTwinRod(slot, 'L', (slot * 3 + 1) % 8);
+  const rightRod = buildTwinRod(slot, 'R', (slot * 5 + 4) % 8);
+  cell.appendChild(leftRod.element);
+  cell.appendChild(rightRod.element);
+  fiveTwinFrameEl.appendChild(cell);
+
+  const label = document.createElement('div');
+  label.className = 'fiveTwinLabel';
+  label.textContent = '—';
+  fiveTwinLabelsEl.appendChild(label);
+
+  return {
+    setTarget(bits, shownChar, delayMs){
+      // bits este în ordinea 1,4,2,5,3,6. Separăm cele două coloane fizice.
+      const leftBits = [bits[0], bits[2], bits[4]];
+      const rightBits = [bits[1], bits[3], bits[5]];
+      leftRod.setTarget(leftBits, delayMs);
+      rightRod.setTarget(rightBits, delayMs + 45);
+      window.setTimeout(()=>{ label.textContent = shownChar || 'spațiu'; }, delayMs + 45);
+    }
+  };
+}
+
+const twinCells = Array.from({length:5}, (_,i)=>buildTwinCell(i));
+
+function runFiveTwinMessage(){
+  const text = normalizeFiveBandText(fiveTwinInputEl.value);
+  fiveTwinInputEl.value = text;
+  const unsupported = [];
+  const chars = Array.from(text.padEnd(5, ' '));
+  chars.forEach((ch,i)=>{
+    let bits;
+    if(ch === ' '){
+      bits = dotsToBits([]);
+    } else if(letterDots[ch]){
+      bits = dotsToBits(letterDots[ch]);
+    } else {
+      unsupported.push(ch);
+      bits = dotsToBits([]);
+    }
+    // Celulele pornesc succesiv; în interiorul fiecărei celule tija dreaptă urmează foarte puțin după stânga.
+    twinCells[i].setTarget(bits, ch === ' ' ? '·' : ch, i * 90);
+  });
+  if(!text){
+    fiveTwinStatusEl.textContent = 'Introduceți până la 5 litere.';
+  } else if(unsupported.length){
+    fiveTwinStatusEl.textContent = 'Caractere neacoperite, afișate ca spațiu: ' + [...new Set(unsupported)].join(' ');
+  } else {
+    fiveTwinStatusEl.textContent = `Mesaj: ${text} · 10 tije, câte 8 poziții utile fiecare`;
+  }
+}
+
+document.getElementById('fiveTwinGo').addEventListener('click', runFiveTwinMessage);
+fiveTwinInputEl.addEventListener('keydown', e=>{
+  if(e.key === 'Enter'){ e.preventDefault(); runFiveTwinMessage(); }
+});
+runFiveTwinMessage();
+
+
+function escapeHtml(str){
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+
+function renderTheoryTwin(){
+  const box = document.getElementById('theoryTwinBox');
+  if(!box || typeof seq3 === 'undefined') return;
+  const windows = Array.from({length:8}, (_,i)=>[
+    rodPadded[i], rodPadded[i+1], rodPadded[i+2]
+  ].join(''));
+  const makeColumn = (title)=>{
+    const lines = [];
+    lines.push(`<div class="twinTheoryTitle">${title}</div>`);
+    lines.push('<div class="twinTheorySeq"><span class="muted">secvență circulară: </span>'+escapeHtml(seq3.join(' '))+'<br><span class="muted">pozițiile 0…7 de mai jos folosesc aceeași indexare ca tijele simulate.</span><br>');
+    windows.forEach((w,i)=>{
+      const indent='&nbsp;'.repeat(i*2);
+      lines.push(`${indent}<span class="idx">[${i}]</span> <span class="cellbits">${w}</span>`);
+    });
+    lines.push('</div>');
+    return '<div class="twinTheoryCol">'+lines.join('\n')+'</div>';
+  };
+  const exampleLetter='H';
+  const bits=dotsToBits(letterDots[exampleLetter]);
+  const left=[bits[0],bits[2],bits[4]].join('');
+  const right=[bits[1],bits[3],bits[5]].join('');
+  const li=windows.indexOf(left), ri=windows.indexOf(right);
+  box.innerHTML = '<div class="twinTheoryGrid">'+
+    makeColumn('Tija stângă · punctele 1–2–3')+
+    makeColumn('Tija dreaptă · punctele 4–5–6')+
+    '</div>'+`<div class="twinTheoryCombine"><strong>Exemplu — litera ${escapeHtml(exampleLetter)}</strong>
+coloana stângă: ${left} → poziția ${li}
+coloana dreaptă: ${right} → poziția ${ri}
+împreună: punctele ${escapeHtml(letterDots[exampleLetter].join(', '))} → ${escapeHtml(exampleLetter)}</div>`;
+}
+
+function renderTheoryOverlap(){
+  const box = document.getElementById('theoryOverlapBox');
+  if(!box) return;
+  const start = Math.max(0, Math.min(63, parseInt(indexEl.value || '0', 10) || 0));
+  const rowCount = 8;
+  const pairs = Array.from({length:rowCount + 2}, (_,i)=> pairBits(seq43[(start+i)%64]).join(''));
+  const lines = [];
+  lines.push('<span class="muted">Șina de bază (perechi succesive pe bară):</span>');
+  lines.push('<span class="bits">' + escapeHtml(pairs.join(' ')) + '</span>');
+  lines.push('');
+  lines.push('<span class="muted">Ferestre suprapuse de 3 rânduri / 6 biți:</span>');
+  for(let i=0;i<rowCount;i++){
+    const idx = (start + i) % 64;
+    const pairTriplet = [pairs[i], pairs[i+1], pairs[i+2]].join(' ');
+    const cellBits = getCellBits('b43', idx).join('');
+    const indent = '&nbsp;'.repeat(i * 3);
+    const line = `${indent}<span class="idx">[${String(idx).padStart(2,'0')}]</span> <span class="bits">${escapeHtml(pairTriplet)}</span> <span class="eq">=</span> <span class="cellbits">${escapeHtml(cellBits)}</span>`;
+    lines.push(i === 0 ? `<span class="current">${line}</span>` : line);
+  }
+  box.innerHTML = lines.join('\n');
+}
+
+
+renderTheoryTwin();
+
+buildReferenceTables();
+
+window.addEventListener('resize', () => {
+  if(!railRows.length) return;
+  alignWindowToRows(clampedTopRowFor(currentRowIndex, railRows.length));
+});
+
+render();
+</script>
+
+<script src="prism.js"></script>
+<script src="site.js"></script>
+</body>
+</html>

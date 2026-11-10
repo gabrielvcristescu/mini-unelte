@@ -1,0 +1,41 @@
+:root {
+  --lex-accent: #b9a9e0;
+  --lex-bar: #8c80b1;
+  --lex-accent-wash: rgba(157, 136, 204, .10);
+}
+
+[data-theme="light"] {
+  --lex-accent: #5e4d88;
+  --lex-bar: #8473ac;
+  --lex-accent-wash: rgba(103, 79, 156, .08);
+}
+
+.lexro-page { padding-bottom: 3rem; }
+.lexro-header h1 { color: var(--lex-accent); }
+.lexro-header p { color: var(--text2); }
+.lexro-header .meta-row, .lexro-header .pills {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: .5rem;
+  margin-top: 1rem;
+}
+.lexro-header .meta-pill, .lexro-header .pill {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .4rem .7rem;
+  font: .73rem var(--font-mono);
+  color: var(--text2);
+}
+.lexro-header .meta-pill strong, .lexro-header .pill strong {
+  display: block;
+  text-align: left;
+  font-size: .95rem;
+  color: var(--text);
+}
+.lexro-report h2, .lexro-report h3 { overflow-wrap: break-word; }
+.lexro-report :is(.grid-2, .grid-3, .g2) > * { min-width: 0; }
+.lexro-report table { color: var(--text); }
+.lexro-header { padding-right: 0; }
+.lexro-header > .back, .lexro-header > h1, .lexro-header > p { margin-right: 4rem; }

@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LexRO — Statistici Wikipedia Română</title>
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="lexro.css">
+<script src="theme.js"></script>
+<style>
+
+
+
+
+  /* ── Grid de carduri ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin-bottom: 1.2rem; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.2rem; margin-bottom: 1.2rem; }
+  .full { margin-bottom: 1.2rem; }
+
+  @media (max-width: 700px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--bg2);
+    border-radius: 14px;
+    padding: 1.4rem 1.6rem;
+    border: 1px solid var(--border);
+    
+  }
+
+  .card h2 {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text2);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .card h2 .icon { margin-right: 0.4rem; }
+
+  /* ── Metrici mari ── */
+  .big-stat { font-size: 2.4rem; font-weight: bold; color: var(--text); line-height: 1; }
+  .big-label { font-size: 0.82rem; color: var(--text2); margin-top: 0.2rem; }
+  .stat-row { display: flex; flex-direction: column; gap: 0.8rem; }
+  .stat-item { display: flex; justify-content: space-between; align-items: baseline; font-size: 0.9rem; }
+  .stat-item .label { color: var(--text2); max-width: 60%; }
+  .stat-item .value { font-weight: 600; color: var(--text); }
+
+  /* ── Explicații tooltip ── */
+  .explain {
+    font-size: 0.75rem;
+    color: var(--text2);
+    font-style: italic;
+    margin-top: 0.3rem;
+    line-height: 1.4;
+  }
+
+  .badge {
+    display: inline-block;
+    background: var(--bg3);
+    border-radius: 6px;
+    padding: 0.15rem 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text);
+    margin-top: 0.3rem;
+  }
+
+  /* ── Bare orizontale ── */
+  .bar-list { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem; }
+  .bar-item { }
+  .bar-label { font-size: 0.82rem; display: flex; justify-content: space-between; margin-bottom: 2px; }
+  .bar-label .word { color: var(--text); font-family: var(--font-mono); }
+  .bar-label .count { color: var(--text2); font-size: 0.78rem; }
+  .bar-track { background: var(--border); border-radius: 4px; height: 8px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+  .bar-fill { background:var(--lex-bar); }
+
+  /* ── Tabel POS ── */
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  th { text-align: left; padding: 0.4rem 0.5rem; font-size: 0.72rem; text-transform: uppercase;
+       letter-spacing: 1px; color: var(--text2); border-bottom: 1px solid var(--border); }
+  td { padding: 0.4rem 0.5rem; border-bottom:1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  .pos-tag {
+    display: inline-block;
+    border-radius: 4px;
+    padding: 0.1rem 0.4rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    font-family: var(--font-mono);
+  }
+
+  /* ── Entități ── */
+  .ent-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.5rem; }
+  .ent-item {
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 0.5rem 0.7rem;
+    font-size: 0.82rem;
+  }
+  .ent-type { font-weight: 600; color: var(--text); font-family: var(--font-mono); font-size: 0.78rem; }
+  .ent-count { color: var(--text2); }
+  .ent-explain { font-size: 0.7rem; color: var(--text2); font-style: italic; }
+
+  /* ── Colocații ── */
+  .coloc-list { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+  .coloc-pill {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.2rem 0.7rem;
+    font-size: 0.78rem;
+    color: var(--text);
+  }
+  .coloc-pill .pmi { color: var(--text2); font-size: 0.7rem; margin-left: 0.2rem; }
+
+  /* ── Frecvență litere ── */
+  .letter-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: 0.4rem; margin-top: 0.5rem; }
+  .letter-item {
+    text-align: center;
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 0.4rem 0.2rem;
+    font-size: 0.75rem;
+  }
+  .letter-char { font-size: 1.2rem; font-weight: bold; color: var(--text); display: block; }
+  .letter-pct { color: var(--text2); }
+
+  /* ── Secțiune explicații ── */
+  .glossary { background: var(--bg2); border-radius: 14px; padding: 1.6rem; border: 1px solid var(--border); margin-top: 1.2rem; }
+  .glossary h2 { font-size: 1.1rem; color: var(--text); margin-bottom: 1rem; }
+  .gloss-item { margin-bottom: 0.9rem; padding-bottom: 0.9rem; border-bottom: 1px solid var(--border); }
+  .gloss-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .gloss-term { font-weight: bold; color: var(--text); font-family: var(--font-mono); }
+  .gloss-def { font-size: 0.87rem; color: var(--text2); margin-top: 0.2rem; }
+
+  footer { text-align: center; color: var(--text2); font-size: 0.8rem; margin-top: 2rem; font-style: italic; }
+
+  .highlight-box {
+    background: var(--lex-accent-wash);
+    border-radius: 10px;
+    padding: 0.8rem 1rem;
+    margin-top: 0.8rem;
+    font-size: 0.87rem;
+  }
+</style>
+</head>
+<body class="lexro-report">
+<button class="theme-toggle" id="theme-btn" type="button" onclick="toggleTheme()"></button>
+<main class="tool-page lexro-page">
+
+<header class="tool-header lexro-header">
+  <a class="back" href="index.html#personal-projects">← Proiecte personale</a>
+  <h1>LexRO</h1>
+  <p class="subtitle">Statistici lingvistice — Wikipedia în română · 1.000 articole · ro_core_news_lg</p>
+  <div class="meta-row">
+    <div class="meta-pill"><strong>1.489.189</strong>cuvinte totale</div>
+    <div class="meta-pill"><strong>101.121</strong>cuvinte distincte (leme)</div>
+    <div class="meta-pill"><strong>120.088</strong>forme flexionare</div>
+    <div class="meta-pill"><strong>11,9 MB</strong>text procesat</div>
+    <div class="meta-pill"><strong>45s</strong>timp procesare</div>
+  </div>
+</header>
+
+<!-- ── CÂTE CUVINTE DIFERITE ── -->
+<div class="full">
+  <div class="card pastel-3">
+    <h2><span class="icon">🔤</span>Câte cuvinte diferite există în corpus?</h2>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1.5rem; text-align:center; margin: 0.5rem 0 1rem;">
+      <div>
+        <div class="big-stat" style="color:var(--lex-accent)">101.121</div>
+        <div class="big-label">Leme unice</div>
+        <div class="explain">Forma de bază a cuvântului — fără conjugări, plurale, cazuri. <em>merge, mergi, mergem</em> → <strong>merge</strong>. Acesta este numărul real de „cuvinte diferite".</div>
+      </div>
+      <div>
+        <div class="big-stat" style="color:var(--lex-accent)">120.088</div>
+        <div class="big-label">Forme flexionare unice</div>
+        <div class="explain">Toate formele distincte ca text: <em>carte, cărții, cărți, cărților</em> contează separat. Cu ~19K mai multe decât lemele.</div>
+      </div>
+      <div>
+        <div class="big-stat" style="color:var(--lex-accent)">56.842</div>
+        <div class="big-label">Hapax legomena</div>
+        <div class="explain">Cuvinte care apar o singură dată — 56% din vocabular. Normal pentru orice corpus: mii de nume proprii și termeni tehnici rari.</div>
+      </div>
+    </div>
+    <div class="highlight-box">
+      💡 Raportul <strong>forme / leme = 1,19</strong> — fiecare cuvânt românesc apare în medie în 1,19 forme diferite în acest corpus. Această flexivitate relativ redusă se explică prin natura enciclopedică a textului (stil neutru, fără ficțiune bogată stilistic).
+    </div>
+  </div>
+</div>
+
+<!-- ── DIVERSITATE LEXICALĂ ── -->
+<div class="grid-2">
+  <div class="card pastel-1">
+    <h2><span class="icon">📊</span>Diversitate lexicală</h2>
+    <div class="stat-row">
+      <div class="stat-item">
+        <span class="label">TTR (Type-Token Ratio)</span>
+        <span class="value">0,0679</span>
+      </div>
+      <div class="explain">Raport tipuri/tokens. Scade natural cu textul mai lung — 6,79% e tipic pentru un corpus de 1,5M cuvinte.</div>
+
+      <div class="stat-item">
+        <span class="label">MSTTR-1000</span>
+        <span class="value">0,4656</span>
+      </div>
+      <div class="explain">TTR mediu pe ferestre de 1000 cuvinte — mai stabil. 0,47 indică diversitate lexicală <strong>medie-ridicată</strong> pentru un text enciclopedic.</div>
+
+      <div class="stat-item">
+        <span class="label">MTLD</span>
+        <span class="value">74,8</span>
+      </div>
+      <div class="explain">Măsoară câte cuvinte durează până TTR scade sub 0,72. Valori &gt;70 = limbă variată. Texte literare: ~100-150.</div>
+
+      <div class="stat-item">
+        <span class="label">Yule K</span>
+        <span class="value">62,25</span>
+      </div>
+      <div class="explain">Concentrarea frecvențelor. Valori mici = vocabular distribuit egal. 62 e moderat — câteva cuvinte foarte frecvente dominau.</div>
+
+      <div class="stat-item">
+        <span class="label">Honoré R</span>
+        <span class="value">2631,78</span>
+      </div>
+      <div class="explain">Raport bazat pe hapax. Valori &gt;2000 indică vocabular bogat și divers.</div>
+
+      <div class="stat-item">
+        <span class="label">Brunet W</span>
+        <span class="value">7,09</span>
+      </div>
+      <div class="explain">Indice de bogăție lexicală: W &lt; 10 = vocabular bogat, &gt; 20 = sărac. <strong>7,09 = excelent.</strong></div>
+    </div>
+  </div>
+
+  <div class="card pastel-5">
+    <h2><span class="icon">📉</span>Distribuție statistică</h2>
+    <div class="stat-row">
+      <div class="stat-item">
+        <span class="label">Panta Zipf</span>
+        <span class="value">−1,147</span>
+      </div>
+      <div class="explain">Legea lui Zipf: al n-lea cuvânt ca frecvență apare de ~1/n ori față de primul. Panta ideală = −1,0. Valoarea −1,15 cu R²=0,963 confirmă că limba română urmează Zipf cu fidelitate ridicată.</div>
+
+      <div class="stat-item">
+        <span class="label">R² Zipf</span>
+        <span class="value">0,963</span>
+      </div>
+
+      <div class="stat-item">
+        <span class="label">Entropie Shannon (leme)</span>
+        <span class="value">11,34 biți</span>
+      </div>
+      <div class="explain">Incertitudinea medie per cuvânt în biți. 11,34 biți → 2¹¹·³⁴ ≈ 2580 leme „surpriză" la fiecare alegere. Reflectă bogăția vocabularului.</div>
+
+      <div class="stat-item">
+        <span class="label">Legea Heaps: V(N) ≈</span>
+        <span class="value">1,4 × N⁰·⁷⁹¹</span>
+      </div>
+      <div class="explain">Cât de repede crește vocabularul cu textul. β=0,79 (tipic 0,4–0,6 pt. engleză, mai mare pt. limbi flexionare) → vocabularul crește rapid, vocabularul nu e „saturat". R²=0,997.</div>
+
+      <div class="stat-item">
+        <span class="label">Entropie bigrame</span>
+        <span class="value">15,91 biți</span>
+      </div>
+      <div class="explain">Impredictibilitatea perechilor de cuvinte consecutive. Perplexitate model bigram: 61.774 — textul enciclopedic e impredictibil.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── STRUCTURA CUVÂNTULUI ── -->
+<div class="grid-3">
+  <div class="card pastel-2">
+    <h2><span class="icon">🔡</span>Structura cuvântului</h2>
+    <div style="text-align:center; margin-bottom:1rem;">
+      <div class="big-stat">7,76</div>
+      <div class="big-label">caractere/cuvânt (medie)</div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-item"><span class="label">Silabe medii</span><span class="value">2,97</span></div>
+      <div class="stat-item"><span class="label">Vocale medii</span><span class="value">3,08</span></div>
+      <div class="stat-item"><span class="label">Consoane medii</span><span class="value">3,82</span></div>
+      <div class="stat-item"><span class="label">Ratio vocale/consoane</span><span class="value">0,807</span></div>
+    </div>
+    <div class="explain" style="margin-top:0.8rem">Română are un ratio V/C ridicat față de engleză (~0,55) — limba sună mai vocalică.</div>
+  </div>
+
+  <div class="card pastel-6">
+    <h2><span class="icon">📝</span>Propoziții</h2>
+    <div style="text-align:center; margin-bottom:1rem;">
+      <div class="big-stat">~105K</div>
+      <div class="big-label">propoziții estimate</div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-item"><span class="label">Virgule/100 cuvinte</span><span class="value">9,71</span></div>
+      <div class="stat-item"><span class="label">Paranteze (perechi)</span><span class="value">50.582</span></div>
+      <div class="stat-item"><span class="label">Liniuțe (−/–/—)</span><span class="value">47.777</span></div>
+      <div class="stat-item"><span class="label">Ghilimele</span><span class="value">21.424</span></div>
+    </div>
+    <div class="explain" style="margin-top:0.8rem">Parantezele extrem de frecvente (50K) sunt tipice stilului enciclopedic — date, date naștere, explicații.</div>
+  </div>
+
+  <div class="card pastel-4">
+    <h2><span class="icon">📖</span>Lizibilitate</h2>
+    <div style="text-align:center; margin-bottom:1rem;">
+      <div class="big-stat" style="color:var(--lex-accent)">−78,5</div>
+      <div class="big-label">Flesch Reading Ease</div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-item"><span class="label">Fog Index</span><span class="value">53,4</span></div>
+      <div class="stat-item"><span class="label">ARI</span><span class="value">31,8</span></div>
+    </div>
+    <div class="explain" style="margin-top:0.8rem">
+      Flesch negativ = text extrem de dificil (normal pt. enciclopedii). Fog &gt;17 = text academic. ARI ~32 = necesită studii superioare. Wikipedia e scrisă pentru publicul educat.
+    </div>
+  </div>
+</div>
+
+<!-- ── POS ── -->
+<div class="grid-2">
+  <div class="card pastel-2">
+    <h2><span class="icon">🏷️</span>Distribuție categorii gramaticale (POS)</h2>
+    <table>
+      <tr>
+        <th>Categorie</th>
+        <th>Denumire</th>
+        <th style="text-align:right">Tokens</th>
+        <th style="text-align:right">%</th>
+        <th>Lung. medie</th>
+      </tr>
+      <tr><td><span class="pos-tag" style="background:var(--lex-accent-wash)">NOUN</span></td><td>Substantiv</td><td style="text-align:right">494.646</td><td style="text-align:right">33,2%</td><td>7,27</td></tr>
+      <tr><td><span class="pos-tag" style="background:var(--lex-accent-wash)">PROPN</span></td><td>Nume propriu</td><td style="text-align:right">257.920</td><td style="text-align:right">17,3%</td><td>6,55</td></tr>
+      <tr><td><span class="pos-tag" style="background:var(--lex-accent-wash)">ADP</span></td><td>Prepoziție</td><td style="text-align:right">211.084</td><td style="text-align:right">14,2%</td><td>2,59</td></tr>
+      <tr><td><span class="pos-tag" style="background:var(--lex-accent-wash)">ADJ</span></td><td>Adjectiv</td><td style="text-align:right">159.499</td><td style="text-align:right">10,7%</td><td>7,57</td></tr>
+      <tr><td><span class="pos-tag" style="background:var(--lex-accent-wash)">VERB</span></td><td>Verb</td><td style="text-align:right">72.040</td><td style="text-align:right">4,8%</td><td>7,39</td></tr>
+      <tr><td><span class="pos-tag" style="background:var(--lex-accent-wash)">AUX</span></td><td>Verb auxiliar</td><td style="text-align:right">67.763</td><td style="text-align:right">4,6%</td><td>4,65</td></tr>
+      <tr><td><span class="pos-tag" style="background:var(--lex-accent-wash)">DET</span></td><td>Determinant</td><td style="text-align:right">60.093</td><td style="text-align:right">4,0%</td><td>3,15</td></tr>
+      <tr><td><span class="pos-tag" style="background:var(--lex-accent-wash)">CCONJ</span></td><td>Conj. coordon.</td><td style="text-align:right">48.952</td><td style="text-align:right">3,3%</td><td>2,12</td></tr>
+      <tr><td><span class="pos-tag" style="background:var(--lex-accent-wash)">ADV</span></td><td>Adverb</td><td style="text-align:right">48.202</td><td style="text-align:right">3,2%</td><td>4,56</td></tr>
+      <tr><td><span class="pos-tag" style="background:var(--lex-accent-wash)">PRON</span></td><td>Pronume</td><td style="text-align:right">32.630</td><td style="text-align:right">2,2%</td><td>3,43</td></tr>
+      <tr><td><span class="pos-tag" style="background:var(--lex-accent-wash)">NUM</span></td><td>Numeral</td><td style="text-align:right">18.636</td><td style="text-align:right">1,3%</td><td>4,60</td></tr>
+    </table>
+    <div class="explain" style="margin-top:0.8rem">
+      NOUN+PROPN = 50,5% — jumătate din corpus e substantive. ADP (prepoziții) la 14% e ridicat: tipic pentru română, limbă prepozițională. Verbele sunt subreprezentate (4,8%) față de text narativ (~10-15%) — stilul enciclopedic e nominal, nu verbal.
+    </div>
+  </div>
+
+  <div class="card pastel-4">
+    <h2><span class="icon">🌍</span>Entități denumite (NER)</h2>
+    <div class="ent-grid">
+      <div class="ent-item">
+        <div class="ent-type">PERSON</div>
+        <div class="ent-count">125.156 ✦ cel mai frecvent</div>
+        <div class="ent-explain">Persoane identificate în text</div>
+      </div>
+      <div class="ent-item">
+        <div class="ent-type">DATETIME</div>
+        <div class="ent-count">104.299</div>
+        <div class="ent-explain">Date, ore, ani, perioade temporale</div>
+      </div>
+      <div class="ent-item">
+        <div class="ent-type">GPE</div>
+        <div class="ent-count">62.342</div>
+        <div class="ent-explain">Geo-Political Entity: țări, orașe, regiuni</div>
+      </div>
+      <div class="ent-item">
+        <div class="ent-type">NAT_REL_POL</div>
+        <div class="ent-count">52.259</div>
+        <div class="ent-explain">Naționalități, religii, grupuri politice</div>
+      </div>
+      <div class="ent-item">
+        <div class="ent-type">ORGANIZATION</div>
+        <div class="ent-count">31.752</div>
+        <div class="ent-explain">Organizații, instituții, companii</div>
+      </div>
+      <div class="ent-item">
+        <div class="ent-type">NUMERIC_VALUE</div>
+        <div class="ent-count">26.091</div>
+        <div class="ent-explain">Valori numerice în context</div>
+      </div>
+      <div class="ent-item">
+        <div class="ent-type">LOC</div>
+        <div class="ent-count">11.054</div>
+        <div class="ent-explain">Locații geografice naturale (munți, râuri)</div>
+      </div>
+      <div class="ent-item">
+        <div class="ent-type">PRODUCT</div>
+        <div class="ent-count">10.992</div>
+        <div class="ent-explain">Produse, opere, creații identificate</div>
+      </div>
+      <div class="ent-item">
+        <div class="ent-type">FACILITY</div>
+        <div class="ent-count">9.934</div>
+        <div class="ent-explain">Clădiri, infrastructură, facilități</div>
+      </div>
+      <div class="ent-item">
+        <div class="ent-type">EVENT</div>
+        <div class="ent-count">3.306</div>
+        <div class="ent-explain">Evenimente istorice, sportive etc.</div>
+      </div>
+      <div class="ent-item">
+        <div class="ent-type">LANGUAGE</div>
+        <div class="ent-count">2.797</div>
+        <div class="ent-explain">Limbi identificate în text</div>
+      </div>
+      <div class="ent-item">
+        <div class="ent-type">WORK_OF_ART</div>
+        <div class="ent-count">2.417</div>
+        <div class="ent-explain">Titluri de opere artistice</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── LEME FRECVENTE ── -->
+<div class="grid-2">
+  <div class="card pastel-1">
+    <h2><span class="icon">🔝</span>Cele mai frecvente 20 leme</h2>
+    <div class="bar-list">
+      <div class="bar-item"><div class="bar-label"><span class="word">de</span><span class="count">73.475</span></div><div class="bar-track"><div class="bar-fill c1" style="width:100%"></div></div></div>
+      <div class="bar-item"><div class="bar-label"><span class="word">și</span><span class="count">43.670</span></div><div class="bar-track"><div class="bar-fill c2" style="width:59%"></div></div></div>
+      <div class="bar-item"><div class="bar-label"><span class="word">în</span><span class="count">40.532</span></div><div class="bar-track"><div class="bar-fill c3" style="width:55%"></div></div></div>
+      <div class="bar-item"><div class="bar-label"><span class="word">fi</span><span class="count">28.849</span></div><div class="bar-track"><div class="bar-fill c4" style="width:39%"></div></div></div>
+      <div class="bar-item"><div class="bar-label"><span class="word">din</span><span class="count">24.115</span></div><div class="bar-track"><div class="bar-fill c5" style="width:33%"></div></div></div>
+      <div class="bar-item"><div class="bar-label"><span class="word">al</span><span class="count">22.422</span></div><div class="bar-track"><div class="bar-fill c6" style="width:31%"></div></div></div>
+      <div class="bar-item"><div class="bar-label"><span class="word">la</span><span class="count">21.277</span></div><div class="bar-track"><div class="bar-fill c1" style="width:29%"></div></div></div>
+      <div class="bar-item"><div class="bar-label"><span class="word">an</span><span class="count">19.014</span></div><div class="bar-track"><div class="bar-fill c2" style="width:26%"></div></div></div>
+      <div class="bar-item"><div class="bar-label"><span class="word">român</span><span class="count">13.127</span></div><div class="bar-track"><div class="bar-fill c3" style="width:18%"></div></div></div>
+      <div class="bar-item"><div class="bar-label"><span class="word">mai</span><span class="count">13.075</span></div><div class="bar-track"><div class="bar-fill c4" style="width:18%"></div></div></div>
+      <div class="bar-item"><div class="bar-label"><span class="word">avea</span><span class="count">12.934</span></div><div class="bar-track"><div class="bar-fill c5" style="width:18%"></div></div></div>
+      <div class="bar-item"><div class="bar-label"><span class="word">un</span><span class="count">12.012</span></div><div class="bar-track"><div class="bar-fill c6" style="width:16%"></div></div></div>
+      <div class="bar-item"><div class="bar-label"><span class="word">cu</span><span class="count">11.941</span></div><div class="bar-track"><div class="bar-fill c1" style="width:16%"></div></div></div>
+      <div class="bar-item"><div class="bar-label"><span class="word">care</span><span class="count">10.257</span></div><div class="bar-track"><div class="bar-fill c2" style="width:14%"></div></div></div>
+      <div class="bar-item"><div class="bar-label"><span class="word">pe</span><span class="count">8.569</span></div><div class="bar-track"><div class="bar-fill c3" style="width:12%"></div></div></div>
+      <div class="bar-item"><div class="bar-label"><span class="word">pentru</span><span class="count">7.809</span></div><div class="bar-track"><div class="bar-fill c4" style="width:11%"></div></div></div>
+      <div class="bar-item"><div class="bar-label"><span class="word">limbă</span><span class="count">6.916</span></div><div class="bar-track"><div class="bar-fill c5" style="width:9%"></div></div></div>
+      <div class="bar-item"><div class="bar-label"><span class="word">fotbalist</span><span class="count">5.220</span></div><div class="bar-track"><div class="bar-fill c6" style="width:7%"></div></div></div>
+      <div class="bar-item"><div class="bar-label"><span class="word">politician</span><span class="count">4.982</span></div><div class="bar-track"><div class="bar-fill c1" style="width:7%"></div></div></div>
+      <div class="bar-item"><div class="bar-label"><span class="word">ianuarie</span><span class="count">4.984</span></div><div class="bar-track"><div class="bar-fill c2" style="width:7%"></div></div></div>
+    </div>
+    <div class="explain" style="margin-top:0.8rem">Cuvântul <em>fotbalist</em> în top 20 sugerează că multe din cele 1000 articole sunt biografii de fotbaliști — pattern tipic Wikipedia RO.</div>
+  </div>
+
+  <div class="card pastel-3">
+    <h2><span class="icon">🔗</span>Colocații cu PMI ridicat (perechi de cuvinte care apar împreună mai des decât întâmplător)</h2>
+    <div class="coloc-list">
+      <span class="coloc-pill">tudor arghezi<span class="pmi">13.6</span></span>
+      <span class="coloc-pill">johannes kepler<span class="pmi">13.4</span></span>
+      <span class="coloc-pill">vasile pârvan<span class="pmi">13.2</span></span>
+      <span class="coloc-pill">vasile alecsandri<span class="pmi">13.2</span></span>
+      <span class="coloc-pill">fuziune termonucleară<span class="pmi">13.3</span></span>
+      <span class="coloc-pill">zona antarctică<span class="pmi">13.3</span></span>
+      <span class="coloc-pill">centură kuiper<span class="pmi">13.8</span></span>
+      <span class="coloc-pill">țării românești<span class="pmi">13.2</span></span>
+      <span class="coloc-pill">petre antonescu<span class="pmi">12.9</span></span>
+      <span class="coloc-pill">chitară bas<span class="pmi">12.9</span></span>
+      <span class="coloc-pill">grigore brâncuș<span class="pmi">12.9</span></span>
+      <span class="coloc-pill">horia matei<span class="pmi">13.2</span></span>
+      <span class="coloc-pill">înclinare axială<span class="pmi">13.3</span></span>
+      <span class="coloc-pill">op cit<span class="pmi">13.6</span></span>
+    </div>
+    <div class="explain" style="margin-top:0.8rem">
+      <strong>PMI</strong> (Pointwise Mutual Information) = cât de mult co-apariția depășește șansa. PMI &gt;13 = legătură extrem de puternică. Toate sunt fie nume proprii compuse, fie termeni tehnici specifici domeniului.
+    </div>
+  </div>
+</div>
+
+<!-- ── LITERE ── -->
+<div class="grid-2">
+  <div class="card pastel-6">
+    <h2><span class="icon">🔤</span>Frecvența literelor (top 20)</h2>
+    <div class="letter-grid">
+      <div class="letter-item"><span class="letter-char">i</span><span class="letter-pct">11,4%</span></div>
+      <div class="letter-item"><span class="letter-char">e</span><span class="letter-pct">11,1%</span></div>
+      <div class="letter-item"><span class="letter-char">a</span><span class="letter-pct">10,5%</span></div>
+      <div class="letter-item"><span class="letter-char">r</span><span class="letter-pct">7,7%</span></div>
+      <div class="letter-item"><span class="letter-char">n</span><span class="letter-pct">7,1%</span></div>
+      <div class="letter-item"><span class="letter-char">t</span><span class="letter-pct">6,2%</span></div>
+      <div class="letter-item"><span class="letter-char">l</span><span class="letter-pct">5,4%</span></div>
+      <div class="letter-item"><span class="letter-char">o</span><span class="letter-pct">5,3%</span></div>
+      <div class="letter-item"><span class="letter-char">u</span><span class="letter-pct">5,2%</span></div>
+      <div class="letter-item"><span class="letter-char">c</span><span class="letter-pct">4,4%</span></div>
+      <div class="letter-item"><span class="letter-char">s</span><span class="letter-pct">3,8%</span></div>
+      <div class="letter-item"><span class="letter-char">d</span><span class="letter-pct">3,3%</span></div>
+      <div class="letter-item"><span class="letter-char">m</span><span class="letter-pct">3,3%</span></div>
+      <div class="letter-item"><span class="letter-char">p</span><span class="letter-pct">2,7%</span></div>
+      <div class="letter-item"><span class="letter-char">ă</span><span class="letter-pct">1,9%</span></div>
+      <div class="letter-item"><span class="letter-char">b</span><span class="letter-pct">1,4%</span></div>
+      <div class="letter-item"><span class="letter-char">ș</span><span class="letter-pct">0,9%</span></div>
+      <div class="letter-item"><span class="letter-char">ț</span><span class="letter-pct">0,9%</span></div>
+      <div class="letter-item"><span class="letter-char">î</span><span class="letter-pct">0,7%</span></div>
+      <div class="letter-item"><span class="letter-char">â</span><span class="letter-pct">0,5%</span></div>
+    </div>
+    <div class="explain" style="margin-top:0.8rem">Entropie distribuție litere: <strong>4,24 biți</strong> (max teoretic = log₂26 = 4,7 biți). i, e, a dominați cu ~33% din tot textul — română e o limbă vocalică.</div>
+  </div>
+
+  <div class="card pastel-5">
+    <h2><span class="icon">🌐</span>Împrumuturi și cuvinte speciale</h2>
+    <div class="stat-row">
+      <div class="stat-item">
+        <span class="label">Cuvinte cu litere rare (q,w,x,k,y)</span>
+        <span class="value">61.574</span>
+      </div>
+      <div class="stat-item">
+        <span class="label">Procent din total tokens</span>
+        <span class="value">4,13%</span>
+      </div>
+    </div>
+    <div class="explain" style="margin-top:0.5rem">Proxy pentru împrumuturi / nume proprii străine. Exemple detectate:</div>
+    <div class="coloc-list" style="margin-top:0.5rem">
+      <span class="coloc-pill">hendrix</span>
+      <span class="coloc-pill">debussy</span>
+      <span class="coloc-pill">nylon</span>
+      <span class="coloc-pill">weimar</span>
+      <span class="coloc-pill">kennedy</span>
+      <span class="coloc-pill">husky</span>
+      <span class="coloc-pill">gypsy</span>
+      <span class="coloc-pill">yokotani</span>
+      <span class="coloc-pill">khosrow</span>
+      <span class="coloc-pill">shunsuke</span>
+    </div>
+    <br>
+    <div class="stat-row" style="margin-top:0.5rem">
+      <div class="stat-item">
+        <span class="label">Densitate lexicală</span>
+        <span class="value">0,52</span>
+      </div>
+      <div class="explain">52% din cuvinte sunt de conținut (substantive, verbe, adjective, adverbe). Texte enciclopedice: 0,45–0,55. Texte conversaționale: 0,35–0,40.</div>
+      <div class="stat-item">
+        <span class="label">Ratio conținut/funcție</span>
+        <span class="value">1,788</span>
+      </div>
+      <div class="explain">Pentru fiecare cuvânt de funcție (prepoziție, conjuncție) există ~1,8 cuvinte de conținut.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── GLOSAR ── -->
+<div class="glossary">
+  <h2>📘 Glosar — explicații complete ale indicilor</h2>
+
+  <div class="gloss-item">
+    <div class="gloss-term">TTR — Type-Token Ratio</div>
+    <div class="gloss-def">Raportul dintre numărul de cuvinte unice (tipuri) și numărul total de cuvinte (tokens). TTR = V/N. Problemă: scade invariabil pe măsură ce textul crește, deci nu e comparabil între corpusuri de mărimi diferite. Valoare aici: 0,0679.</div>
+  </div>
+
+  <div class="gloss-item">
+    <div class="gloss-term">MSTTR — Mean Segmental TTR</div>
+    <div class="gloss-def">Soluție la problema TTR: textul se împarte în ferestre de 1000 cuvinte și se calculează TTR-ul mediu. Mult mai stabil și comparabil. Valoare: 0,4656 — fiecare fereastră de 1000 cuvinte conține ~466 cuvinte unice.</div>
+  </div>
+
+  <div class="gloss-item">
+    <div class="gloss-term">MTLD — Measure of Textual Lexical Diversity</div>
+    <div class="gloss-def">Numărul mediu de cuvinte necesare pentru ca TTR-ul să scadă sub 0,72. Valori tipice: proză literară 80–120, texte academice 60–80, discurs conversațional 40–60. Valoare: 74,8 = text variat, mai aproape de proză decât de text tehnic arid.</div>
+  </div>
+
+  <div class="gloss-item">
+    <div class="gloss-term">Yule K</div>
+    <div class="gloss-def">Măsoară concentrarea frecvențelor: cât de mult domină câteva cuvinte foarte frecvente. K mic = vocabular distribuit egal; K mare = câteva cuvinte domină. Valoare: 62,25 — moderată, de așteptat în prezența cuvintelor funcționale (de, și, în, fi).</div>
+  </div>
+
+  <div class="gloss-item">
+    <div class="gloss-term">Honoré R</div>
+    <div class="gloss-def">R = 100 × log(V) / (1 − hapax/V). Valori >2000 indică vocabular bogat și divers. Valoare: 2631 — vocabular remarcabil de variat pentru un corpus enciclopedic.</div>
+  </div>
+
+  <div class="gloss-item">
+    <div class="gloss-term">Brunet W</div>
+    <div class="gloss-def">W = N^(V^−0.172). Scala inversă față de alți indici: W mic = vocabular bogat. W < 10 = excelent, W > 20 = sărac. Valoare: 7,09 = vocabular bogat.</div>
+  </div>
+
+  <div class="gloss-item">
+    <div class="gloss-term">Hapax legomena</div>
+    <div class="gloss-def">Cuvinte care apar exact o singură dată în corpus (din greacă: „spus o singură dată"). 56,21% din vocabular = hapax — proporție normală pentru orice corpus natural. Includ: termeni tehnici rari, variante ortografice, erori OCR, și mii de nume proprii unice.</div>
+  </div>
+
+  <div class="gloss-item">
+    <div class="gloss-term">Dis legomena</div>
+    <div class="gloss-def">Cuvinte care apar exact de două ori. Număr: 15.248. Împreună cu hapax formează coada lungă a distribuției Zipf.</div>
+  </div>
+
+  <div class="gloss-item">
+    <div class="gloss-term">Legea Zipf</div>
+    <div class="gloss-def">Empiric: frecvența unui cuvânt este proporțională cu 1/rangul său. Al doilea cuvânt apare de ~2× mai rar decât primul, al treilea de ~3× mai rar etc. Panta log-log ideală = −1,0. Valoare: −1,147 cu R²=0,963 — română urmează Zipf cu fidelitate înaltă, ușor mai abruptă decât engleза.</div>
+  </div>
+
+  <div class="gloss-item">
+    <div class="gloss-term">Entropie Shannon</div>
+    <div class="gloss-def">H = −Σ p(x) log₂ p(x). Măsoară incertitudinea / varietatea informației. 11,34 biți per lemă → dacă ai alege aleator o lemă din corpus, ai nevoie de 11,34 biți de informație pentru a o identifica. Cu cât mai mare, cu atât vocabularul e mai echilibrat și impredictibil.</div>
+  </div>
+
+  <div class="gloss-item">
+    <div class="gloss-term">Legea Heaps (Herdan)</div>
+    <div class="gloss-def">V(N) ≈ K × N^β — cum crește vocabularul cu textul. β tipic: 0,4–0,6 pt. engleză, mai mare pt. limbi flexionare. Valoare: β=0,791 — crescut, reflectă flexivitatea ridicată a limbii române și diversitatea subiectelor enciclopedice. R²=0,997 = fit aproape perfect.</div>
+  </div>
+
+  <div class="gloss-item">
+    <div class="gloss-term">PMI — Pointwise Mutual Information</div>
+    <div class="gloss-def">PMI(w1,w2) = log₂[P(w1,w2) / (P(w1)×P(w2))]. Măsoară cât de mult co-apariția a două cuvinte depășește ce ar fi de așteptat prin șansă pură. PMI > 0 = asociere pozitivă; PMI ridicat (>10) = legătură extrem de puternică, specifică domeniului.</div>
+  </div>
+
+  <div class="gloss-item">
+    <div class="gloss-term">Flesch Reading Ease</div>
+    <div class="gloss-def">206.835 − 1.015×(cuvinte/propoziție) − 84.6×(silabe/cuvânt). Scala 0–100: &gt;70 ușor, 30–70 mediu, &lt;30 dificil. Valoarea negativă (−78,5) e normală pentru texte enciclopedice cu propoziții lungi și vocabular tehnic — formula e calibrată pentru engleză și subestimează ușurința pentru română.</div>
+  </div>
+
+  <div class="gloss-item">
+    <div class="gloss-term">Densitate lexicală</div>
+    <div class="gloss-def">Proporția cuvintelor de conținut (substantive, verbe, adjective, adverbe) din totalul cuvintelor. 0,52 = 52% conținut informațional, 48% cuvinte gramaticale. Valori mari = text dens, informativ; valori mici = text conversațional, fluid.</div>
+  </div>
+
+  <div class="gloss-item">
+    <div class="gloss-term">POS — Part of Speech</div>
+    <div class="gloss-def">Categoria gramaticală a fiecărui cuvânt, atribuită automat de modelul spaCy ro_core_news_lg. NOUN=substantiv, PROPN=nume propriu, ADP=adpoziție/prepoziție, ADJ=adjectiv, VERB=verb, AUX=auxiliar, DET=determinant/articol, CCONJ=conjuncție coordonatoare, ADV=adverb, PRON=pronume, NUM=numeral.</div>
+  </div>
+
+  <div class="gloss-item">
+    <div class="gloss-term">NER — Named Entity Recognition</div>
+    <div class="gloss-def">Identificarea și clasificarea automată a entităților denumite din text: persoane, locuri, organizații, date, etc. Realizată de același model spaCy. GPE = Geo-Political Entity (entitate geopolitică: țări, orașe, regiuni administrative).</div>
+  </div>
+</div>
+
+<footer>
+  LexRO · Corpus: Wikipedia Română · 1.000 articole · Model: ro_core_news_lg · 28 iunie 2026
+</footer>
+
+</main>
+</body>
+</html>

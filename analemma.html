@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Analema solară — Mini Unelte</title>
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="astronomy.css">
+<script src="theme.js"></script>
+<style>
+.analemma-form { display:grid; grid-template-columns:repeat(auto-fit,minmax(125px,1fr)); gap:12px; padding:14px; }
+.analemma-form, .chart-panel { border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--bg2); }
+.analemma-form label { color:var(--text2); font-size:.78rem; }
+.analemma-form input { display:block; width:100%; margin-top:5px; }
+.chart-panel { margin-top:12px; padding:clamp(8px,2vw,20px); }
+.chart-panel svg { display:block; width:min(100%,760px); height:auto; margin:auto; }
+.chart-panel svg text { fill:var(--text2); font-family:var(--font-mono); font-size:14px; }
+.chart-grid { stroke:var(--border2); stroke-width:1; }
+.chart-line { fill:none; stroke:var(--accent); stroke-width:2.5; stroke-linejoin:round; }
+.month-dot { fill:var(--accent); }
+.selected-dot { fill:#f2b942; stroke:#a86017; stroke-width:1.6; }
+.chart-footer { width:min(100%,760px); margin:8px auto 0; display:grid; gap:7px; }
+.chart-footer input { width:100%; accent-color:var(--accent); }
+#solar-readout { color:var(--text); font-family:var(--font-mono); font-size:.85rem; min-height:2.5em; }
+.note { margin:10px 0 0; color:var(--text2); font-size:.8rem; }
+</style>
+</head>
+<body>
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+<main class="tool-page">
+  <header class="tool-header">
+    <a class="back" href="index.html#astro">← Astronomie</a>
+    <h1>Analema solară</h1>
+    <p>Unde se află Soarele dacă îl observăm în fiecare zi din același loc, la aceeași oră?</p>
+  </header>
+  <form class="analemma-form" id="settings">
+    <label>Latitudine (°)<input class="input-calc" name="latitude" type="number" min="-90" max="90" step="any" value="44.4268" required></label>
+    <label>Longitudine (°)<input class="input-calc" name="longitude" type="number" min="-180" max="180" step="any" value="26.1025" required></label>
+    <label>An<input class="input-calc" name="year" type="number" min="1900" max="2100" value="2026" required></label>
+    <label>Ora locală<input class="input-calc" name="time" type="time" value="12:00" required></label>
+    <label>Decalaj UTC (ore)<input class="input-calc" name="offset" type="number" min="-12" max="14" step=".25" value="2" required></label>
+  </form>
+  <section class="chart-panel" aria-label="Diagrama analemei">
+    <svg id="analemma-chart" viewBox="0 0 640 460" role="img" aria-label="Azimutul și înălțimea Soarelui de-a lungul anului"></svg>
+    <div class="chart-footer">
+      <label for="day">Explorează o zi a anului</label>
+      <input id="day" type="range" min="0" max="364" step="1" value="0">
+      <output id="solar-readout" for="day"></output>
+    </div>
+  </section>
+  <p class="note">Discul galben marchează poziția Soarelui în ziua selectată. Punctele mici marchează începutul lunilor. Azimutul se măsoară de la nord, în sensul acelor de ceasornic. Axele folosesc scări diferite pentru a face bucla mai ușor de citit.</p>
+  <p class="note">Decalajul UTC rămâne fix pe tot parcursul anului. Pentru București, setarea inițială folosește ora standard (UTC+2). Forma analemei rezultă din înclinarea axei Pământului și din variația vitezei sale pe orbită.</p>
+  <p class="note">Calcul local cu SunCalc. <a href="https://apod.nasa.gov/apod/ap190928.html">Analema fotografiată la Budapesta, NASA APOD</a>.</p>
+</main>
+<script src="suncalc.js"></script>
+<script src="analemma.js"></script>
+</body>
+</html>

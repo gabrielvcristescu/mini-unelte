@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fazele Lunii în 3D — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="astronomy.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+
+<style>
+.phase-grid {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+.phase-card {
+  overflow:hidden;
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  background:var(--bg2);
+}
+.phase-card h2 {
+  margin:0;
+  padding:10px 12px 8px;
+  border-bottom:1px solid var(--border);
+  font-size:.82rem;
+  color:var(--text);
+}
+.phase-stage {
+  position:relative;
+  aspect-ratio:1.35/1;
+  min-height:300px;
+  background:
+    radial-gradient(circle at 50% 45%,rgba(55,80,115,.18),transparent 45%),
+    linear-gradient(180deg,#0a0d12,#06080c);
+  color-scheme: dark;
+}
+.phase-stage canvas {
+  display:block;
+  width:100% !important;
+  height:100% !important;
+}
+.sun-note {
+  position:absolute;
+  left:10px; top:10px;
+  z-index:3;
+  padding:4px 7px;
+  border:1px solid rgba(240,190,90,.22);
+  border-radius:999px;
+  background:rgba(240,190,90,.08);
+  color:#e8bf66;
+  font-family:var(--font-mono);
+  font-size:.55rem;
+  pointer-events:none;
+}
+.texture-warning {
+  position:absolute;
+  left:10px; right:10px; bottom:10px;
+  display:none;
+  padding:5px 7px;
+  border-radius:5px;
+  background:rgba(0,0,0,.62);
+  color:#f0c070;
+  font-family:var(--font-mono);
+  font-size:.52rem;
+  text-align:center;
+  pointer-events:none;
+}
+.texture-warning.show { display:block; }
+
+.metrics {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+  margin-top:8px;
+}
+.metric {
+  padding:10px 11px;
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  background:var(--bg2);
+}
+.metric-value {
+  font-family:var(--font-mono);
+  font-size:1rem;
+  font-weight:700;
+  color:var(--text);
+}
+.metric-label {
+  margin-top:3px;
+  font-family:var(--font-mono);
+  font-size:.55rem;
+  color:var(--text3);
+  text-transform:uppercase;
+  letter-spacing:.07em;
+}
+.metric.phase-main .metric-value { color:var(--accent); }
+#age { font-size:1.25rem; font-variant-numeric:tabular-nums; white-space:nowrap; }
+
+.legend {
+  margin-top:10px;
+  padding:10px 12px;
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  background:var(--bg2);
+  font-family:var(--font-mono);
+  font-size:.61rem;
+  line-height:1.55;
+  color:var(--text3);
+}
+.legend strong { color:var(--text2); font-weight:600; }
+
+.tool-about-note {
+  margin-top:clamp(1.5rem,4vw,2.5rem);
+  padding:14px 16px;
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  background:var(--bg2);
+  color:var(--text3);
+  font-family:var(--font-mono);
+  font-size:.72rem;
+  line-height:1.55;
+  width:100%;
+}
+.tool-about-note strong { color:var(--text2); font-weight:600; }
+
+
+.phase-jumps {
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin:8px 0 12px;
+}
+.phase-jump {
+  min-height:32px;
+  padding:5px 9px;
+  border:1px solid var(--border);
+  border-radius:999px;
+  background:var(--bg2);
+  color:var(--text2);
+  font-family:var(--font-mono);
+  font-size:.58rem;
+  cursor:pointer;
+}
+.phase-jump:hover {
+  border-color:var(--border2);
+  color:var(--text);
+  background:var(--bg3);
+}
+.slider-marks {
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  margin-top:4px;
+  font-family:var(--font-mono);
+  font-size:.5rem;
+  color:var(--text3);
+}
+.slider-marks span:nth-child(2),
+.slider-marks span:nth-child(3),
+.slider-marks span:nth-child(4) { text-align:center; }
+.slider-marks span:last-child { text-align:right; }
+
+.orbit-note {
+  position:absolute;
+  right:10px;
+  top:10px;
+  z-index:3;
+  padding:4px 7px;
+  border:1px solid rgba(150,170,200,.20);
+  border-radius:999px;
+  background:rgba(110,135,170,.08);
+  color:#8fa3bd;
+  font-family:var(--font-mono);
+  font-size:.54rem;
+  pointer-events:none;
+}
+
+@media(max-width:800px) {
+  .phase-grid { grid-template-columns:1fr; }
+  .metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media(max-width:620px) {
+  .phase-stage { min-height:240px; }
+}
+</style>
+</head>
+
+<body data-show-source="true">
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+  <div class="tool-header">
+    <a class="back" href="index.html#astro">← Astronomie</a>
+    <h1>Fazele Lunii în 3D</h1>
+    <p>Simulare a orbitei și a librației, văzute din spațiu și de pe Pământ. <a href="moon-phase.html">Calculează faza Lunii la o dată aleasă</a>.</p>
+  </div>
+
+  <div class="astro-playback">
+    <div class="astro-playback-main">
+      <div class="astro-playback-head">
+        <label for="phase-slider">Poziția Lunii în ciclul sinodic</label>
+      </div>
+      <input id="phase-slider" type="range" min="0" max="1000" value="250" step="1"
+             aria-label="Poziția Lunii în ciclul fazelor">
+    </div>
+    <button class="btn btn-secondary" id="play-btn" type="button">Play</button>
+    <button class="btn btn-ghost" id="reset-btn" type="button">Reset</button>
+  </div>
+
+  <div class="slider-marks" aria-hidden="true">
+    <span>0 z</span>
+    <span>7,4 z</span>
+    <span>14,8 z</span>
+    <span>22,1 z</span>
+    <span>29,5 z</span>
+  </div>
+
+  <div class="phase-jumps" aria-label="Salt la fazele principale">
+    <button class="phase-jump" type="button" data-phase="0.00">Lună nouă</button>
+    <button class="phase-jump" type="button" data-phase="0.25">Primul pătrar</button>
+    <button class="phase-jump" type="button" data-phase="0.50">Lună plină</button>
+    <button class="phase-jump" type="button" data-phase="0.75">Ultimul pătrar</button>
+  </div>
+
+  <div class="phase-grid">
+    <section class="phase-card">
+      <h2>Văzut din spațiu</h2>
+      <div class="phase-stage" id="space-stage">
+        <div class="sun-note">☀ Soarele este în stânga</div>
+        <div class="orbit-note">↺ sens orbital</div>
+        <div class="texture-warning" id="space-warning"></div>
+      </div>
+    </section>
+
+    <section class="phase-card">
+      <h2>Văzut de pe Pământ — emisfera nordică</h2>
+      <div class="phase-stage" id="earth-stage">
+        <div class="texture-warning" id="earth-warning"></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="metrics">
+    <div class="metric phase-main">
+      <div class="metric-value" id="phase-name">Lună nouă</div>
+      <div class="metric-label">faza</div>
+    </div>
+    <div class="metric">
+      <div class="metric-value" id="illumination">0%</div>
+      <div class="metric-label">iluminare</div>
+    </div>
+    <div class="metric">
+      <div class="metric-value" id="age">7,4 zile</div>
+      <div class="metric-label">vârsta ciclului</div>
+    </div>
+    <div class="metric">
+      <div class="metric-value" id="angle">0°</div>
+      <div class="metric-label">unghi orbital</div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <strong>Ideea-cheie:</strong> fazele Lunii nu sunt produse de umbra Pământului.
+    Jumătate din Lună este luminată permanent de Soare; noi vedem o porțiune diferită
+    din acea jumătate, în funcție de poziția Lunii pe orbită. În vederea din emisfera
+    nordică, Luna în creștere este luminată predominant în dreapta, iar cea în descreștere în stânga.
+  </div>
+
+  <div class="legend">
+    <strong>Model educațional:</strong> orbita este reprezentată circular și în același plan
+    pentru claritate (excentricitatea reală, ~0,055, ar fi oricum greu de văzut cu ochiul liber).
+    Dimensiunile și distanțele nu sunt la scară. Ciclul sinodic folosit: 29,53059 zile.
+    Nordul lunar este afișat aproximativ în sus; orientarea aparentă exactă pe cer depinde
+    de dată și de locul observatorului.
+  </div>
+
+  <div class="legend">
+    <strong>Librație:</strong> Luna nu ne arată exact aceeași jumătate — se "leagănă" ușor
+    (±7,9° în longitudine, din orbita eliptică; ±6,9° în latitudine, din înclinarea axei),
+    astfel încât vedem cumulat circa 59% din suprafața ei de-a lungul timpului. Leagănul
+    afișat aici e corect ca formă și amplitudine, dar <strong>nu e legat de o dată
+    calendaristică reală</strong> — se repetă identic la fiecare parcurgere a sliderului.
+    În realitate nu se repetă așa: perioadele librației (~27,55 zile în longitudine,
+    ~27,21 zile în latitudine) diferă de luna sinodică (29,53 zile) după care se ghidează
+    acest instrument, deci relația reală dintre fază și librație se schimbă ușor de la o lună
+    la alta. E o simplificare asumată — scopul acestei unelte este să arate de unde vin fazele
+    și că Luna se clatină, nu să fie un calculator astronomic precis pentru o dată anume.
+    Librația fizică (sub 0,03°) și cea diurnă (până la ~1°, depinde de poziția observatorului)
+    sunt de asemenea neglijate, fiind nesemnificative pentru acest scop.
+  </div>
+
+
+  <div class="legend">
+    <strong>Credite:</strong> texturi Pământ, Lună și Soare — Solar System Scope / INOVE,
+    CC BY 4.0, bazate pe date și imagini NASA; fișierele au fost redimensionate și comprimate
+    pentru utilizare în browser. Randare 3D — Three.js r160, MIT License.
+  </div>
+
+  <div class="tool-about-note">
+    <strong>Fazele Lunii</strong> face parte din colecția <strong>Mini Unelte</strong>,
+    selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>.
+    Implementarea a fost realizată cu asistență AI.
+  </div>
+</div>
+
+<script src="three.min.js"></script>
+<script src="planet-textures.js"></script>
+<script src="suncalc.js"></script>
+
+<script>
+(() => {
+  'use strict';
+
+  const SYNODIC_DAYS = 29.53059;
+  const TAU = Math.PI * 2;
+  const DEG = Math.PI / 180;
+  const MOON_TEXTURE_Y = -Math.PI / 2; // centrul hărții equirectangulare este adus spre observator
+
+  // Ancoră arbitrară de timp (J2000.0) folosită doar ca să convertim "vârsta"
+  // fazei (0..29.53 zile) într-o dată reală, necesară formulei de librație.
+  // Nu pretinde să corespundă unei anumite Luni noi reale — contează forma
+  // și amplitudinea librației, nu sincronizarea cu calendarul.
+  const LIBRATION_EPOCH_MS = Date.UTC(2000, 0, 1, 12, 0, 0);
+  function librationForAge(ageDays) {
+    if (!window.SunCalc || !SunCalc.getMoonLibration) return { lon: 0, lat: 0 };
+    return SunCalc.getMoonLibration(new Date(LIBRATION_EPOCH_MS + ageDays * 86400000));
+  }
+
+  const slider = document.getElementById('phase-slider');
+  const playBtn = document.getElementById('play-btn');
+  const resetBtn = document.getElementById('reset-btn');
+  const phaseNameEl = document.getElementById('phase-name');
+  const illumEl = document.getElementById('illumination');
+  const ageEl = document.getElementById('age');
+  const angleEl = document.getElementById('angle');
+
+  let theta = TAU * 0.25;
+  let playing = false;
+  let last = performance.now();
+
+  function makeRenderer(stage) {
+    const renderer = new THREE.WebGLRenderer({
+      antialias:true,
+      alpha:true,
+      powerPreference:'high-performance'
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.setClearColor(0x000000, 0);
+    stage.prepend(renderer.domElement);
+    return renderer;
+  }
+
+  function loadTexture(key, material, renderer, warning) {
+    const data = window.PLANET_TEXTURES && window.PLANET_TEXTURES[key];
+    if (!data) {
+      warning.textContent = `Lipsește textura ${key}`;
+      warning.classList.add('show');
+      return;
+    }
+    const loader = new THREE.TextureLoader();
+    loader.load(data, texture => {
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
+      material.map = texture;
+      material.needsUpdate = true;
+    }, undefined, () => {
+      warning.textContent = `Nu s-a putut încărca textura ${key}`;
+      warning.classList.add('show');
+    });
+  }
+
+  // ---------- View 1: space ----------
+  const spaceStage = document.getElementById('space-stage');
+  const spaceWarning = document.getElementById('space-warning');
+  const spaceScene = new THREE.Scene();
+  const spaceCamera = new THREE.PerspectiveCamera(34, 1, 0.1, 50);
+  spaceCamera.position.set(0, 7.2, 8.7);
+  spaceCamera.lookAt(0, 0, 0);
+  const spaceRenderer = makeRenderer(spaceStage);
+
+  spaceScene.add(new THREE.AmbientLight(0x334455, 0.35));
+
+  const sunLight = new THREE.DirectionalLight(0xffffff, 2.4);
+  sunLight.position.set(-8, 0, 0);
+  spaceScene.add(sunLight);
+
+  const earthMat = new THREE.MeshStandardMaterial({ roughness:.95, metalness:0 });
+  const earth = new THREE.Mesh(
+    new THREE.SphereGeometry(0.9, 64, 40),
+    earthMat
+  );
+  spaceScene.add(earth);
+  loadTexture('earth', earthMat, spaceRenderer, spaceWarning);
+
+  const moonMatSpace = new THREE.MeshStandardMaterial({ roughness:1, metalness:0 });
+  const moonSpace = new THREE.Mesh(
+    new THREE.SphereGeometry(0.34, 48, 32),
+    moonMatSpace
+  );
+  spaceScene.add(moonSpace);
+  loadTexture('moon', moonMatSpace, spaceRenderer, spaceWarning);
+
+  // Orbit line
+  const orbitPts = [];
+  for (let i=0; i<=160; i++) {
+    const a = i/160 * TAU;
+    orbitPts.push(new THREE.Vector3(Math.cos(a)*3.2, 0, Math.sin(a)*3.2));
+  }
+  const orbitGeom = new THREE.BufferGeometry().setFromPoints(orbitPts);
+  const orbitMat = new THREE.LineBasicMaterial({
+    color:0x738197,
+    transparent:true,
+    opacity:.36
+  });
+  const orbitLine = new THREE.Line(orbitGeom, orbitMat);
+  spaceScene.add(orbitLine);
+
+  // Sun marker
+  const sunMat = new THREE.MeshBasicMaterial({ color:0xffffff });
+  const sun = new THREE.Mesh(new THREE.SphereGeometry(0.44, 48, 32), sunMat);
+  sun.position.set(-5.0, 0, 0);
+  spaceScene.add(sun);
+  loadTexture('sun', sunMat, spaceRenderer, spaceWarning);
+
+  // Halo discret în jurul Soarelui.
+  const glowMat = new THREE.MeshBasicMaterial({
+    color:0xf0b84f,
+    transparent:true,
+    opacity:.16,
+    side:THREE.BackSide
+  });
+  const glow = new THREE.Mesh(new THREE.SphereGeometry(0.58, 32, 20), glowMat);
+  glow.position.copy(sun.position);
+  spaceScene.add(glow);
+
+  // ---------- View 2: Earth observer ----------
+  const earthStage = document.getElementById('earth-stage');
+  const earthWarning = document.getElementById('earth-warning');
+  const obsScene = new THREE.Scene();
+  const obsCamera = new THREE.PerspectiveCamera(29, 1, 0.1, 20);
+  obsCamera.position.set(0, 0, 5.2);
+  obsCamera.lookAt(0,0,0);
+  const obsRenderer = makeRenderer(earthStage);
+
+  obsScene.add(new THREE.AmbientLight(0xffffff, 0.012));
+
+  const moonMatObs = new THREE.MeshStandardMaterial({
+    roughness:1,
+    metalness:0
+  });
+  const moonObs = new THREE.Mesh(
+    new THREE.SphereGeometry(1.22, 96, 64),
+    moonMatObs
+  );
+  // Textura este equirectangulară: centrul imaginii trebuie să fie fața apropiată.
+  // Rotirea pe Y aduce longitudinea centrală spre cameră; nu răsucim discul cu 90°.
+  // Orientarea finală (bază + librație) e calculată în fiecare updateScene().
+  obsScene.add(moonObs);
+  loadTexture('moon', moonMatObs, obsRenderer, earthWarning);
+
+  const phaseLight = new THREE.DirectionalLight(0xffffff, 3.4);
+  obsScene.add(phaseLight);
+
+  function resize(stage, renderer, camera) {
+    const rect = stage.getBoundingClientRect();
+    const w = Math.max(1, Math.round(rect.width));
+    const h = Math.max(1, Math.round(rect.height));
+    const pr = renderer.getPixelRatio();
+    const tw = Math.round(w * pr);
+    const th = Math.round(h * pr);
+    if (renderer.domElement.width !== tw || renderer.domElement.height !== th) {
+      renderer.setSize(w, h, false);
+      camera.aspect = w/h;
+      camera.updateProjectionMatrix();
+    }
+  }
+
+  function phaseName(angle) {
+    const p = ((angle % TAU) + TAU) % TAU;
+    const eighth = TAU / 8;
+    if (p < eighth/2 || p >= TAU - eighth/2) return 'Lună nouă';
+    if (p < 3*eighth/2) return 'Seceră în creștere';
+    if (p < 5*eighth/2) return 'Primul pătrar';
+    if (p < 7*eighth/2) return 'Gibboasă în creștere';
+    if (p < 9*eighth/2) return 'Lună plină';
+    if (p < 11*eighth/2) return 'Gibboasă în descreștere';
+    if (p < 13*eighth/2) return 'Ultimul pătrar';
+    return 'Seceră în descreștere';
+  }
+
+  function updateScene() {
+    const age = (theta / TAU) * SYNODIC_DAYS;
+    const illumination = (1 - Math.cos(theta)) / 2;
+
+    // O rotație a Pământului = o zi solară (lumina Soarelui are direcție fixă
+    // în această scenă). Ciclul complet al sliderului acoperă o lună sinodică
+    // (29,53059 zile), deci Pământul face ~29,53 rotații pe parcursul ei —
+    // nu perioada siderală de rotație (~27,32 zile, care e durata orbitei
+    // Lunii față de stele, nu față de Soare, și nu e mărimea animată aici).
+    // Actualizat aici (nu doar în animate()) ca rotația să răspundă și la
+    // tragerea manuală a sliderului, nu doar la Play.
+    earth.rotation.y = ((age % 1) + 1) % 1 * TAU;
+
+    // Librație optică: chiar și cu o rotație perfect sincronă, forma eliptică
+    // a orbitei și înclinarea axei Lunii fac ca, de pe Pământ, să vedem ușor
+    // "peste marginea" emisferei vizibile medii — până la ±7,9° în longitudine
+    // și ±6,9° în latitudine. Cumulat, acest leagăn face vizibil ~59% din
+    // suprafața Lunii de-a lungul timpului, nu exact 50%.
+    const lib = librationForAge(age);
+    const libLon = lib.lon * DEG;
+    const libLat = lib.lat * DEG;
+
+    // New Moon at left, between Sun and Earth; Full Moon at right.
+    moonSpace.position.set(
+      -Math.cos(theta) * 3.2,
+      0,
+      Math.sin(theta) * 3.2
+    );
+
+    // Rotație sincronă: centrul texturii (fața apropiată) este ținut spre Pământ,
+    // apoi se suprapune leagănul de librație (în axele proprii ale Lunii: Y =
+    // axa polilor, Z = perpendiculara rămasă, odată ce X e aliniat spre Pământ).
+    const toEarth = new THREE.Vector3()
+      .subVectors(earth.position, moonSpace.position)
+      .normalize();
+    const qFaceEarth = new THREE.Quaternion().setFromUnitVectors(
+      new THREE.Vector3(1, 0, 0),
+      toEarth
+    );
+    const qLibLon = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), libLon);
+    const qLibLat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), libLat);
+    moonSpace.quaternion.copy(qFaceEarth).multiply(qLibLon).multiply(qLibLat);
+
+    // Vederea de pe Pământ: aceeași librație, suprapusă peste orientarea de bază
+    // a texturii (nu mai e complet statică precum înainte).
+    moonObs.quaternion.setFromEuler(new THREE.Euler(0, MOON_TEXTURE_Y, 0));
+    moonObs.quaternion.multiply(
+      new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), libLon)
+    ).multiply(
+      new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), libLat)
+    );
+
+    // Observer view: at new Moon light comes from behind the Moon (-Z);
+    // at full Moon it comes from the observer side (+Z).
+    phaseLight.position.set(
+      Math.sin(theta) * 5,
+      0,
+      -Math.cos(theta) * 5
+    );
+
+    const deg = theta / TAU * 360;
+    phaseNameEl.textContent = phaseName(theta);
+    illumEl.textContent = `${Math.round(illumination * 100)}%`;
+    const ageText = `${age.toLocaleString('ro-RO', {minimumFractionDigits:1, maximumFractionDigits:1})} zile`;
+    if (ageEl.textContent !== ageText) ageEl.textContent = ageText;
+    angleEl.textContent = `${Math.round(deg)}°`;
+  }
+
+  slider.addEventListener('input', () => {
+    theta = Number(slider.value) / 1000 * TAU;
+    updateScene();
+  });
+
+  playBtn.addEventListener('click', () => {
+    playing = !playing;
+    playBtn.textContent = playing ? 'Pauză' : 'Play';
+  });
+
+  resetBtn.addEventListener('click', () => {
+    playing = false;
+    playBtn.textContent = 'Play';
+    theta = TAU * 0.25;
+    slider.value = 250;
+    updateScene();
+  });
+
+  document.querySelectorAll('.phase-jump').forEach(btn => {
+    btn.addEventListener('click', () => {
+      playing = false;
+      playBtn.textContent = 'Play';
+      const fraction = Number(btn.dataset.phase);
+      theta = TAU * fraction;
+      slider.value = Math.round(fraction * 1000);
+      updateScene();
+    });
+  });
+
+  function animate(now) {
+    const dt = Math.min((now-last)/1000, .05);
+    last = now;
+
+    if (playing) {
+      // Full synodic cycle in ~18 s.
+      theta = (theta + dt * TAU / 18) % TAU;
+      slider.value = Math.round(theta / TAU * 1000);
+      updateScene();
+    }
+
+    // Rotația Pământului și librația Lunii sunt calculate în updateScene(),
+    // ca funcție directă a lui theta/age — nu se acumulează separat aici,
+    // ca să rămână corecte și când sliderul e tras manual (fără Play).
+
+    resize(spaceStage, spaceRenderer, spaceCamera);
+    resize(earthStage, obsRenderer, obsCamera);
+
+    spaceRenderer.render(spaceScene, spaceCamera);
+    obsRenderer.render(obsScene, obsCamera);
+
+    requestAnimationFrame(animate);
+  }
+
+  updateScene();
+  requestAnimationFrame(animate);
+})();
+</script>
+
+<script src="prism.js"></script>
+<script src="site.js"></script>
+</body>
+</html>

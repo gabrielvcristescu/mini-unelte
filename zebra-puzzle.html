@@ -146,6 +146,13 @@
     .chip:active{cursor:grabbing}
     .chip .icon{font-size:19px;line-height:1}
     .slot .chip .icon{font-size:24px}
+    .tray-section .chip{min-height:56px;padding:5px 8px;gap:8px}
+    .tray-section .chip .txt{font-size:13px}
+    .tray-section .chip.small .txt{font-size:11px}
+    .chip img.icon{height:46px;width:auto;max-width:54px;object-fit:contain;flex:none;pointer-events:none}
+    .slot{padding:0}
+    .slot .chip{align-self:stretch;min-height:0;border-radius:13px;box-shadow:none}
+    .slot .chip img.icon{height:52px;max-width:60px}
     .chip .txt{font-size:12px}
     .slot .chip .txt{font-size:14px}
     .chip.small .txt{font-size:10px}
@@ -515,16 +522,16 @@ ol{color:var(--text2)}
         <summary>Indiciile</summary>
         <ol>
           <li>Englezul locuiește în casa roșie.</li>
-          <li>Suedezul are câini ca animale de companie.</li>
+          <li>Suedezul are un câine ca animal de companie.</li>
           <li>Danezul bea ceai.</li>
           <li>Casa verde se află exact în stânga casei albe.</li>
           <li>Proprietarul casei verzi bea cafea.</li>
-          <li>Persoana care fumează Pall Mall are păsări.</li>
+          <li>Persoana care fumează Pall Mall are o pasăre.</li>
           <li>Proprietarul casei galbene fumează Kools.</li>
           <li>Omul care locuiește în casa din mijloc bea lapte.</li>
           <li>Norvegianul locuiește în prima casă.</li>
-          <li>Omul care fumează Chesterfield locuiește în casa vecină cu cel care are pisici.</li>
-          <li>Omul care are cai locuiește în casa vecină cu cel care fumează Kools.</li>
+          <li>Omul care fumează Chesterfield locuiește în casa vecină cu cel care are o pisică.</li>
+          <li>Omul care are un cal locuiește în casa vecină cu cel care fumează Kools.</li>
           <li>Proprietarul care fumează Blue Master bea bere.</li>
           <li>Germanul fumează Prince.</li>
           <li>Norvegianul locuiește lângă casa albastră.</li>
@@ -557,39 +564,39 @@ const rows = [
 
 const data = {
   color: [
-    {id:"red", label:"Roșie", icon:"🏠", cls:"red"},
-    {id:"green", label:"Verde", icon:"🏠", cls:"green"},
-    {id:"white", label:"Albă", icon:"🏠", cls:"white"},
-    {id:"yellow", label:"Galbenă", icon:"🏠", cls:"yellow"},
-    {id:"blue", label:"Albastră", icon:"🏠", cls:"blue"}
+    {id:"red", label:"Roșie", icon:"stickers/rosie.png", cls:"red"},
+    {id:"green", label:"Verde", icon:"stickers/verde.png", cls:"green"},
+    {id:"white", label:"Albă", icon:"stickers/alba.png", cls:"white"},
+    {id:"yellow", label:"Galbenă", icon:"stickers/galbena.png", cls:"yellow"},
+    {id:"blue", label:"Albastră", icon:"stickers/albastra.png", cls:"blue"}
   ],
   nationality: [
-    {id:"norwegian", label:"Norvegian", icon:"🧑‍🎄", cls:"nationality small"},
-    {id:"british", label:"Englez", icon:"🎩", cls:"nationality"},
-    {id:"swedish", label:"Suedez", icon:"🧣", cls:"nationality"},
-    {id:"danish", label:"Danez", icon:"👩‍🌾", cls:"nationality"},
-    {id:"german", label:"German", icon:"🧔", cls:"nationality"}
+    {id:"norwegian", label:"Norvegian", icon:"stickers/norvegian.png", cls:"nationality small"},
+    {id:"british", label:"Englez", icon:"stickers/englez.png", cls:"nationality"},
+    {id:"swedish", label:"Suedez", icon:"stickers/suedez.png", cls:"nationality"},
+    {id:"danish", label:"Danez", icon:"stickers/danez.png", cls:"nationality"},
+    {id:"german", label:"German", icon:"stickers/german.png", cls:"nationality"}
   ],
   drink: [
-    {id:"tea", label:"Ceai", icon:"🍵", cls:"drink"},
-    {id:"coffee", label:"Cafea", icon:"☕", cls:"drink"},
-    {id:"milk", label:"Lapte", icon:"🥛", cls:"drink"},
-    {id:"beer", label:"Bere", icon:"🍺", cls:"drink"},
-    {id:"water", label:"Apă", icon:"💧", cls:"drink"}
+    {id:"tea", label:"Ceai", icon:"stickers/ceai.png", cls:"drink"},
+    {id:"coffee", label:"Cafea", icon:"stickers/cafea.png", cls:"drink"},
+    {id:"milk", label:"Lapte", icon:"stickers/lapte.png", cls:"drink"},
+    {id:"beer", label:"Bere", icon:"stickers/bere.png", cls:"drink"},
+    {id:"water", label:"Apă", icon:"stickers/apa.png", cls:"drink"}
   ],
   smoke: [
-    {id:"pallmall", label:"Pall Mall", icon:"🚬", cls:"smoke"},
-    {id:"kools", label:"Kools", icon:"🚬", cls:"smoke"},
-    {id:"chesterfield", label:"Chesterfield", icon:"🚬", cls:"smoke small"},
-    {id:"bluemaster", label:"Blue Master", icon:"🚬", cls:"smoke small"},
-    {id:"prince", label:"Prince", icon:"🚬", cls:"smoke"}
+    {id:"pallmall", label:"Pall Mall", icon:"stickers/pall_mall.png", cls:"smoke"},
+    {id:"kools", label:"Kools", icon:"stickers/kools.png", cls:"smoke"},
+    {id:"chesterfield", label:"Chesterfield", icon:"stickers/chesterfield.png", cls:"smoke small"},
+    {id:"bluemaster", label:"Blue Master", icon:"stickers/blue_master.png", cls:"smoke small"},
+    {id:"prince", label:"Prince", icon:"stickers/prince.png", cls:"smoke"}
   ],
   pet: [
-    {id:"dogs", label:"Câini", icon:"🐕", cls:"pet"},
-    {id:"birds", label:"Păsări", icon:"🐦", cls:"pet"},
-    {id:"cats", label:"Pisici", icon:"🐈", cls:"pet"},
-    {id:"horses", label:"Cai", icon:"🐎", cls:"pet"},
-    {id:"zebra", label:"Zebră", icon:"🦓", cls:"pet"}
+    {id:"dogs", label:"Câine", icon:"stickers/caine.png", cls:"pet"},
+    {id:"birds", label:"Pasăre", icon:"stickers/pasare.png", cls:"pet"},
+    {id:"cats", label:"Pisică", icon:"stickers/pisica.png", cls:"pet"},
+    {id:"horses", label:"Cal", icon:"stickers/cal.png", cls:"pet"},
+    {id:"zebra", label:"Zebră", icon:"stickers/zebra.png", cls:"pet"}
   ]
 };
 
@@ -699,16 +706,12 @@ function convertPythonSolution(culori, nationalitati, bauturi, tigari, animale){
 
 function chipHTML(item, kind){
   return `<div class="chip ${item.cls || ""}" draggable="true" data-id="${item.id}" data-kind="${kind}" tabindex="0">
-    <span class="icon">${item.icon}</span><span class="txt">${item.label}</span>
+    <img class="icon" src="${item.icon}" alt="" draggable="false"><span class="txt">${item.label}</span>
   </div>`;
 }
 
 function buildBoard(){
   board.innerHTML = "";
-  board.insertAdjacentHTML("beforeend", `<div class="corner">Casele<br>1 → 5</div>`);
-  for(let i=1;i<=5;i++){
-    board.insertAdjacentHTML("beforeend", `<div class="house-head"><h2>Casa ${i}</h2></div>`);
-  }
   for(const row of rows){
     board.insertAdjacentHTML("beforeend", `<div class="row-label">${row.label}</div>`);
     for(let i=1;i<=5;i++){
@@ -974,14 +977,14 @@ function updateAnswers(force){
     if(index < 0) return null;
     const id = state.nationality[index];
     if(!id) return null;
-    return labelOf("nationality", id);
+    return definite(id);
   }
 
   if(force){
     const waterHouse = solution.drink.indexOf("water");
     const zebraHouse = solution.pet.indexOf("zebra");
-    waterAnswer.textContent = labelOf("nationality", solution.nationality[waterHouse]);
-    zebraAnswer.textContent = labelOf("nationality", solution.nationality[zebraHouse]);
+    waterAnswer.textContent = definite(solution.nationality[waterHouse]);
+    zebraAnswer.textContent = definite(solution.nationality[zebraHouse]);
     return;
   }
 
@@ -990,6 +993,9 @@ function updateAnswers(force){
   waterAnswer.textContent = nationalityAt(waterIndex) || "—";
   zebraAnswer.textContent = nationalityAt(zebraIndex) || "—";
 }
+
+const definiteForms = {norwegian:"Norvegianul", british:"Englezul", swedish:"Suedezul", danish:"Danezul", german:"Germanul"};
+function definite(id){ return definiteForms[id] || labelOf("nationality", id); }
 
 function labelOf(kind, id){
   return data[kind].find(x=>x.id===id)?.label || id;

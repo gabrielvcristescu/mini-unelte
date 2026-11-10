@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Ambient Lab — Mini Unelte</title>
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+<style>
+:root {
+  --panel:var(--bg2); --panel2:var(--bg3);
+  --line:var(--border); --line2:var(--border2);
+  --muted:var(--text2);
+  --accent:#7fc8f8; --accent-dim:rgba(127,200,248,.12);
+  --accent-border:rgba(127,200,248,.40);
+  --primary-bg:#126491; --primary-hover:#0c527a;
+  --good:#83e6b8; --danger:#ffb7c3;
+  --switch-off:#a3afbf;
+}
+[data-theme="light"] {
+  --accent:#185c85; --accent-dim:rgba(24,92,133,.09);
+  --accent-border:rgba(24,92,133,.36);
+  --good:#146043; --danger:#8a2440;
+  --switch-off:#596779;
+}
+.app { width:min(1180px,100%); }
+.app :is(button,select,input,.switch):focus-visible {
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;margin-bottom:18px}
+.eyebrow{text-transform:uppercase;letter-spacing:.18em;color:var(--accent);font-size:11px;font-weight:760}
+.app h1{color:var(--accent);font-size:clamp(34px,5vw,54px);line-height:.95;letter-spacing:-.05em;margin:6px 0 8px;font-weight:680}
+.subtitle{max-width:720px;margin:0;color:var(--muted);font-size:14px;line-height:1.55}
+.status{display:flex;gap:8px;align-items:center;border:1px solid var(--line);background:var(--panel2);padding:9px 12px;border-radius:999px;color:var(--muted);font-size:12px;white-space:nowrap}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--switch-off)}
+.status.live{color:var(--good);border-color:var(--line2);background:var(--panel2)}
+.status.live .status-dot{background:var(--good);box-shadow:0 0 15px 2px rgba(110,231,183,.28)}
+.hero{position:relative;height:176px;border-radius:24px;border:1px solid var(--line);overflow:hidden;background:#101a2a;color:#edf4ff;margin-bottom:16px}
+.hero canvas{width:100%;height:100%;display:block}
+.hero-meta{position:absolute;left:18px;right:18px;top:14px;display:flex;justify-content:space-between;gap:12px;pointer-events:none}
+.hero-kicker,.hero-meter{font-size:10px;text-transform:uppercase;letter-spacing:.15em;color:#b5c6dc}
+.hero-scene{position:absolute;left:18px;bottom:15px;max-width:calc(100% - 36px);padding:4px 8px 4px 0;background:linear-gradient(90deg,#101a2a 70%,transparent);pointer-events:none}
+.hero-scene strong{font-size:17px;font-weight:650}.hero-scene span{display:block;color:#b5c6dc;font-size:11px;margin-top:3px}
+.toolbar{display:grid;grid-template-columns:minmax(180px,1.45fr) minmax(170px,1fr) auto auto auto;gap:9px;padding:11px;border-radius:17px;border:1px solid var(--line);background:var(--panel);margin-bottom:14px}
+.toolbar :is(button,select), .utility-row :is(button,input[type=text]) {
+  min-height:42px;
+  border:1px solid var(--line2);
+  border-radius:var(--radius);
+  background:var(--panel2);
+  color:var(--text);
+}
+.toolbar button, .utility-row button {
+  padding:0 14px;
+  cursor:pointer;
+  transition:background .16s,border-color .16s;
+}
+.toolbar button:hover, .utility-row button:hover {
+  border-color:var(--accent-border);
+  background:var(--accent-dim);
+}
+.toolbar button.primary { background:var(--primary-bg); color:#fff; font-weight:730; }
+.toolbar button.primary:hover { background:var(--primary-hover); }
+.toolbar button.stop { background:var(--panel2); color:var(--danger); }
+.toolbar button.stop:hover { border-color:var(--danger); }
+.toolbar button:disabled { cursor:wait; }
+.toolbar select { padding:0 10px; width:100%; }
+.toolbar select option { background:var(--panel); color:var(--text); }
+.scene-note{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 13px;margin-bottom:14px;border:1px solid var(--line);border-radius:14px;background:var(--panel);color:var(--muted);font-size:11px;line-height:1.45}
+.listen-bar{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;margin-bottom:14px;padding:10px 13px;border:1px solid var(--line);border-radius:var(--radius);background:var(--panel)}
+.listen-bar label{font-weight:600;color:var(--text)}
+.listen-bar select{min-height:38px;max-width:100%;padding:0 9px;border:1px solid var(--line2);border-radius:var(--radius);background:var(--panel2);color:var(--text)}
+.listen-bar option{background:var(--panel);color:var(--text)}
+.listen-bar output{font-size:.78rem;color:var(--muted)}
+.scene-note strong{color:var(--text);font-weight:620}.scene-note #sceneTip{text-align:right}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.card{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-lg);padding:15px;transition:border-color .18s,background .18s}
+.card.off{background:var(--panel2)}.card.active{border-color:var(--accent-border)}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.name-wrap{display:flex;align-items:center;gap:10px;min-width:0}
+.icon{width:35px;height:35px;border-radius:10px;border:1px solid var(--line);display:grid;place-items:center;color:var(--accent);background:var(--accent-dim);font-size:16px;flex:0 0 auto}
+.card h3{margin:0;font-size:15px;font-weight:670}.small{font-size:10.5px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.switch{width:43px;height:24px;border:1px solid var(--line2);background:var(--panel2);border-radius:999px;position:relative;cursor:pointer;transition:.18s;flex:0 0 auto}
+.switch:after{content:"";position:absolute;width:18px;height:18px;left:2px;top:2px;border-radius:50%;background:var(--switch-off);transition:.18s}
+.switch.on{background:var(--accent-dim);border-color:var(--accent-border)}.switch.on:after{transform:translateX(19px);background:var(--accent);box-shadow:0 0 12px rgba(98,200,246,.28)}
+.controls{display:grid;gap:11px}.control-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:6px}.control label{font-size:11.5px;color:var(--text)}.value{font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;height:4px;accent-color:var(--accent);cursor:pointer}
+.master{grid-column:1/-1}.master-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.utility-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}.seedbar,.timerbar{display:grid;gap:7px;align-items:center;background:var(--panel2);border:1px solid var(--line);padding:9px;border-radius:13px}.seedbar{grid-template-columns:auto 1fr auto auto}.timerbar{grid-template-columns:auto repeat(3,auto) auto 1fr}
+.utility-label{font-size:11px;color:var(--muted);margin:0 2px}.seedbar input{min-width:0;padding:0 10px;font-variant-numeric:tabular-nums}.mini{min-height:34px;padding:0 10px;font-size:11px}.timer-readout{text-align:right;color:var(--muted);font-size:11px;font-variant-numeric:tabular-nums}
+footer{margin-top:17px;text-align:center;color:var(--muted);font-size:10.5px;line-height:1.55}
+.ambient-back { display:inline-block; margin-bottom:14px; color:var(--text2); font:.74rem var(--font-mono); }
+.ambient-back:hover { color:var(--text); }
+.utility-row button.mini { min-height:34px; padding-inline:10px; }
+@media(max-width:850px){header{align-items:flex-start;flex-direction:column}.toolbar{grid-template-columns:1fr 1fr}.toolbar .wide{grid-column:span 2}.grid{grid-template-columns:1fr}.master{grid-column:auto}.master-grid{grid-template-columns:1fr 1fr}.utility-row{grid-template-columns:1fr}.scene-note{align-items:flex-start;flex-direction:column}.scene-note #sceneTip{text-align:left}}
+@media(max-width:540px){.hero{height:150px}.toolbar button,.toolbar select{font-size:12px}.master-grid{grid-template-columns:1fr}.seedbar{grid-template-columns:auto 1fr auto}.seedbar #copySeed{display:none}.timerbar{grid-template-columns:auto repeat(3,1fr)}.timerbar #cancelTimer{grid-column:2/5}.timer-readout{grid-column:1/-1;text-align:left}.small{max-width:230px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}.card,button,.switch,.switch:after,.toast{transition:none!important}}
+</style>
+</head>
+<body data-show-source="true">
+<button class="theme-toggle" id="theme-btn" type="button" onclick="toggleTheme()"></button>
+<div class="app tool-page">
+<a class="ambient-back" href="index.html#synth">← Instrumente &amp; sinteză</a>
+<header>
+  <div><div class="eyebrow">Procedural sound tool</div><h1>Ambient Lab</h1><p class="subtitle">Ambianțe vii, construite în timp real. Micro-variație, evenimente neregulate și spațializare discretă; fiecare seed păstrează personalitatea scenei fără să repete mecanic aceeași secvență.</p></div>
+  <div id="engineStatus" class="status" role="status"><span class="status-dot"></span><span>Audio oprit</span></div>
+</header>
+
+<section class="hero" aria-label="Vizualizare audio">
+  <canvas id="viz"></canvas>
+  <div class="hero-meta"><span class="hero-kicker">live audio field</span><span id="meterText" class="hero-meter">−∞ dB</span></div>
+  <div class="hero-scene"><strong id="sceneName">Rainy Window</strong><span id="sceneSubtitle">ploaie apropiată · aer moale · pian rar</span></div>
+</section>
+
+<div class="toolbar">
+  <button id="playBtn" class="primary wide">▶ Pornește</button>
+  <select id="presetSelect" aria-label="Scenă">
+    <option value="rainy">Rainy Window</option><option value="ocean">Night Ocean</option><option value="hearth">Quiet Hearth</option><option value="forest">Distant Forest</option><option value="focus">Deep Focus</option><option value="piano">Minimal Piano</option><option value="air">Quiet Air</option>
+  </select>
+  <button id="applyPreset">Aplică</button><button id="randomizeBtn">Surprinde-mă</button><button id="newVariationBtn" class="ghost">Variație</button>
+</div>
+
+<div class="scene-note"><span><strong>Scenele sunt mixuri, nu simple preseturi.</strong> „Variație” păstrează caracterul general; „Surprinde-mă” construiește altă scenă.</span><span id="sceneTip">Căști recomandate pentru Binaural.</span></div>
+
+<div class="listen-bar">
+  <label for="listenLayer">Ascultă separat</label>
+  <select id="listenLayer" aria-describedby="listenStatus">
+    <option value="">Mix complet</option>
+    <option value="rain">Ploaie</option>
+    <option value="ocean">Ocean</option>
+    <option value="wind">Vânt</option>
+    <option value="fire">Foc</option>
+    <option value="noise">Zgomot</option>
+    <option value="piano">Pian generativ</option>
+    <option value="binaural">Binaural</option>
+  </select>
+  <output id="listenStatus" for="listenLayer"></output>
+</div>
+
+<main class="grid">
+  <section class="card" data-card="rain"><div class="card-head"><div class="name-wrap"><div class="icon">☂</div><div><h3>Ploaie</h3><div class="small">corp, stropi și rafale neregulate</div></div></div><div class="switch on" data-toggle="rain" role="switch" aria-label="Ploaie" aria-checked="true" tabindex="0"></div></div><div class="controls">
+    <div class="control"><div class="control-row"><label for="rainVol">Volum</label><span id="rainVolVal" class="value"></span></div><input id="rainVol" type="range" min="-60" max="0" value="-18"></div>
+    <div class="control"><div class="control-row"><label for="rainIntensity">Intensitate</label><span id="rainIntensityVal" class="value"></span></div><input id="rainIntensity" type="range" min="0" max="100" value="62"></div>
+    <div class="control"><div class="control-row"><label for="rainGust">Rafale</label><span id="rainGustVal" class="value"></span></div><input id="rainGust" type="range" min="0" max="100" value="42"></div>
+  </div></section>
+
+  <section class="card" data-card="ocean"><div class="card-head"><div class="name-wrap"><div class="icon">≈</div><div><h3>Ocean</h3><div class="small">val, spumă și respirație lentă</div></div></div><div class="switch" data-toggle="ocean" role="switch" aria-label="Ocean" aria-checked="false" tabindex="0"></div></div><div class="controls">
+    <div class="control"><div class="control-row"><label for="oceanVol">Volum</label><span id="oceanVolVal" class="value"></span></div><input id="oceanVol" type="range" min="-60" max="0" value="-22"></div>
+    <div class="control"><div class="control-row"><label for="oceanSize">Mărimea valului</label><span id="oceanSizeVal" class="value"></span></div><input id="oceanSize" type="range" min="0" max="100" value="70"></div>
+    <div class="control"><div class="control-row"><label for="oceanRate">Ritm</label><span id="oceanRateVal" class="value"></span></div><input id="oceanRate" type="range" min="0" max="100" value="28"></div>
+  </div></section>
+
+  <section class="card" data-card="wind"><div class="card-head"><div class="name-wrap"><div class="icon">↝</div><div><h3>Vânt</h3><div class="small">aer filtrat cu drift foarte lent</div></div></div><div class="switch on" data-toggle="wind" role="switch" aria-label="Vânt" aria-checked="true" tabindex="0"></div></div><div class="controls">
+    <div class="control"><div class="control-row"><label for="windVol">Volum</label><span id="windVolVal" class="value"></span></div><input id="windVol" type="range" min="-60" max="0" value="-31"></div>
+    <div class="control"><div class="control-row"><label for="windAir">Aer</label><span id="windAirVal" class="value"></span></div><input id="windAir" type="range" min="0" max="100" value="43"></div>
+    <div class="control"><div class="control-row"><label for="windMove">Mișcare</label><span id="windMoveVal" class="value"></span></div><input id="windMove" type="range" min="0" max="100" value="34"></div>
+  </div></section>
+
+  <section class="card" data-card="fire"><div class="card-head"><div class="name-wrap"><div class="icon">♨</div><div><h3>Foc</h3><div class="small">jar continuu + pocnituri procedurale</div></div></div><div class="switch" data-toggle="fire" role="switch" aria-label="Foc" aria-checked="false" tabindex="0"></div></div><div class="controls">
+    <div class="control"><div class="control-row"><label for="fireVol">Volum</label><span id="fireVolVal" class="value"></span></div><input id="fireVol" type="range" min="-60" max="0" value="-25"></div>
+    <div class="control"><div class="control-row"><label for="fireEmber">Jar</label><span id="fireEmberVal" class="value"></span></div><input id="fireEmber" type="range" min="0" max="100" value="58"></div>
+    <div class="control"><div class="control-row"><label for="fireCrackle">Pocnituri</label><span id="fireCrackleVal" class="value"></span></div><input id="fireCrackle" type="range" min="0" max="100" value="42"></div>
+  </div></section>
+
+  <section class="card" data-card="noise"><div class="card-head"><div class="name-wrap"><div class="icon">∿</div><div><h3>Noise</h3><div class="small">pat spectral continuu, filtrat</div></div></div><div class="switch" data-toggle="noise" role="switch" aria-label="Noise" aria-checked="false" tabindex="0"></div></div><div class="controls">
+    <div class="control"><div class="control-row"><label for="noiseVol">Volum</label><span id="noiseVolVal" class="value"></span></div><input id="noiseVol" type="range" min="-60" max="0" value="-33"></div>
+    <div class="control"><div class="control-row"><label for="noiseColor">Culoare</label><span id="noiseColorVal" class="value"></span></div><input id="noiseColor" type="range" min="0" max="100" value="50"></div>
+    <div class="control"><div class="control-row"><label for="noiseFilter">Deschidere</label><span id="noiseFilterVal" class="value"></span></div><input id="noiseFilter" type="range" min="0" max="100" value="52"></div>
+  </div></section>
+
+  <section class="card" data-card="piano"><div class="card-head"><div class="name-wrap"><div class="icon">♩</div><div><h3>Pian generativ</h3><div class="small">fraze rare, determinate de seed</div></div></div><div class="switch on" data-toggle="piano" role="switch" aria-label="Pian" aria-checked="true" tabindex="0"></div></div><div class="controls">
+    <div class="control"><div class="control-row"><label for="pianoVol">Volum</label><span id="pianoVolVal" class="value"></span></div><input id="pianoVol" type="range" min="-60" max="0" value="-28"></div>
+    <div class="control"><div class="control-row"><label for="pianoDensity">Densitate</label><span id="pianoDensityVal" class="value"></span></div><input id="pianoDensity" type="range" min="0" max="100" value="22"></div>
+    <div class="control"><div class="control-row"><label for="pianoRange">Registru</label><span id="pianoRangeVal" class="value"></span></div><input id="pianoRange" type="range" min="0" max="100" value="44"></div>
+  </div></section>
+
+  <section class="card" data-card="binaural"><div class="card-head"><div class="name-wrap"><div class="icon">◐</div><div><h3>Binaural</h3><div class="small">două sinusuri stereo independente</div></div></div><div class="switch" data-toggle="binaural" role="switch" aria-label="Binaural" aria-checked="false" tabindex="0"></div></div><div class="controls">
+    <div class="control"><div class="control-row"><label for="binauralVol">Volum</label><span id="binauralVolVal" class="value"></span></div><input id="binauralVol" type="range" min="-60" max="0" value="-36"></div>
+    <div class="control"><div class="control-row"><label for="carrier">Purtătoare</label><span id="carrierVal" class="value"></span></div><input id="carrier" type="range" min="80" max="420" value="190"></div>
+    <div class="control"><div class="control-row"><label for="beat">Diferență L/R</label><span id="beatVal" class="value"></span></div><input id="beat" type="range" min="1" max="24" step=".5" value="8"></div>
+  </div></section>
+
+  <section class="card master"><div class="card-head"><div class="name-wrap"><div class="icon">⌁</div><div><h3>Master</h3><div class="small">spațiu, lățime, căldură și nivel final</div></div></div></div>
+    <div class="master-grid">
+      <div class="control"><div class="control-row"><label for="masterVol">Volum</label><span id="masterVolVal" class="value"></span></div><input id="masterVol" type="range" min="-30" max="0" value="-9"></div>
+      <div class="control"><div class="control-row"><label for="reverb">Reverb</label><span id="reverbVal" class="value"></span></div><input id="reverb" type="range" min="0" max="100" value="34"></div>
+      <div class="control"><div class="control-row"><label for="width">Stereo width</label><span id="widthVal" class="value"></span></div><input id="width" type="range" min="0" max="100" value="72"></div>
+      <div class="control"><div class="control-row"><label for="warmth">Warmth</label><span id="warmthVal" class="value"></span></div><input id="warmth" type="range" min="0" max="100" value="46"></div>
+    </div>
+    <div class="utility-row">
+      <div class="seedbar"><label class="utility-label" for="seedInput">Seed</label><input id="seedInput" type="text" inputmode="numeric" maxlength="10" value="483721"><button id="copySeed" class="mini">Copiază</button><button id="newSeed" class="mini">Nou</button></div>
+      <div class="timerbar"><span class="utility-label">Timer</span><button class="mini" data-minutes="15">15</button><button class="mini" data-minutes="30">30</button><button class="mini" data-minutes="60">60</button><button id="cancelTimer" class="mini ghost">Anulează</button><span id="timerReadout" class="timer-readout">—</span></div>
+    </div>
+  </section>
+</main>
+<footer>Sunetele de mediu sunt sintetizate în timp real; pianul folosește mostrele Salamander Piano servite de Tone.js. Binaural este prezentat exclusiv ca instrument audio, fără afirmații terapeutice sau medicale.</footer>
+</div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script data-show-source>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id), clamp=(v,a,b)=>Math.max(a,Math.min(b,v)), lerp=(a,b,t)=>a+(b-a)*t, norm=id=>Number($(id).value)/100;
+if (!window.Tone) {
+  $('playBtn').disabled = true;
+  $('engineStatus').querySelector('span:last-child').textContent = 'Motorul audio nu s-a încărcat';
+  return;
+}
+let seedValue=483721, randomState=seedValue>>>0, engineRunning=false, audioReady=false, timerEnd=0,timerInterval=null, fadeTimer=null, muteTimer=null, toastTimer=null;
+function rand(){randomState=(randomState+0x6D2B79F5)>>>0;let t=randomState;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296}
+function reseed(v,update=true){seedValue=(parseInt(v,10)||1)>>>0;randomState=seedValue;$('seedInput').value=seedValue;if(update)updateUrl()}
+function toast(msg){clearTimeout(toastTimer);$('toast').textContent=msg;$('toast').classList.add('show');toastTimer=setTimeout(()=>$('toast').classList.remove('show'),1300)}
+
+/* master: dry/wet reverb in parallel, limiter last */
+const masterIn=new Tone.Gain(1), dryBus=new Tone.Gain(.78), wetBus=new Tone.Gain(.28), reverb=new Tone.Reverb({decay:7.5,preDelay:.03,wet:1}), warmth=new Tone.Filter({frequency:12500,type:'lowpass',rolloff:-12}), widener=new Tone.StereoWidener(.72), glue=new Tone.Compressor({threshold:-18,ratio:1.6,attack:.08,release:.6,knee:14}), masterVolume=new Tone.Volume(-9), limiter=new Tone.Limiter(-1), meter=new Tone.Meter({channels:1,smoothing:.84});
+masterIn.connect(dryBus);masterIn.connect(reverb);reverb.connect(wetBus);dryBus.connect(warmth);wetBus.connect(warmth);warmth.chain(widener,glue,masterVolume,limiter,Tone.Destination);limiter.connect(meter);
+function makeBus(db){const gate=new Tone.Gain(0),vol=new Tone.Volume(db);gate.chain(vol,masterIn);return{gate,vol}}
+const buses={rain:makeBus(-18),ocean:makeBus(-22),wind:makeBus(-31),fire:makeBus(-25),noise:makeBus(-33),piano:makeBus(-28),binaural:makeBus(-36)};
+const enabled={rain:true,ocean:false,wind:true,fire:false,noise:false,piano:true,binaural:false};
+let soloLayer = '';
+function layerAudible(name) {
+  return engineRunning && (soloLayer ? soloLayer === name : enabled[name]);
+}
+function refreshLayerGates(seconds = .28) {
+  for (const [name, bus] of Object.entries(buses)) {
+    bus.gate.gain.rampTo(layerAudible(name) ? 1 : 0, seconds);
+  }
+}
+function refreshListenStatus() {
+  const select = $('listenLayer');
+  let message = 'Ascultare normală, cu straturile active ale scenei.';
+  if (soloLayer) {
+    message = soloLayer === 'piano' && !piano.loaded
+      ? 'Pianul așteaptă mostrele audio de pe internet.'
+      : `Ascultare separată: ${select.selectedOptions[0].textContent}. Pentru probă, nivelul stratului urcă până la −18 dB dacă era mai jos. Reglajele scenei se păstrează.`;
+  }
+  const output = $('listenStatus');
+  if (output.textContent !== message) output.textContent = message;
+}
+
+/* rain: body + bright droplets, separately filtered */
+const rainBody=new Tone.Noise('pink').start(),rainBodyHP=new Tone.Filter(120,'highpass'),rainBodyLP=new Tone.Filter(2600,'lowpass'),rainBodyGain=new Tone.Gain(.78);
+rainBody.chain(rainBodyHP,rainBodyLP,rainBodyGain,buses.rain.gate);
+const rainAir=new Tone.Noise('white').start(),rainAirHP=new Tone.Filter(3100,'highpass'),rainAirLP=new Tone.Filter(10000,'lowpass'),rainAirGain=new Tone.Gain(.045);rainAir.chain(rainAirHP,rainAirLP,rainAirGain,buses.rain.gate);
+const rainDrift=new Tone.LFO(.055,.73,1).start();rainDrift.connect(rainBodyGain.gain);
+const rainDrop=new Tone.NoiseSynth({noise:{type:'white'},envelope:{attack:.001,decay:.022,sustain:0,release:.012},volume:-23}),rainDropHP=new Tone.Filter(4800,'highpass'),rainDropLP=new Tone.Filter(12500,'lowpass'),rainDropPan=new Tone.Panner(0);rainDrop.chain(rainDropHP,rainDropLP,rainDropPan,buses.rain.gate);
+const rainDropLoop=new Tone.Loop(time=>{if(!layerAudible('rain'))return;const i=norm('rainIntensity');if(rand()<lerp(.05,.48,i)){rainDropPan.pan.setValueAtTime(lerp(-.75,.75,rand()),time);rainDrop.triggerAttackRelease(lerp(.006,.026,rand()),time,lerp(.08,.42,rand()))}},'16n');
+
+/* ocean: deep undertow + broad surf + discrete foam wash. Deliberately slow and wide. */
+const oceanBody=new Tone.Noise('brown').start(),oceanLP=new Tone.Filter(240,'lowpass'),oceanHP=new Tone.Filter(38,'highpass'),oceanGain=new Tone.Gain(.34);oceanBody.chain(oceanHP,oceanLP,oceanGain,buses.ocean.gate);
+const oceanMid=new Tone.Noise('pink').start(),oceanMidBP=new Tone.Filter({type:'bandpass',frequency:520,Q:.38}),oceanMidGain=new Tone.Gain(.12);oceanMid.chain(oceanMidBP,oceanMidGain,buses.ocean.gate);
+const foam=new Tone.Noise('white').start(),foamHP=new Tone.Filter(1700,'highpass'),foamLP=new Tone.Filter(6200,'lowpass'),foamGain=new Tone.Gain(.018),foamPan=new Tone.Panner(.08);foam.chain(foamHP,foamLP,foamGain,foamPan,buses.ocean.gate);
+const swell=new Tone.LFO({frequency:.052,min:.035,max:.82,phase:245}).start();swell.connect(oceanGain.gain);
+const midSwell=new Tone.LFO({frequency:.052,min:.025,max:.34,phase:270}).start();midSwell.connect(oceanMidGain.gain);
+const foamSwell=new Tone.LFO({frequency:.052,min:.003,max:.11,phase:330}).start();foamSwell.connect(foamGain.gain);
+const surfBurst=new Tone.NoiseSynth({noise:{type:'pink'},envelope:{attack:.18,decay:2.4,sustain:0,release:1.2},volume:-17});
+const surfBP=new Tone.Filter({type:'bandpass',frequency:1100,Q:.46}),surfPan=new Tone.Panner(-.08);surfBurst.chain(surfBP,surfPan,buses.ocean.gate);
+const surfLoop=new Tone.Loop(time=>{if(!layerAudible('ocean'))return;const rate=norm('oceanRate');if(rand()<lerp(.55,.88,rate)){surfPan.pan.setValueAtTime(lerp(-.5,.5,rand()),time);foamPan.pan.rampTo(lerp(-.32,.32,rand()),1.8);surfBurst.triggerAttackRelease(lerp(2.0,4.2,rand()),time,lerp(.14,.46,rand()))}},'2m');
+
+/* wind */
+const windNoise=new Tone.Noise('pink').start(),windBP=new Tone.Filter({type:'bandpass',frequency:900,Q:.5}),windGain=new Tone.Gain(.38),windPan=new Tone.Panner(0);windNoise.chain(windBP,windGain,windPan,buses.wind.gate);
+const windFreq=new Tone.LFO(.04,420,1850).start(),windAmp=new Tone.LFO(.063,.1,.58).start(),windPanLFO=new Tone.LFO({frequency:.017,min:-.42,max:.42,phase:120}).start();windFreq.connect(windBP.frequency);windAmp.connect(windGain.gain);windPanLFO.connect(windPan.pan);
+
+/* fire: dry high-mid hiss + two families of irregular cracks. No ocean-like low swell. */
+const ember=new Tone.Noise('pink').start(),emberHP=new Tone.Filter(720,'highpass'),emberLP=new Tone.Filter(3600,'lowpass'),emberGain=new Tone.Gain(.085);ember.chain(emberHP,emberLP,emberGain,buses.fire.gate);
+const emberFlicker=new Tone.LFO({frequency:2.7,min:.035,max:.14,phase:35}).start();emberFlicker.connect(emberGain.gain);
+const crackle=new Tone.NoiseSynth({noise:{type:'white'},envelope:{attack:.001,decay:.030,sustain:0,release:.018},volume:-15});
+const crackHP=new Tone.Filter(2400,'highpass'),crackLP=new Tone.Filter(10500,'lowpass'),cracklePan=new Tone.Panner(0);crackle.chain(crackHP,crackLP,cracklePan,buses.fire.gate);
+const lowCrack=new Tone.NoiseSynth({noise:{type:'pink'},envelope:{attack:.001,decay:.065,sustain:0,release:.035},volume:-22});
+const lowCrackBP=new Tone.Filter({type:'bandpass',frequency:980,Q:1.15}),lowCrackPan=new Tone.Panner(0);lowCrack.chain(lowCrackBP,lowCrackPan,buses.fire.gate);
+const woodPop=new Tone.Synth({oscillator:{type:'sine'},envelope:{attack:.001,decay:.045,sustain:0,release:.025},volume:-31}),woodPopHP=new Tone.Filter(85,'highpass'),woodPopLP=new Tone.Filter(520,'lowpass'),woodPopPan=new Tone.Panner(0);woodPop.chain(woodPopHP,woodPopLP,woodPopPan,buses.fire.gate);
+const fireLoop=new Tone.Loop(time=>{if(!layerAudible('fire'))return;const d=norm('fireCrackle');const chance=lerp(.07,.52,d);if(rand()<chance){const vel=lerp(.16,.72,rand()),pan=lerp(-.7,.7,rand());cracklePan.pan.setValueAtTime(pan,time);crackle.triggerAttackRelease(lerp(.006,.030,rand()),time,vel);if(rand()<lerp(.10,.38,d)){lowCrackPan.pan.setValueAtTime(clamp(pan+lerp(-.22,.22,rand()),-.85,.85),time+.012);lowCrack.triggerAttackRelease(lerp(.020,.070,rand()),time+.012,vel*.62)}if(rand()<lerp(.025,.16,d)){woodPopPan.pan.setValueAtTime(lerp(-.62,.62,rand()),time+.018);woodPop.triggerAttackRelease(lerp(105,245,rand()),lerp(.018,.055,rand()),time+.018,vel*.34)}}},'16n');
+
+/* steady noise */
+const plainNoise=new Tone.Noise('pink').start(),plainFilter=new Tone.Filter(4200,'lowpass');plainNoise.chain(plainFilter,buses.noise.gate);
+
+/* piano: constrained step motion avoids random-note soup */
+const pianoDelay=new Tone.FeedbackDelay('8n.',.20),pianoDelayWet=new Tone.Gain(.24),pianoDry=new Tone.Gain(.80);
+const piano=new Tone.Sampler({urls:{A0:'A0.mp3',C1:'C1.mp3','D#1':'Ds1.mp3','F#1':'Fs1.mp3',A1:'A1.mp3',C2:'C2.mp3','D#2':'Ds2.mp3','F#2':'Fs2.mp3',A2:'A2.mp3',C3:'C3.mp3','D#3':'Ds3.mp3','F#3':'Fs3.mp3',A3:'A3.mp3',C4:'C4.mp3','D#4':'Ds4.mp3','F#4':'Fs4.mp3',A4:'A4.mp3',C5:'C5.mp3','D#5':'Ds5.mp3','F#5':'Fs5.mp3',A5:'A5.mp3',C6:'C6.mp3','D#6':'Ds6.mp3','F#6':'Fs6.mp3',A6:'A6.mp3',C7:'C7.mp3','D#7':'Ds7.mp3','F#7':'Fs7.mp3',A7:'A7.mp3',C8:'C8.mp3'},release:2.2,baseUrl:'https://tonejs.github.io/audio/salamander/'});
+const pianoPan=new Tone.Panner(0);piano.connect(pianoPan);pianoPan.connect(pianoDry);pianoPan.connect(pianoDelay);pianoDelay.connect(pianoDelayWet);pianoDry.connect(buses.piano.gate);pianoDelayWet.connect(buses.piano.gate);
+const scales=[['C3','D3','E3','G3','A3','C4','D4','E4','G4','A4','C5'],['A2','C3','D3','E3','G3','A3','C4','D4','E4','G4','A4'],['D3','F3','G3','A3','C4','D4','F4','G4','A4','C5'],['E3','G3','A3','B3','D4','E4','G4','A4','B4','D5']];let melodyIndex=4,lastNote=-1;
+const pianoLoop=new Tone.Loop(time=>{if(!layerAudible('piano')||!piano.loaded)return;const density=norm('pianoDensity');if(soloLayer !== 'piano' && rand()>lerp(.08,.62,density))return;const scale=scales[seedValue%scales.length],range=norm('pianoRange'),center=Math.floor(lerp(3,7,range));const r=rand(),step=r<.58?(rand()<.5?-1:1):r<.82?0:(rand()<.5?-2:2);melodyIndex=clamp(melodyIndex+step,Math.max(0,center-3),Math.min(scale.length-1,center+3));if(melodyIndex===lastNote&&rand()<.38)melodyIndex=clamp(melodyIndex+(rand()<.5?-1:1),0,scale.length-1);lastNote=melodyIndex;const dur=rand()<.12?'1n':rand()<.52?'2n':'4n',vel=lerp(.13,.38,rand());pianoPan.pan.rampTo(lerp(-.18,.18,rand()),.35);piano.triggerAttackRelease(scale[melodyIndex],dur,time,vel);if(rand()<.10*density&&melodyIndex>1){const echoNote=scale[Math.max(0,melodyIndex-2)];piano.triggerAttackRelease(echoNote,'4n',time+Tone.Time('8n').toSeconds(),vel*.42)}},'4n');
+
+/* binaural */
+const leftOsc=new Tone.Oscillator(190,'sine').start(),rightOsc=new Tone.Oscillator(198,'sine').start(),leftPan=new Tone.Panner(-1),rightPan=new Tone.Panner(1);leftOsc.connect(leftPan);rightOsc.connect(rightPan);leftPan.connect(buses.binaural.gate);rightPan.connect(buses.binaural.gate);
+
+async function ensureAudio() {
+  await Tone.start();
+  if (audioReady) return;
+  Tone.Transport.bpm.value = 52;
+  [pianoLoop, fireLoop, surfLoop, rainDropLoop].forEach(loop => loop.start(0));
+  Tone.Transport.start();
+  audioReady = true;
+}
+
+function setEngine(on) {
+  clearTimeout(muteTimer);
+  engineRunning = on;
+  if (on) {
+    masterVolume.volume.value = -60;
+    masterVolume.mute = false;
+  } else {
+    clearTimerState();
+    muteTimer = setTimeout(() => { masterVolume.mute = true; }, 950);
+  }
+  masterVolume.volume.rampTo(on ? Number($('masterVol').value) : -60, on ? .55 : .85);
+  refreshLayerGates(on ? .45 : .65);
+  $('playBtn').textContent = on ? '■ Oprește' : '▶ Pornește';
+  $('playBtn').classList.toggle('primary', !on);
+  $('playBtn').classList.toggle('stop', on);
+  $('engineStatus').classList.toggle('live', on);
+  $('engineStatus').querySelector('span:last-child').textContent = on ? 'Audio activ' : 'Audio oprit';
+}
+
+async function toggleEngine() {
+  const button = $('playBtn');
+  if (button.disabled) return;
+  if (engineRunning) {
+    setEngine(false);
+    return;
+  }
+  button.disabled = true;
+  try {
+    await ensureAudio();
+    setEngine(true);
+  } catch (error) {
+    console.error('Ambient Lab: pornire audio', error);
+    toast('Audio indisponibil. Poți încerca din nou.');
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function setSlider(id,v){$(id).value=v}
+function setToggle(name,on){enabled[name]=!!on;const sw=document.querySelector(`[data-toggle="${name}"]`),card=document.querySelector(`[data-card="${name}"]`);sw.classList.toggle('on',!!on);sw.setAttribute('aria-checked',String(!!on));card.classList.toggle('off',!on);card.classList.toggle('active',!!on);if(audioReady)buses[name].gate.gain.rampTo(layerAudible(name)?1:0,.28)}
+function updateAudio(){
+  for (const [name, bus] of Object.entries(buses)) {
+    const level = Number($(name + 'Vol').value);
+    bus.vol.volume.rampTo(soloLayer === name ? Math.max(level, -18) : level, .08);
+  }
+  const ri=norm('rainIntensity'),rg=norm('rainGust');rainBodyHP.frequency.rampTo(lerp(210,75,ri),.18);rainBodyLP.frequency.rampTo(lerp(1100,5000,ri),.18);rainAirGain.gain.rampTo(lerp(.012,.060,ri),.18);rainDrift.frequency.rampTo(lerp(.012,.18,rg),.18);rainDrift.min=lerp(.90,.48,rg);rainDrift.max=1;
+  const os=norm('oceanSize'),or=norm('oceanRate');oceanLP.frequency.rampTo(lerp(125,300,os),.18);oceanMidBP.frequency.rampTo(lerp(320,690,os),.18);oceanMidBP.Q.value=lerp(.28,.52,os);foamHP.frequency.rampTo(lerp(1550,2850,os),.18);foamLP.frequency.rampTo(lerp(4800,7800,os),.18);surfBP.frequency.rampTo(lerp(650,1320,os),.18);const waveHz=lerp(.021,.073,or);swell.frequency.rampTo(waveHz,.18);midSwell.frequency.rampTo(waveHz*.985,.18);foamSwell.frequency.rampTo(waveHz*1.018,.18);surfLoop.playbackRate=lerp(.54,1.28,or);
+  const wa=norm('windAir'),wm=norm('windMove');windBP.Q.value=lerp(.32,1.6,wa);windFreq.min=lerp(260,520,wa);windFreq.max=lerp(1100,3200,wa);windFreq.frequency.rampTo(lerp(.015,.16,wm),.18);windAmp.frequency.rampTo(lerp(.022,.20,wm),.18);
+  const fe=norm('fireEmber');emberHP.frequency.rampTo(lerp(680,1450,fe),.18);emberLP.frequency.rampTo(lerp(2100,4700,fe),.18);emberFlicker.frequency.rampTo(lerp(2.1,6.2,fe),.18);emberFlicker.min=lerp(.010,.026,fe);emberFlicker.max=lerp(.045,.115,fe);const fc=norm('fireCrackle');crackle.volume.value=lerp(-31,-13,fc);lowCrack.volume.value=lerp(-37,-21,fc);woodPop.volume.value=lerp(-38,-27,fc);
+  const nc=norm('noiseColor');plainNoise.type=nc<.33?'brown':nc<.66?'pink':'white';plainFilter.frequency.rampTo(lerp(380,13500,norm('noiseFilter')),.18);
+  leftOsc.frequency.rampTo(Number($('carrier').value),.08);rightOsc.frequency.rampTo(Number($('carrier').value)+Number($('beat').value),.08);
+  if(engineRunning && fadeTimer === null)masterVolume.volume.rampTo(Number($('masterVol').value),.08);const rv=norm('reverb');dryBus.gain.rampTo(lerp(.92,.62,rv),.08);wetBus.gain.rampTo(lerp(.04,.48,rv),.08);widener.width.rampTo(norm('width'),.08);warmth.frequency.rampTo(lerp(4300,19000,norm('warmth')),.08);
+  renderValues();updateUrl();
+}
+function renderValues(){const db=id=>`${Number($(id).value)} dB`,pct=id=>`${Math.round(Number($(id).value))}%`;['rain','ocean','wind','fire','noise','piano','binaural'].forEach(n=>$(n+'VolVal').textContent=db(n+'Vol'));$('masterVolVal').textContent=db('masterVol');['rainIntensity','rainGust','oceanSize','oceanRate','windAir','windMove','fireEmber','fireCrackle','noiseFilter','pianoDensity','pianoRange','reverb','width','warmth'].forEach(id=>$(id+'Val').textContent=pct(id));const c=norm('noiseColor');$('noiseColorVal').textContent=c<.33?'Brown':c<.66?'Pink':'White';$('carrierVal').textContent=`${Number($('carrier').value)} Hz`;$('beatVal').textContent=`${Number($('beat').value).toFixed(1)} Hz`}
+
+const presets={
+ rainy:{name:'Rainy Window',sub:'ploaie apropiată · aer moale · pian rar',tip:'Scenă echilibrată pentru lucru sau lectură.',on:{rain:1,ocean:0,wind:1,fire:0,noise:0,piano:1,binaural:0},v:{rainVol:-20,rainIntensity:65,rainGust:38,oceanVol:-38,oceanSize:35,oceanRate:25,windVol:-20,windAir:42,windMove:28,fireVol:-38,fireEmber:40,fireCrackle:28,noiseVol:-40,noiseColor:48,noiseFilter:45,pianoVol:-17,pianoDensity:36,pianoRange:43,binauralVol:-40,carrier:190,beat:8,masterVol:-9,reverb:28,width:70,warmth:43}},
+ ocean:{name:'Night Ocean',sub:'valuri ample · spumă îndepărtată · vânt jos',tip:'Valuri lente, cu mult spațiu între pulsații.',on:{rain:0,ocean:1,wind:1,fire:0,noise:0,piano:0,binaural:0},v:{rainVol:-42,rainIntensity:30,rainGust:20,oceanVol:-12,oceanSize:92,oceanRate:13,windVol:-20,windAir:36,windMove:22,fireVol:-42,fireEmber:30,fireCrackle:20,noiseVol:-44,noiseColor:30,noiseFilter:30,pianoVol:-38,pianoDensity:10,pianoRange:40,binauralVol:-42,carrier:180,beat:6,masterVol:-11,reverb:26,width:96,warmth:24}},
+ hearth:{name:'Quiet Hearth',sub:'jar cald · pocnituri rare · aer întunecat',tip:'Focul are evenimente neregulate, nu un loop repetitiv.',on:{rain:0,ocean:0,wind:0,fire:1,noise:0,piano:1,binaural:0},v:{rainVol:-44,rainIntensity:20,rainGust:15,oceanVol:-44,oceanSize:20,oceanRate:18,windVol:-41,windAir:25,windMove:16,fireVol:-13,fireEmber:48,fireCrackle:78,noiseVol:-46,noiseColor:25,noiseFilter:30,pianoVol:-18,pianoDensity:11,pianoRange:34,binauralVol:-44,carrier:170,beat:5,masterVol:-11,reverb:7,width:58,warmth:52}},
+ forest:{name:'Distant Forest',sub:'vânt respirat · ploaie foarte fină · spațiu larg',tip:'Nu imită păsări; rămâne o ambianță abstract-naturală.',on:{rain:1,ocean:0,wind:1,fire:0,noise:1,piano:0,binaural:0},v:{rainVol:-20,rainIntensity:27,rainGust:18,oceanVol:-44,oceanSize:20,oceanRate:20,windVol:-16,windAir:68,windMove:46,fireVol:-44,fireEmber:25,fireCrackle:15,noiseVol:-20,noiseColor:38,noiseFilter:68,pianoVol:-42,pianoDensity:8,pianoRange:50,binauralVol:-44,carrier:200,beat:7,masterVol:-11,reverb:32,width:92,warmth:62}},
+ focus:{name:'Deep Focus',sub:'pink noise · bandă îngustă · ton stereo discret',tip:'Binaural este doar un efect audio; căștile sunt necesare pentru separarea L/R.',on:{rain:0,ocean:0,wind:0,fire:0,noise:1,piano:0,binaural:1},v:{rainVol:-44,rainIntensity:25,rainGust:10,oceanVol:-44,oceanSize:25,oceanRate:15,windVol:-44,windAir:25,windMove:15,fireVol:-44,fireEmber:25,fireCrackle:15,noiseVol:-18,noiseColor:50,noiseFilter:55,pianoVol:-44,pianoDensity:5,pianoRange:42,binauralVol:-20,carrier:180,beat:10,masterVol:-11,reverb:12,width:54,warmth:38}},
+ piano:{name:'Minimal Piano',sub:'fraze puține · ecou scurt · cameră mare',tip:'Melodia preferă pași mici între note, evitând „random-note soup”.',on:{rain:0,ocean:0,wind:1,fire:0,noise:0,piano:1,binaural:0},v:{rainVol:-44,rainIntensity:20,rainGust:15,oceanVol:-44,oceanSize:20,oceanRate:15,windVol:-20,windAir:28,windMove:17,fireVol:-44,fireEmber:25,fireCrackle:15,noiseVol:-44,noiseColor:50,noiseFilter:45,pianoVol:-14,pianoDensity:52,pianoRange:52,binauralVol:-44,carrier:200,beat:8,masterVol:-10,reverb:58,width:79,warmth:50}},
+ air:{name:'Quiet Air',sub:'vânt foarte fin · noise aerat · fără evenimente',tip:'Cea mai neutră scenă din set.',on:{rain:0,ocean:0,wind:1,fire:0,noise:1,piano:0,binaural:0},v:{rainVol:-44,rainIntensity:15,rainGust:10,oceanVol:-44,oceanSize:15,oceanRate:10,windVol:-17,windAir:62,windMove:30,fireVol:-44,fireEmber:20,fireCrackle:10,noiseVol:-20,noiseColor:58,noiseFilter:72,pianoVol:-44,pianoDensity:5,pianoRange:55,binauralVol:-44,carrier:210,beat:7,masterVol:-11,reverb:20,width:88,warmth:68}}
+};
+let currentScene='rainy';
+function applyScene(name,announce=true){if(!Object.hasOwn(presets,name))return;const p=presets[name];currentScene=name;soloLayer='';$('listenLayer').value='';refreshListenStatus();Object.entries(p.on).forEach(([k,v])=>setToggle(k,!!v));Object.entries(p.v).forEach(([k,v])=>setSlider(k,v));$('sceneName').textContent=p.name;$('sceneSubtitle').textContent=p.sub;$('sceneTip').textContent=p.tip;$('presetSelect').value=name;randomState=seedValue;melodyIndex=3+(seedValue%4);updateAudio();if(announce)toast(p.name)}
+function varyScene(){const base=presets[currentScene];if(!base)return;randomState=(seedValue^0x9E3779B9)>>>0;const jitter=(id,amount,min,max)=>setSlider(id,Math.round(clamp(Number($(id).value)+(rand()-.5)*amount,min,max)));jitter('rainIntensity',18,0,100);jitter('rainGust',18,0,100);jitter('oceanSize',15,0,100);jitter('oceanRate',12,0,100);jitter('windAir',15,0,100);jitter('windMove',15,0,100);jitter('fireEmber',14,0,100);jitter('fireCrackle',14,0,100);jitter('noiseFilter',16,0,100);jitter('pianoDensity',12,2,78);jitter('pianoRange',12,5,95);jitter('reverb',10,0,90);jitter('width',10,15,100);updateAudio();toast('Variație nouă')}
+function surprise(){reseed(Math.floor(Math.random()*900000000)+1,false);const choices=['rainy','ocean','hearth','forest','focus','piano','air'];const pick=choices[Math.floor(Math.random()*choices.length)];applyScene(pick,false);randomState=seedValue;varyScene();updateUrl();toast('Scenă nouă')}
+
+function updateUrl(){try{const u=new URL(location.href);u.searchParams.set('seed',String(seedValue));u.searchParams.set('scene',currentScene);if(u.href!==location.href)history.replaceState({},'',u)}catch{}}
+function initFromUrl(){const q=new URLSearchParams(location.search),seed=q.get('seed'),scene=q.get('scene');if(seed)reseed(seed,false);else reseed($('seedInput').value,false);applyScene(Object.hasOwn(presets,scene)?scene:'rainy',false);updateUrl()}
+
+function clearTimerState() {
+  clearInterval(timerInterval);
+  clearTimeout(fadeTimer);
+  timerInterval = null;
+  fadeTimer = null;
+  timerEnd = 0;
+  $('timerReadout').textContent = '—';
+}
+
+function restoreVolumeAfterFade() {
+  if (fadeTimer !== null && engineRunning) masterVolume.volume.rampTo(Number($('masterVol').value), .25);
+  clearTimerState();
+}
+
+function setTimer(minutes) {
+  restoreVolumeAfterFade();
+  timerEnd = Date.now() + minutes * 60000;
+  timerInterval = setInterval(updateTimer, 1000);
+  updateTimer();
+  toast(`Timer ${minutes} min`);
+}
+
+function updateTimer() {
+  const remain = timerEnd - Date.now();
+  if (remain <= 0) {
+    clearTimerState();
+    if (!engineRunning) {
+      $('timerReadout').textContent = 'Finalizat';
+      return;
+    }
+    $('timerReadout').textContent = 'Estompare…';
+    masterVolume.volume.rampTo(-60, 12);
+    fadeTimer = setTimeout(() => {
+      setEngine(false);
+      $('timerReadout').textContent = 'Finalizat';
+    }, 12200);
+    return;
+  }
+  const seconds = Math.ceil(remain / 1000);
+  $('timerReadout').textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+}
+
+function cancelTimer() {
+  restoreVolumeAfterFade();
+  toast('Timer anulat');
+}
+
+$('listenLayer').addEventListener('change', event => {
+  soloLayer = event.target.value;
+  updateAudio();
+  if (audioReady) refreshLayerGates();
+  refreshListenStatus();
+});
+$('playBtn').addEventListener('click',toggleEngine);$('applyPreset').addEventListener('click',()=>applyScene($('presetSelect').value));$('presetSelect').addEventListener('change',()=>applyScene($('presetSelect').value));$('randomizeBtn').addEventListener('click',surprise);$('newVariationBtn').addEventListener('click',()=>{reseed((seedValue+1+Math.floor(Math.random()*9973))>>>0,false);varyScene();updateUrl()});$('newSeed').addEventListener('click',()=>{reseed(Math.floor(Math.random()*900000000)+1);randomState=seedValue;toast('Seed nou')});$('copySeed').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(String(seedValue));toast('Seed copiat')}catch{toast('Copiere indisponibilă')}});$('seedInput').addEventListener('change',e=>{reseed(e.target.value);randomState=seedValue;melodyIndex=3+(seedValue%4);toast('Seed aplicat')});
+document.querySelectorAll('input[type=range]').forEach(el=>el.addEventListener('input',updateAudio));document.querySelectorAll('[data-toggle]').forEach(sw=>{const act=()=>{const n=sw.dataset.toggle;setToggle(n,!enabled[n]);updateAudio()};sw.addEventListener('click',act);sw.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();act()}})});document.querySelectorAll('[data-minutes]').forEach(b=>b.addEventListener('click',()=>setTimer(Number(b.dataset.minutes))));$('cancelTimer').addEventListener('click',cancelTimer);
+
+/* Animated contours, with amplitude driven by the output meter. */
+const canvas = $('viz');
+const ctx = canvas.getContext('2d');
+const meterText = $('meterText');
+const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+const waveColors = ['108, 188, 220', '105, 195, 180', '148, 168, 225',
+                    '184, 153, 217', '219, 160, 159', '215, 174, 126'];
+let phase = 0;
+
+function resize() {
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = Math.round(rect.width * dpr);
+  canvas.height = Math.round(rect.height * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+addEventListener('resize', resize);
+resize();
+
+function draw() {
+  const w = canvas.clientWidth;
+  const h = canvas.clientHeight;
+  ctx.clearRect(0, 0, w, h);
+  const level = Number(meter.getValue());
+  const db = Number.isFinite(level) ? level : -100;
+  const amp = clamp((db + 58) / 58, 0, 1);
+  if (!reducedMotion?.matches) phase += engineRunning ? .016 : .004;
+  const strength = reducedMotion?.matches ? 0 : amp;
+  const background = ctx.createLinearGradient(0, 0, w, h);
+  background.addColorStop(0, 'rgba(82, 159, 199, .08)');
+  background.addColorStop(1, 'rgba(170, 122, 172, .16)');
+  ctx.fillStyle = background;
+  ctx.fillRect(0, 0, w, h);
+
+  waveColors.forEach((color, layer) => {
+    const y0 = h * (.24 + layer * .085);
+    const amplitude = 9 + layer * 1.4 + strength * 15;
+    const stroke = ctx.createLinearGradient(0, 0, w, 0);
+    stroke.addColorStop(0, `rgba(${color}, .23)`);
+    stroke.addColorStop(.52, `rgba(${color}, ${.62 + strength * .14})`);
+    stroke.addColorStop(1, `rgba(${color}, .39)`);
+    ctx.beginPath();
+    for (let x = 0; x <= w + 4; x += 4) {
+      const y = y0 + Math.sin(x * (.009 + layer * .001) + phase * (1 + layer * .13) + layer * 1.4) * amplitude
+        + Math.sin(x * .0034 - phase * .67 + layer) * amplitude * .35;
+      if (x === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.lineWidth = 1.45 + strength * .4;
+    ctx.strokeStyle = stroke;
+    ctx.stroke();
+  });
+  if (soloLayer === 'piano') refreshListenStatus();
+  const readout = db < -59 ? '−∞ dB' : `${db.toFixed(1)} dB`;
+  if (meterText.textContent !== readout) meterText.textContent = readout;
+  requestAnimationFrame(draw);
+}
+draw();
+
+initFromUrl();Object.entries(enabled).forEach(([n,v])=>setToggle(n,v));renderValues();masterVolume.mute=true;
+})();
+</script>
+<script src="prism.js"></script>
+<script src="site.js"></script>
+</body>
+</html>

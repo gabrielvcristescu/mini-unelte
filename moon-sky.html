@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<!--
+Mini Unelte
+Curation, direction, testing and integration: Gabriel Valentin Cristescu
+Implementation developed with AI assistance.
+Third-party algorithms, data, APIs and assets are credited where applicable.
+-->
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Luna pe cer — Mini Unelte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="astronomy.css">
+<link rel="stylesheet" href="prism.css">
+<script src="theme.js"></script>
+
+<style>
+.controls{
+  display:grid;
+  grid-template-columns:1.15fr .58fr .58fr .52fr .62fr .72fr;
+  gap:8px;
+  margin-bottom:10px;
+  padding:12px;
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  background:var(--bg2);
+}
+.field label{
+  display:block;
+  margin-bottom:5px;
+  color:var(--text3);
+  font-family:var(--font-mono);
+  font-size:.56rem;
+  text-transform:uppercase;
+  letter-spacing:.07em;
+}
+.field input{ width:100%; }
+.location-line{
+  grid-column:1/-1;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:2px;
+  font-family:var(--font-mono);
+  font-size:.62rem;
+  color:var(--text3);
+}
+.location-line strong{color:var(--text2);}
+.sky-card,.timeline-card{
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  overflow:hidden;
+  background:var(--bg2);
+}
+.card-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  gap:10px;
+  padding:9px 12px;
+  border-bottom:1px solid var(--border);
+}
+.card-head strong{font-size:.8rem;}
+.card-head span{
+  color:var(--text3);
+  font-family:var(--font-mono);
+  font-size:.56rem;
+}
+.sky-wrap{
+  position:relative;
+  height:430px;
+  background:
+    linear-gradient(
+      var(--sky-top,#05080e) 0%,
+      var(--sky-mid,#0b1522) 68%,
+      var(--sky-bottom,#11151b) 100%
+    );
+  transition:background .35s linear;
+}
+.sky-wrap svg,.timeline-wrap svg{
+  width:100%; height:100%; display:block;
+}
+.timeline-card{margin-top:8px;}
+.timeline-wrap{
+  height:160px;
+  background:#090d13;
+  transition:background .35s linear;
+}
+.info-grid{
+  display:grid;
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:7px;
+  margin-top:8px;
+}
+.info{
+  padding:9px 10px;
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  background:var(--bg2);
+  min-width:0;
+}
+.info strong{
+  display:block;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:var(--text);
+  font-family:var(--font-mono);
+  font-size:.82rem;
+}
+.info span{
+  display:block;
+  margin-top:3px;
+  color:var(--text3);
+  font-family:var(--font-mono);
+  font-size:.51rem;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+.legend{
+  margin-top:8px;
+  padding:9px 11px;
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  background:var(--bg2);
+  color:var(--text3);
+  font-family:var(--font-mono);
+  font-size:.58rem;
+  line-height:1.55;
+}
+.legend strong{color:var(--text2);}
+.tool-about-note{
+  margin-top:clamp(1.5rem,4vw,2.5rem);
+  padding:14px 16px;
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  background:var(--bg2);
+  color:var(--text3);
+  font-family:var(--font-mono);
+  font-size:.72rem;
+  line-height:1.55;
+}
+.tool-about-note strong{color:var(--text2);font-weight:600;}
+
+@media(max-width:850px){
+  .controls{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .info-grid{grid-template-columns:repeat(3,minmax(0,1fr));}
+  .sky-wrap{height:365px;}
+}
+@media(max-width:520px){
+  .controls{grid-template-columns:1fr 1fr;}
+  .field:first-of-type{grid-column:1/-1;}
+  .info-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .sky-wrap{height:320px;}
+}
+</style>
+</head>
+
+<body data-show-source="true">
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()"></button>
+
+<div class="tool-page">
+  <div class="tool-header">
+    <a class="back" href="index.html#astro">← Astronomie</a>
+    <h1>Luna pe cer</h1>
+    <p>Răsărit, apus și traiectorie — inclusiv când Luna este vizibilă ziua</p>
+  </div>
+
+  <div class="controls">
+    <div class="location-line">
+      <span><strong>București</strong> implicit · poți modifica manual coordonatele</span>
+      <span>ora afișată = ora locală definită prin UTC offset</span>
+    </div>
+    <div class="field">
+      <label>Data</label>
+      <input class="input-calc" id="date" type="date">
+      <div id="date-pretty" style="margin-top:4px;font-family:var(--font-mono);font-size:.56rem;color:var(--text3)">—</div>
+    </div>
+    <div class="field">
+      <label>Latitudine</label>
+      <input class="input-calc" id="lat" type="number" step="0.0001" value="44.4268">
+    </div>
+    <div class="field">
+      <label>Longitudine</label>
+      <input class="input-calc" id="lon" type="number" step="0.0001" value="26.1025">
+    </div>
+    <div class="field">
+      <label>UTC offset</label>
+      <input class="input-calc" id="tz" type="number" min="-12" max="14" step="0.5" value="3">
+    </div>
+    <div class="field">
+      <label>Perioadă animație</label>
+      <select id="period" class="unit-select" style="width:100%">
+        <option value="1">1 zi</option>
+        <option value="7">7 zile</option>
+        <option value="30" selected>30 zile</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Viteză animație</label>
+      <select id="speed" class="unit-select" style="width:100%">
+        <option value="0.25">×0,25 · foarte lent</option>
+        <option value="0.5" selected>×0,5 · lent</option>
+        <option value="1">×1 · normal</option>
+        <option value="2">×2 · rapid</option>
+        <option value="4">×4 · foarte rapid</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="astro-playback">
+    <div class="astro-playback-main">
+      <div class="astro-playback-head">
+        <label for="time">Ora locală</label>
+        <output id="time-label" for="time">12:00</output>
+      </div>
+      <input id="time" type="range" min="0" max="1439" step="1" value="720">
+    </div>
+    <button class="btn btn-secondary" id="play" type="button">Play</button>
+    <button class="btn btn-ghost" id="reset" type="button">Reset</button>
+  </div>
+
+  <div class="sky-card">
+    <div class="card-head">
+      <strong>Panorama cerului</strong>
+      <span>azimut: N → E → S → V → N · altitudine 0–90°</span>
+    </div>
+    <div class="sky-wrap">
+      <svg id="sky" viewBox="0 0 1100 430" preserveAspectRatio="none" aria-label="Traiectoria Lunii și Soarelui pe cer"></svg>
+    </div>
+  </div>
+
+  <div class="timeline-card">
+    <div class="card-head">
+      <strong>24 de ore</strong>
+      <span>ziua curentă din animație · fundal: noapte / amurg / zi</span>
+    </div>
+    <div class="timeline-wrap">
+      <svg id="timeline" viewBox="0 0 1100 160" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+
+  <div class="info-grid">
+    <div class="info"><strong id="phase">—</strong><span>faza Lunii</span></div>
+    <div class="info"><strong id="illum">—</strong><span>iluminare</span></div>
+    <div class="info"><strong id="rise">—</strong><span>răsărit Lună</span></div>
+    <div class="info"><strong id="set">—</strong><span>apus Lună</span></div>
+    <div class="info"><strong id="moon-now">—</strong><span>Luna la ora aleasă</span></div>
+    <div class="info"><strong id="sun-now">—</strong><span>Soarele la ora aleasă</span></div>
+  </div>
+
+  <div class="legend">
+    <strong>Cum citești:</strong> curba alb-albăstruie este Luna, curba aurie este Soarele.
+    Discul arată cât este iluminată Luna, cu orientarea convențională a fazelor. Linia de la 0° este orizontul. Porțiunea punctată a traiectoriei Lunii arată intervalul
+    în care Luna se află sub orizont; marcajele indică răsăritul și apusul. În banda de 24 h,
+    dacă segmentul Lunii se suprapune peste zona de zi, Luna este deasupra orizontului în timp
+    ce Soarele este și el pe cer —
+    exact situația în care o putem vedea ziua.
+  </div>
+
+  <div class="legend">
+    <strong>Notă:</strong> pentru alte localități trebuie introdus și UTC offset-ul local corect
+    pentru data aleasă. SunCalc calculează pozițiile astronomice din instante UTC; această pagină
+    transformă ora civilă aleasă în UTC folosind offset-ul introdus.
+  </div>
+
+  <div class="legend">
+    <strong>Calcul astronomic:</strong> SunCalc 2.x — poziții aparente ale Soarelui și Lunii,
+    fază și iluminare. Biblioteca rulează local; nu se fac cereri către servicii externe.
+  </div>
+
+  <div class="tool-about-note">
+    <strong>Luna pe cer</strong> face parte din colecția <strong>Mini Unelte</strong>,
+    selectată, testată și integrată de <strong>Gabriel Valentin Cristescu</strong>.
+    Implementarea a fost realizată cu asistență AI.
+  </div>
+</div>
+
+<script src="suncalc.js"></script>
+<script src="lunar-disc.js"></script>
+<script>
+(() => {
+'use strict';
+
+const $ = id => document.getElementById(id);
+const dateEl=$('date'), latEl=$('lat'), lonEl=$('lon'), tzEl=$('tz'), periodEl=$('period'), speedEl=$('speed');
+const datePretty=$('date-pretty');
+const timeEl=$('time'), timeLabel=$('time-label'), sky=$('sky'), timeline=$('timeline');
+const playBtn=$('play'), resetBtn=$('reset');
+let playing=false;
+let lastAnim=performance.now();
+let animStartDate='';
+let animElapsedDays=0;
+let animStartMinute=0;
+
+function localDateISO(){
+  const d=new Date();
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+dateEl.value=localDateISO();
+
+const MONTHS_RO = ['ianuarie','februarie','martie','aprilie','mai','iunie','iulie','august','septembrie','octombrie','noiembrie','decembrie'];
+function prettyDate(){
+  if(!dateEl.value){ datePretty.textContent='—'; return; }
+  const [y,m,d]=dateEl.value.split('-').map(Number);
+  datePretty.textContent=`${d} ${MONTHS_RO[m-1]} ${y}`;
+}
+function addDaysToSelectedDate(days){
+  const [y,m,d]=dateEl.value.split('-').map(Number);
+  const dt=new Date(Date.UTC(y,m-1,d));
+  dt.setUTCDate(dt.getUTCDate()+days);
+  const yy=dt.getUTCFullYear();
+  const mm=String(dt.getUTCMonth()+1).padStart(2,'0');
+  const dd=String(dt.getUTCDate()).padStart(2,'0');
+  dateEl.value=`${yy}-${mm}-${dd}`;
+  prettyDate();
+}
+
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function pad(n){return String(n).padStart(2,'0');}
+function hm(mins){
+  mins=((Math.round(mins)%1440)+1440)%1440;
+  return `${pad(Math.floor(mins/60))}:${pad(mins%60)}`;
+}
+function parseDateParts(){
+  const [y,m,d]=dateEl.value.split('-').map(Number);
+  return {y,m,d};
+}
+function instantForMinute(minute){
+  const {y,m,d}=parseDateParts();
+  const offset=Number(tzEl.value)||0;
+  // local civil midnight at selected offset -> UTC instant
+  return new Date(Date.UTC(y,m-1,d,0,minute,0,0)-offset*3600000);
+}
+function phaseName(p){
+  p=((p%1)+1)%1;
+  if(p<0.03125||p>=0.96875)return'Lună nouă';
+  if(p<0.21875)return'Seceră în creștere';
+  if(p<0.28125)return'Primul pătrar';
+  if(p<0.46875)return'Gibboasă în creștere';
+  if(p<0.53125)return'Lună plină';
+  if(p<0.71875)return'Gibboasă în descreștere';
+  if(p<0.78125)return'Ultimul pătrar';
+  return'Seceră în descreștere';
+}
+function colorForSunAlt(a){
+  if(a>=0)return '#223b59';
+  if(a>=-6)return '#273044';
+  if(a>=-12)return '#171d2c';
+  return '#090d13';
+}
+function skyPalette(alt){
+  // Smooth-ish educational palette driven by solar altitude.
+  if(alt >= 15) return ['#397cc0','#6ba8dc','#b8d5ec'];
+  if(alt >= 3)  return ['#2c6eae','#5b9bd0','#d6b37e'];
+  if(alt >= -3) return ['#203a62','#8a6a73','#c87f59'];
+  if(alt >= -9) return ['#111d35','#283651','#59435a'];
+  return ['#03050a','#070b13','#0b1019'];
+}
+function applySkyBackground(sunAlt){
+  const [top,mid,bottom]=skyPalette(sunAlt);
+  const wrap=document.querySelector('.sky-wrap');
+  wrap.style.setProperty('--sky-top',top);
+  wrap.style.setProperty('--sky-mid',mid);
+  wrap.style.setProperty('--sky-bottom',bottom);
+}
+function sampleDay(lat,lon){
+  const arr=[];
+  for(let m=0;m<=1440;m+=5){
+    const t=instantForMinute(Math.min(m,1439));
+    const moon=SunCalc.getMoonPosition(t,lat,lon);
+    const sun=SunCalc.getPosition(t,lat,lon);
+    arr.push({m,moon,sun});
+  }
+  return arr;
+}
+function crossings(samples,key){
+  const out=[];
+  for(let i=1;i<samples.length;i++){
+    const a=samples[i-1][key].altitude, b=samples[i][key].altitude;
+    if((a<0&&b>=0)||(a>=0&&b<0)){
+      const f=(0-a)/(b-a);
+      out.push({
+        minute:samples[i-1].m+f*(samples[i].m-samples[i-1].m),
+        rising:a<b
+      });
+    }
+  }
+  return out;
+}
+function skyXY(az,alt){
+  const x=55+(az/360)*990;
+  // 0° remains the horizon at y=335. Values below horizon are shown
+  // only down to -12° in a small explanatory strip.
+  const clamped=Math.max(-12,Math.min(90,alt));
+  const y=335-(clamped/90)*285;
+  return [x,y];
+}
+function normAz(a){
+  return ((a % 360) + 360) % 360;
+}
+
+/*
+  Unwrap azimuth inside each above-horizon interval.
+  This avoids artificial breaks when azimuth crosses North
+  (e.g. 359° -> 0°).
+*/
+function pathSegments(samples,key,mode='above'){
+  const all=[];
+  let seg=[];
+  let prevUnwrapped=null;
+
+  for(const s of samples){
+    const p=s[key];
+    const visible = mode==='above' ? p.altitude>=0 : p.altitude<0;
+
+    if(!visible){
+      if(seg.length>1) all.push(seg);
+      seg=[];
+      prevUnwrapped=null;
+      continue;
+    }
+
+    let az=normAz(p.azimuth);
+
+    if(prevUnwrapped !== null){
+      while(az - prevUnwrapped > 180) az -= 360;
+      while(az - prevUnwrapped < -180) az += 360;
+    }
+
+    prevUnwrapped=az;
+    const [x,y]=skyXY(az,p.altitude);
+    seg.push([x,y]);
+  }
+
+  if(seg.length>1) all.push(seg);
+  return all;
+}
+
+function pathD(seg,shiftX=0){
+  return seg.map((p,i)=>
+    `${i?'L':'M'}${(p[0]+shiftX).toFixed(1)},${p[1].toFixed(1)}`
+  ).join(' ');
+}
+
+/*
+  A trajectory that crosses North may naturally continue beyond
+  the left/right edge of the 0..360° panorama. Drawing shifted
+  copies lets SVG clipping show the continuation at the opposite edge.
+*/
+function trajectoryPaths(samples,key,color,width,opacity,mode='above',dash=''){
+  let out='';
+  for(const seg of pathSegments(samples,key,mode)){
+    for(const shift of [-990,0,990]){
+      out+=`<path d="${pathD(seg,shift)}" fill="none" stroke="${color}" stroke-width="${width}" opacity="${opacity}" stroke-linecap="round" stroke-linejoin="round"${dash?` stroke-dasharray="${dash}"`:''}/>`;
+    }
+  }
+  return out;
+}
+
+function crossingMarkers(samples,key){
+  let out='';
+  for(let i=1;i<samples.length;i++){
+    const a=samples[i-1][key], b=samples[i][key];
+    if((a.altitude<0&&b.altitude>=0)||(a.altitude>=0&&b.altitude<0)){
+      const f=(0-a.altitude)/(b.altitude-a.altitude);
+      let az=a.azimuth+f*(b.azimuth-a.azimuth);
+      az=normAz(az);
+      const [x,y]=skyXY(az,0);
+      const rising=a.altitude<b.altitude;
+      out+=`<circle cx="${x}" cy="${y}" r="4.5" fill="${rising?'#b9d8ff':'#91a7c2'}"/>`;
+      out+=`<text x="${x+(rising?8:-8)}" y="${y-8}" fill="#aebed2" font-size="10" text-anchor="${rising?'start':'end'}">${rising?'răsărit':'apus'}</text>`;
+    }
+  }
+  return out;
+}
+
+function renderSky(samples,mp,sp,illum){
+  let s='';
+
+  // Stele discrete, vizibile numai când Soarele este suficient sub orizont.
+  if(sp.altitude < -5){
+    const stars=[
+      [95,82,1.2],[170,118,1],[245,74,1.3],[318,138,1],[405,92,1.1],
+      [492,126,1.3],[575,70,1],[663,112,1.2],[742,84,1],[826,132,1.2],
+      [910,74,1.3],[992,118,1],[135,188,1],[286,205,1.2],[462,178,1],
+      [640,198,1.2],[810,186,1],[955,210,1.1]
+    ];
+    const op=Math.min(1,(-sp.altitude-5)/10);
+    for(const [x,y,r] of stars)
+      s+=`<circle cx="${x}" cy="${y}" r="${r}" fill="#dce9ff" opacity="${(.65*op).toFixed(2)}"/>`;
+  }
+
+  // grid
+  for(let alt=0;alt<=90;alt+=15){
+    const y=335-(alt/90)*285;
+    s+=`<line x1="55" y1="${y}" x2="1045" y2="${y}" stroke="#263342" stroke-width="1"/>`;
+    s+=`<text x="48" y="${y+4}" fill="#708096" font-size="11" text-anchor="end">${alt}°</text>`;
+  }
+  // Mică zonă explicativă sub orizont.
+  const yBelow=335-(-12/90)*285;
+  s+=`<rect x="55" y="335" width="990" height="${yBelow-335}" fill="#05070b" opacity=".72"/>`;
+  s+=`<text x="48" y="${yBelow-4}" fill="#596777" font-size="10" text-anchor="end">−12°</text>`;
+  const dirs=[['N',0],['E',90],['S',180],['V',270],['N',360]];
+  for(const [lab,az] of dirs){
+    const x=55+(az/360)*990;
+    s+=`<line x1="${x}" y1="50" x2="${x}" y2="335" stroke="#1e2936" stroke-width="1"/>`;
+    s+=`<text x="${x}" y="414" fill="#93a2b6" font-size="13" text-anchor="middle">${lab}</text>`;
+  }
+  s+=`<line x1="55" y1="335" x2="1045" y2="335" stroke="#8aa0b8" stroke-width="1.6" opacity=".8"/>`;
+  // Traiectorii deasupra orizontului.
+  s += trajectoryPaths(samples,'sun','#e1ad45',3,.92,'above');
+  s += trajectoryPaths(samples,'moon','#b9d8ff',3.5,.95,'above');
+
+  // Porțiunea Lunii aflată sub orizont este arătată ca o urmă punctată,
+  // astfel încât cele două arce ale aceleiași zile să fie ușor de înțeles.
+  s += trajectoryPaths(samples,'moon','#7f9abb',2,.42,'below','6 6');
+  s += crossingMarkers(samples,'moon');
+
+  applySkyBackground(sp.altitude);
+  const discRadius=12;
+  if(mp.altitude>=0){
+    const [x,y]=skyXY(mp.azimuth,mp.altitude);
+    const lit=lunarLightPath(x,y,discRadius,illum.fraction,illum.waxing);
+    s+=`<g><title>Luna · ${phaseName(illum.phase)} · ${Math.round(illum.fraction*100)}% iluminare</title>
+      <circle cx="${x}" cy="${y}" r="${discRadius}" fill="#182334"/>
+      ${lit ? `<path d="${lit}" fill="#ffe3a6"/>` : ''}
+      <circle cx="${x}" cy="${y}" r="${discRadius}" fill="none" stroke="#bdc9da" stroke-width="1.2"/>
+    </g>`;
+    s+=`<text x="${x+16}" y="${y-11}" fill="#e7edf4" font-size="12">Luna</text>`;
+  }
+  if(sp.altitude>=0){
+    const [x,y]=skyXY(sp.azimuth,sp.altitude);
+    s+=`<circle cx="${x}" cy="${y}" r="${discRadius}" fill="#f2bd4f" stroke="#ffe39a" stroke-width="1.2"/>`;
+    s+=`<text x="${x+16}" y="${y+18}" fill="#f2bd4f" font-size="12">Soare</text>`;
+  }
+  sky.innerHTML=s;
+}
+function renderTimeline(samples,minute){
+  let s='';
+  const bandHeight=20;
+  // daylight background sampled in blocks
+  for(let i=0;i<samples.length-1;i++){
+    const a=samples[i], b=samples[i+1];
+    const x=50+(a.m/1440)*1000;
+    const w=((b.m-a.m)/1440)*1000+1;
+    s+=`<rect x="${x}" y="22" width="${w}" height="88" fill="${colorForSunAlt(a.sun.altitude)}"/>`;
+  }
+  // moon-up band
+  for(let i=0;i<samples.length-1;i++){
+    const a=samples[i], b=samples[i+1];
+    if(a.moon.altitude>=0){
+      const x=50+(a.m/1440)*1000;
+      const w=((b.m-a.m)/1440)*1000+1;
+      s+=`<rect x="${x}" y="78" width="${w}" height="${bandHeight}" fill="#b9d8ff" opacity=".78"/>`;
+    }
+  }
+  // sun-up band
+  for(let i=0;i<samples.length-1;i++){
+    const a=samples[i], b=samples[i+1];
+    if(a.sun.altitude>=0){
+      const x=50+(a.m/1440)*1000;
+      const w=((b.m-a.m)/1440)*1000+1;
+      s+=`<rect x="${x}" y="40" width="${w}" height="${bandHeight}" fill="#e1ad45" opacity=".9"/>`;
+    }
+  }
+  for(let h=0;h<=24;h+=3){
+    const x=50+(h/24)*1000;
+    s+=`<line x1="${x}" y1="22" x2="${x}" y2="112" stroke="#617084" stroke-width=".7" opacity=".45"/>`;
+    s+=`<text x="${x}" y="135" fill="#8898ad" font-size="11" text-anchor="middle">${pad(h%24)}:00</text>`;
+  }
+  const cx=50+(minute/1440)*1000;
+  s+=`<line x1="${cx}" y1="16" x2="${cx}" y2="116" stroke="#fff" stroke-width="1.5"/>`;
+  s+=`<text x="53" y="34" fill="#e1ad45" font-size="10">Soare</text>`;
+  s+=`<text x="53" y="72" fill="#d7e8ff" font-size="10">Luna deasupra orizontului</text>`;
+  timeline.innerHTML=s;
+}
+function formatCross(crossings,rising){
+  const c=crossings.find(x=>x.rising===rising);
+  return c?hm(c.minute):'—';
+}
+function update(){
+  if(!window.SunCalc){
+    sky.innerHTML='<text x="550" y="190" text-anchor="middle" fill="#f08080" font-size="16">SunCalc nu s-a încărcat. Verifică suncalc.js.</text>';
+    return;
+  }
+  const lat=Number(latEl.value), lon=Number(lonEl.value);
+  if(!Number.isFinite(lat)||!Number.isFinite(lon)||!dateEl.value)return;
+  const minute=Number(timeEl.value);
+  timeLabel.textContent=hm(minute);
+
+  const samples=sampleDay(lat,lon);
+  const t=instantForMinute(minute);
+  const illum=SunCalc.getMoonIllumination(t);
+  const mp=SunCalc.getMoonPosition(t,lat,lon);
+  const sp=SunCalc.getPosition(t,lat,lon);
+  renderSky(samples,mp,sp,illum);
+  renderTimeline(samples,minute);
+  const mc=crossings(samples,'moon');
+
+  $('phase').textContent=phaseName(illum.phase);
+  $('illum').textContent=`${Math.round(illum.fraction*100)}%`;
+  $('rise').textContent=formatCross(mc,true);
+  $('set').textContent=formatCross(mc,false);
+  $('moon-now').textContent=`${mp.altitude.toFixed(1)}° · ${mp.azimuth.toFixed(0)}°`;
+  $('sun-now').textContent=`${sp.altitude.toFixed(1)}° · ${sp.azimuth.toFixed(0)}°`;
+}
+function seekAnimation(){
+  animStartDate=dateEl.value;
+  animStartMinute=Number(timeEl.value);
+  animElapsedDays=0;
+  if(!animStartDate){
+    playing=false;
+    playBtn.textContent='Play';
+  }
+}
+
+dateEl.addEventListener('input',()=>{
+  seekAnimation();
+  prettyDate();
+  update();
+});
+[latEl,lonEl,tzEl].forEach(el=>el.addEventListener('input',update));
+timeEl.addEventListener('input',()=>{
+  seekAnimation();
+  update();
+});
+
+playBtn.addEventListener('click',()=>{
+  if(!dateEl.value)return;
+  if(!animStartDate)seekAnimation();
+  playing=!playing;
+  playBtn.textContent=playing?'Pauză':'Play';
+  lastAnim=performance.now();
+});
+
+resetBtn.addEventListener('click',()=>{
+  playing=false;
+  playBtn.textContent='Play';
+  if(animStartDate)dateEl.value=animStartDate;
+  timeEl.value=720;
+  seekAnimation();
+  prettyDate();
+  update();
+});
+
+function animate(now){
+  if(playing){
+    const dt=Math.min((now-lastAnim)/1000,.1);
+    lastAnim=now;
+
+    const totalDays=Number(periodEl.value)||1;
+    const speed=Number(speedEl.value)||1;
+    // La ×1, întreaga perioadă selectată rulează în ~60 s.
+    // Implicit ×0,5 => ~120 s; utilizatorul poate regla ×0,25 ... ×4.
+    const simulatedDaysPerSecond=(totalDays/60)*speed;
+    animElapsedDays=(animElapsedDays+dt*simulatedDaysPerSecond)%totalDays;
+    const minutes=animStartMinute+Math.floor(animElapsedDays*1440);
+    const wholeDays=Math.floor(minutes/1440);
+
+    const [y,m,d]=animStartDate.split('-').map(Number);
+    const dtDate=new Date(Date.UTC(y,m-1,d));
+    dtDate.setUTCDate(dtDate.getUTCDate()+wholeDays);
+    dateEl.value=`${dtDate.getUTCFullYear()}-${String(dtDate.getUTCMonth()+1).padStart(2,'0')}-${String(dtDate.getUTCDate()).padStart(2,'0')}`;
+    timeEl.value=minutes%1440;
+
+    prettyDate();
+    update();
+  }else{
+    lastAnim=now;
+  }
+  requestAnimationFrame(animate);
+}
+
+prettyDate();
+update();
+requestAnimationFrame(animate);
+})();
+</script>
+
+<script src="prism.js"></script>
+<script src="site.js"></script>
+</body>
+</html>
